@@ -2,15 +2,22 @@
   "name": "cubomx",
   "version": "0.0.1",
   "description": "A lightweight JavaScript library for building reactive web interfaces.",
-  "main": "src/CuboMX.js",
   "type": "module",
+  "main": "./dist/cubomx.umd.cjs",
+  "module": "./dist/cubomx.js",
+  "types": "./dist/cubomx.d.ts",
   "exports": {
-    ".": "./src/CuboMX.js"
+    ".": {
+      "import": "./dist/cubomx.js",
+      "require": "./dist/cubomx.umd.cjs"
+    }
   },
   "files": [
-    "src"
+    "dist"
   ],
   "scripts": {
+    "build": "vite build && cp src/cubomx.d.ts dist/",
+    "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -30,5 +37,8 @@
   "bugs": {
     "url": "https://github.com/mauro-andre/CuboMX/issues"
   },
-  "homepage": "https://github.com/mauro-andre/CuboMX#readme"
+  "homepage": "https://github.com/mauro-andre/CuboMX#readme",
+  "devDependencies": {
+    "vite": "^7.1.5"
+  }
 }
