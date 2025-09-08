@@ -15,7 +15,7 @@ To use CuboMX, you need to register your components and then start the engine.
 
 **`index.js` (Example):**
 ```javascript
-import { CuboMX } from "./CuboMX/CuboMX";
+import { CuboMX } from "cubomx";
 import { loginControl } from "./components/loginControl";
 import { passwordInput } from "./components/passwordInput";
 
@@ -110,12 +110,19 @@ Updates the `innerText` of an element with the value of a component property.
 ```
 
 ### `:` (Attribute Binding)
-Binds an HTML attribute to a component property.
+Binds an HTML attribute to the result of a JavaScript expression. For most attributes, this will completely replace the attribute's value on every change.
 
 ```html
 <button :disabled="isLoading">Save</button>
 <a :href="userProfileUrl">Profile</a>
-<div :class="isActive ? 'active-class' : ''">...</div>
+```
+
+**Special Behavior for `:class`:**
+The `:class` binding is special. Instead of replacing the entire class list, CuboMX intelligently compares the new and old values from the expression. It only adds or removes the classes that have changed, without affecting other static classes on the element. This is more efficient and preserves CSS transitions.
+
+```html
+<!-- The expression can return a string of space-separated classes -->
+<div class="static-class" :class="isActive ? 'active text-bold' : ''">...</div>
 ```
 
 ### `mx-on:`
@@ -152,7 +159,8 @@ Injects server-rendered data directly into a component's initial state. This is 
     *   `"false"`, `"False"` -> `false` (Boolean)
     *   `"123"` -> `123` (Number)
     *   `'{"key": "value"}'` -> `{ key: "value" }` (Object/Array from JSON)
-    *   `"null"`, `"None"` -> `null`
+    *   `"null"`, `"None"`, `"none"` -> `null`
+    *   `"undefined"` -> `undefined`
     *   Any other value remains a String.
 
 **Example:**
@@ -213,6 +221,7 @@ The global `CuboMX` object exposes several useful properties and methods.
     ```
 *   **`CuboMX.request(config)`**: Performs an AJAX request and updates the DOM.
 *   **`CuboMX.swapHTML(html, strategies, options)`**: Updates the DOM without a request.
+*   **`CuboMX.renderTemplate(template, data)`**: A simple utility function that replaces `{{ variable }}` placeholders in a string with values from a data object.
 
 #### Actions
 

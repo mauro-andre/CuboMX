@@ -11,6 +11,11 @@ const CuboMX = (() => {
     const registeredStores = {};
     const activeStores = {};
 
+    /**
+     * Registers a new global store. Must be called before start().
+     * @param {string} name The name of the store.
+     * @param {object} obj The store object, containing state, methods, and optional init/onDOMUpdate hooks.
+     */
     const store = (name, obj) => {
         registeredStores[name] = obj;
     };
@@ -164,7 +169,18 @@ const CuboMX = (() => {
         return instance;
     };
 
+    /**
+     * Registers a new component.
+     * @param {string} name The name of the component, used in the `mx-data` attribute.
+     * @param {object|Function} obj The component definition (an object for a singleton, a function for a factory).
+     */
     const component = (name, obj) => (registeredComponents[name] = obj);
+
+    /**
+     * Watches a property on a reactive object (store or ref) for changes.
+     * @param {string} pathString The path to the property to watch (e.g., '$stores.theme.mode', '$refs.myComponent.value').
+     * @param {Function} callback The function to execute when the property changes. It receives (newValue, oldValue).
+     */
     const watch = (pathString, callback) => {
         if (typeof pathString !== "string" || !pathString.includes(".")) {
             let valid = false;
@@ -358,6 +374,10 @@ const CuboMX = (() => {
         }
     };
 
+    /**
+     * Initializes all stores and starts the framework.
+     * Scans the entire DOM for components, initializes them, and sets up a MutationObserver to handle dynamic changes.
+     */
     const start = () => {
         for (const name in registeredStores) {
             const storeDefinition = registeredStores[name];

@@ -1,9 +1,15 @@
 {
   "name": "cubomx",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A lightweight JavaScript library for building reactive web interfaces.",
   "main": "src/CuboMX.js",
   "type": "module",
+  "exports": {
+    ".": "./src/CuboMX.js"
+  },
+  "files": [
+    "src"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,7 +21,9 @@
     "reactive",
     "frontend",
     "javascript",
-    "library"
+    "library",
+    "htmx",
+    "alpinejs"
   ],
   "author": "Mauro Andre",
   "license": "MIT",
