@@ -16,7 +16,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build && cp src/cubomx.d.ts dist/",
+    "build": "vite build",
     "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite build --watch"
