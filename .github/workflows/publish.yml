@@ -1,0 +1,38 @@
+# Workflow to automatically publish the package to npm
+name: Publish to npm
+
+# Trigger: Run whenever a new release is created on GitHub
+on:
+  release:
+    types: [created]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Clones the repository to have access to the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Sets up the Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x' # Use a recent LTS version of Node
+          registry-url: 'https://registry.npmjs.org/' # Point to the npm registry
+
+      # 3. Updates the version in package.json based on the release tag
+      - name: Update version from release tag
+        run: |
+          # Removes the 'v' from the beginning of the tag (e.g., v1.0.1 -> 1.0.1)
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          echo "Setting package version to $VERSION"
+          # Uses the 'npm version' tool to safely update package.json
+          npm --no-git-tag-version version $VERSION
+
+      # 4. Publishes the package to npm
+      - name: Publish to npm
+        run: npm publish
+        env:
+          # Use the secret token configured in the GitHub repository
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
