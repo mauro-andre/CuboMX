@@ -448,8 +448,6 @@ const CuboMX = (() => {
                 }
             }
         });
-
-        console.log("CuboMX started.");
     };
 
     return {
