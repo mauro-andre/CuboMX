@@ -1,4 +1,4 @@
-import { request as a, swapHTML as b } from "./request.js";
+import { request as a, swapHTML as b, processActions as d } from "./request.js";
 import { renderTemplate as c } from "./template.js";
 
 const CuboMX = (() => {
@@ -86,10 +86,20 @@ const CuboMX = (() => {
             bindings.expressions.forEach((binding) => {
                 let result;
                 try {
-                    result = new Function(
+                    // Create a function that accepts $el and $stores as arguments
+                    const func = new Function(
+                        "$el",
+                        "$stores",
                         `with(this) { return ${binding.expression} }`
-                    ).call(instance);
-                } catch (e) {}
+                    );
+                    // Call the function with the element and active stores
+                    result = func.call(instance, binding.element, activeStores);
+                } catch (e) {
+                    console.error(
+                        `[CuboMX] Error evaluating expression: "${binding.expression}"`,
+                        e
+                    );
+                }
 
                 if (binding.attribute === "class") {
                     const newClasses = result ? String(result).split(" ") : [];
@@ -388,11 +398,19 @@ const CuboMX = (() => {
                     const oldValue = target[property];
                     const success = Reflect.set(target, property, value);
                     if (success && oldValue !== value) {
+                        // Trigger watchers for the specific store property
                         const fullPath = `$stores.${name}.${property}`;
                         if (watchers[fullPath]) {
                             watchers[fullPath].forEach((cb) =>
                                 cb(value, oldValue)
                             );
+                        }
+
+                        // Re-evaluate bindings on all active components
+                        // so they can react to store changes
+                        for (const instance of activeInstances.values()) {
+                            instance.__reevaluateShowBindings();
+                            instance.__reevaluateExpressionBindings();
                         }
                     }
                     return success;
@@ -418,6 +436,7 @@ const CuboMX = (() => {
                     // 2. Bind directives on the node itself and its children.
                     // The bindDirectives function is smart enough to find
                     // the correct context (whether a parent component or the global context).
+
                     const elementsToBind = [
                         node,
                         ...node.querySelectorAll("*"),
@@ -459,6 +478,7 @@ const CuboMX = (() => {
         request: a,
         swapHTML: b,
         renderTemplate: c,
+        actions: d,
         refs,
     };
 })();

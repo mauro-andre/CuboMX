@@ -9,26 +9,6 @@ declare module 'cubomx' {
         onDOMUpdate?: () => void;
     }
 
-    interface RequestConfig {
-        url: string;
-        method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-        body?: object | FormData | null;
-        headers?: object;
-        pushUrl?: boolean;
-        history?: boolean;
-        loadingSelectors?: string[];
-        strategies?: object[];
-        actions?: object[];
-        rootElement?: HTMLElement;
-    }
-
-    interface SwapOptions {
-        targetUrl?: string;
-        history?: boolean;
-        actions?: object[] | null;
-        rootElement?: HTMLElement;
-    }
-
     interface CuboMXAPI {
         /**
          * Registers a new component.
@@ -58,19 +38,49 @@ declare module 'cubomx' {
         store(name: string, obj: StoreDefinition): void;
 
         /**
-         * Performs an asynchronous request and updates the DOM based on the response.
-         * @param config The request configuration object.
-         * @returns A promise that resolves with the status and final URL of the response.
+         * @summary Performs an asynchronous request and updates the DOM based on the response.
+         * @param {Object} config - The request configuration object.
+         * @param {string} config.url - The URL to which the request will be sent.
+         * @param {string} [config.method='GET'] - The HTTP method to use.
+         * @param {Object|FormData} [config.body=null] - The request body.
+         * @param {Object} [config.headers={}] - Custom request headers.
+         * @param {boolean} [config.pushUrl=false] - Fallback to update the URL if the backend does not send `X-Push-Url`.
+         * @param {boolean} [config.history=false] - Whether the change should be added to the browser history.
+         * @param {Array<string>} [config.loadingSelectors=[]] - Selectors to apply the 'x-request' class during the request.
+         * @param {Array<Object>} [config.strategies=null] - Swap strategies, with priority over server-sent ones.
+         * @param {Array<Object>} [config.actions=null] - Imperative actions to execute after the swap, with priority over server-sent ones.
+         * @param {HTMLElement} [config.rootElement=document] - The root element for selector queries.
+         * @returns {Promise<Object>} A promise that resolves with the status and final URL of the response.
          */
-        request(config: RequestConfig): Promise<{ ok: boolean; status: number; url: string; redirected?: boolean; }>;
+        request(config: {
+            url: string;
+            method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+            body?: object | FormData | null;
+            headers?: object;
+            pushUrl?: boolean;
+            history?: boolean;
+            loadingSelectors?: string[];
+            strategies?: object[];
+            actions?: object[];
+            rootElement?: HTMLElement;
+        }): Promise<{ ok: boolean; status: number; url: string; redirected?: boolean; }>;
 
         /**
-         * Updates the DOM from HTML content and local strategies.
-         * @param htmlContent The source HTML content containing the elements to be swapped.
-         * @param strategies The list of swap strategies. E.g., [{ select: '#src', target: '#dest' }]
-         * @param options Options for URL, history, and scope control.
+         * @summary Updates the DOM from HTML content and local strategies.
+         * @param {string} htmlContent - The source HTML content containing the elements to be swapped.
+         * @param {Array<Object>} strategies - The list of swap strategies. E.g., [{ select: '#src', target: '#dest' }]
+         * @param {Object} [options={}] - Options for URL, history, and scope control.
+         * @param {string} [options.targetUrl] - The new URL to display in the address bar.
+         * @param {boolean} [options.history] - Whether the change should be added to the browser history.
+         * @param {Array<Object>} [options.actions=null] - Imperative actions to execute after the swap.
+         * @param {HTMLElement} [options.rootElement=document] - The root element for selector queries.
          */
-        swapHTML(htmlContent: string, strategies: object[], options?: SwapOptions): void;
+        swapHTML(htmlContent: string, strategies: object[], options?: {
+            targetUrl?: string;
+            history?: boolean;
+            actions?: object[] | null;
+            rootElement?: HTMLElement;
+        }): void;
 
         /**
          * Replaces placeholders in a template string with values from a data object.
@@ -79,6 +89,13 @@ declare module 'cubomx' {
          * @returns The rendered template.
          */
         renderTemplate(template: string, data: object): string;
+
+        /**
+         * Programmatically executes a list of actions on the DOM.
+         * @param actions An array of action objects to execute.
+         * @param rootElement Optional. The root element for selector queries. Defaults to `document`.
+         */
+        actions(actions: object[], rootElement?: HTMLElement): void;
 
         /**
          * A reactive object containing all component instances named with `mx-ref`.

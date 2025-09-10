@@ -5,17 +5,27 @@
 
 /**
  * Restores the DOM state based on a state object saved from history.
+ * Handles selectors that match multiple elements.
  */
 const restoreState = (state, rootElement = document) => {
     if (!state || !state.swaps) return;
     for (const swap of state.swaps) {
         const { selector: targetSelector } = parseSelector(
-            swap.target,
+            swap.selector,
             "outerHTML"
         );
-        const targetElement = rootElement.querySelector(targetSelector);
-        if (targetElement) {
-            targetElement.outerHTML = swap.html;
+        const targetElements = rootElement.querySelectorAll(targetSelector);
+
+        // Ensure the number of saved elements matches the number of found elements
+        if (targetElements.length === swap.htmls.length) {
+            targetElements.forEach((element, index) => {
+                // Using replaceWith on a temporary element is safer than setting outerHTML on a live NodeList
+                const tempEl = document.createElement("div");
+                tempEl.innerHTML = swap.htmls[index];
+                if (tempEl.firstChild) {
+                    element.replaceWith(tempEl.firstChild);
+                }
+            });
         }
     }
     window.dispatchEvent(new CustomEvent("cubo:dom-updated"));
@@ -64,20 +74,37 @@ const processActions = (actions, rootElement = document) => {
 };
 
 /**
- * Captures the current state of the elements that will be swapped.
+ * Captures the current state of elements targeted by strategies and actions.
+ * Handles selectors that match multiple elements.
  */
-const captureState = (strategies, rootElement = document) => {
+const captureState = (strategies, actions, rootElement = document) => {
+    const selectors = new Set();
+
+    if (strategies) {
+        strategies.forEach((s) => s.target && selectors.add(s.target));
+    }
+    if (actions) {
+        actions.forEach(
+            (a) =>
+                a.selector &&
+                a.selector !== "window" &&
+                selectors.add(a.selector)
+        );
+    }
+
     const currentState = [];
-    for (const strategy of strategies) {
+    for (const selector of selectors) {
         const { selector: targetSelector } = parseSelector(
-            strategy.target,
+            selector,
             "outerHTML"
         );
-        const targetElement = rootElement.querySelector(targetSelector);
-        if (targetElement) {
+        const targetElements = rootElement.querySelectorAll(targetSelector);
+
+        if (targetElements.length > 0) {
+            const htmls = Array.from(targetElements).map((el) => el.outerHTML);
             currentState.push({
-                target: strategy.target,
-                html: targetElement.outerHTML,
+                selector: selector,
+                htmls: htmls,
             });
         }
     }
@@ -226,7 +253,7 @@ const processDOMUpdate = (
     }
 ) => {
     if (history && targetUrl) {
-        const currentState = captureState(strategies, rootElement);
+        const currentState = captureState(strategies, actions, rootElement);
         window.history.replaceState(
             { swaps: currentState },
             "",
@@ -389,4 +416,4 @@ const request = async ({
 
 window.addEventListener("popstate", (event) => restoreState(event.state));
 
-export { request, swapHTML };
+export { request, swapHTML, processActions };

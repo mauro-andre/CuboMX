@@ -52,7 +52,7 @@ Perfect for page controllers or sections that exist only once.
     };
     export { loginControl };
     ```
-*   **Usage (HTML):** `mx-data="componentName"`
+*   **Usage (HTML):** `mx-data="componentName"
     ```html
     <div mx-data="loginControl">...</div>
     ```
@@ -130,7 +130,7 @@ Attaches an event listener to an element. It calls a component method when the e
 
 > **Advanced Usage:** `mx-on` can be used even outside an `mx-data` component to interact with global stores. This is useful for simple elements, like modals, that don't need a full component state.
 
-*   **Syntax:** `mx-on:event.modifier="method()"`
+*   **Syntax:** `mx-on:event.modifier="method()"
 *   **Example:** `<button mx-on:click="save()">Save</button>`
 *   **Modifiers:**
     *   `.prevent`: Calls `event.preventDefault()`.
@@ -146,12 +146,12 @@ Attaches an event listener to an element. It calls a component method when the e
 ### `mx-prop:`
 Injects server-rendered data directly into a component's initial state. This is the primary method for passing data from the backend to the frontend in CuboMX.
 
-*   **Syntax:** `mx-prop:property-name="value"`
+*   **Syntax:** `mx-prop:property-name="value"
 
 > **Usage Note:** The `mx-prop:` directive must be declared on the **same element** as the `mx-data` directive. It is used to pass the initial state to the component being defined at that point.
 >
 > **Naming Convention:** By default, HTML attributes are case-insensitive. To pass properties with compound names, use `kebab-case` in HTML, and CuboMX will automatically convert them to `camelCase` in your JavaScript component.
-> *   HTML: `mx-prop:user-id="123"`
+> *   HTML: `mx-prop:user-id="123"
 > *   JS: `this.userId` will be `123`.
 
 *   **Type Conversion:** CuboMX automatically converts attribute values to the most appropriate JavaScript data types:
@@ -212,7 +212,7 @@ The global `CuboMX` object exposes several useful properties and methods.
 *   **`CuboMX.component(name, object)`**: Registers a new component (Singleton or Factory).
 *   **`CuboMX.store(name, object)`**: Registers a new global store. The object can contain data properties and the `init()` and `onDOMUpdate()` methods. Must be called before `CuboMX.start()`.
 *   **`CuboMX.start()`**: Starts the framework, processes registered stores, and scans the DOM for components.
-*   **`CuboMX.stores`**: An object containing the reactive instances of all registered stores. Use for shared state (e.g., `CuboMX.stores.theme.mode = 'dark'`).
+*   **`CuboMX.stores`**: An object containing the reactive instances of all registered stores. Use for shared state (e.g., `CuboMX.stores.theme.mode = 'dark').
 *   **`CuboMX.refs`**: An object containing all component instances named with `mx-ref`.
 *   **`CuboMX.watch(path, callback)`**: Watches a property on a named component (`$refs.`) or a store (`$stores.`).
     ```javascript
@@ -222,12 +222,11 @@ The global `CuboMX` object exposes several useful properties and methods.
 *   **`CuboMX.request(config)`**: Performs an AJAX request and updates the DOM.
 *   **`CuboMX.swapHTML(html, strategies, options)`**: Updates the DOM without a request.
 *   **`CuboMX.renderTemplate(template, data)`**: A simple utility function that replaces `{{ variable }}` placeholders in a string with values from a data object.
+*   **`CuboMX.actions(actions, rootElement)`**: Programmatically executes a list of actions on the DOM without needing a request. `rootElement` is optional and defaults to `document`.
 
 #### Actions
 
-For more granular DOM manipulations that don't involve swapping HTML blocks, you can use `actions`. They allow the client or server to send a list of instructions to be executed after an HTML swap.
-
-Actions can be passed as a parameter in the `CuboMX.request` call or sent by the server via the `X-Cubo-Actions` header. If both are provided, the JavaScript actions take priority.
+For more granular DOM manipulations that don't involve swapping HTML blocks, you can use `actions`.
 
 **Available Actions:**
 *   `addClass`: `{ "action": "addClass", "selector": ".my-el", "class": "new-class" }`
@@ -330,3 +329,36 @@ This reactive approach decouples the components, making your application more ro
         }
     }
     ```
+
+## 8. Server-Side Integration
+
+For a truly seamless experience, your backend can control `CuboMX.request` behavior by sending specific HTTP headers in the response. This allows the server to dictate redirects, URL changes, DOM updates, and actions.
+
+### Controlling Swaps: `X-Swap-Strategies`
+
+If the `strategies` array is not provided in the client-side `CuboMX.request` call, CuboMX will look for this header.
+
+*   **Value:** A JSON-stringified array of strategy objects.
+*   **Example:** `[{"select":"#form-errors","target":"#form-errors"}]`
+*   **Precedence:** The client-side `strategies` parameter always has priority.
+
+### Triggering Actions: `X-Cubo-Actions`
+
+If the `actions` array is not provided in the client-side call, CuboMX will look for this header.
+
+*   **Value:** A JSON-stringified array of action objects.
+*   **Precedence:** The client-side `actions` parameter always has priority.
+
+### Managing Browser History: `X-Push-Url`
+
+This header tells CuboMX which URL to push to the browser's history stack after a successful request.
+
+*   **Value:** A full or relative URL path (e.g., `/users/123`).
+*   **Precedence:** This header has priority over the client-side `pushUrl: true` parameter. If the header is absent, `pushUrl: true` will use the final response URL as a fallback.
+
+### Forcing Redirects: `X-Redirect`
+
+This header instructs the client to perform a full page redirect immediately.
+
+*   **Value:** The absolute or relative URL to redirect to.
+*   **Precedence:** This is absolute. If this header is present, it will override all other behaviors like DOM swapping and actions.
