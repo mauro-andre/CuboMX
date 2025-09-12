@@ -62,4 +62,32 @@ describe('CuboMX Refactor - DOM Mutation Lifecycle', () => {
         // 4. A asserção de robustez: o destroy do outro componente NÃO foi chamado
         expect(destroySpyToKeep).not.toHaveBeenCalled();
     });
+
+    it('should bind directives on new elements that are not components themselves', async () => {
+        // 1. Setup a store that already exists when the new HTML is added.
+        CuboMX.store('testStore', { message: 'Hello' });
+        CuboMX.start();
+
+        // 2. Dynamically add a new chunk of HTML without any mx-data.
+        const newContent = document.createElement('div');
+        newContent.innerHTML = `
+            <span mx-text="testStore.message"></span>
+            <button mx-on:click="testStore.message = 'Clicked'"></button>
+        `;
+        document.body.appendChild(newContent);
+        await vi.runAllTimersAsync();
+
+        const span = document.querySelector('span');
+        const button = document.querySelector('button');
+
+        // 3. Assert that the new directives were processed and are reactive.
+        expect(span.innerText).toBe('Hello');
+
+        // 4. Simulate a click that changes the store state.
+        button.click();
+
+        // 5. Assert that the change was reflected by mx-text.
+        expect(CuboMX.testStore.message).toBe('Clicked');
+        expect(span.innerText).toBe('Clicked');
+    });
 });

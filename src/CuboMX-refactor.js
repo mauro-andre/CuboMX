@@ -288,6 +288,14 @@ const CuboMX = (() => {
         });
 
         observer.observe(document.body, { childList: true, subtree: true });
+
+        window.addEventListener("cubo:dom-updated", () => {
+            for (const proxy of Object.values(activeProxies)) {
+                if (typeof proxy.onDOMUpdate === 'function') {
+                    proxy.onDOMUpdate.call(proxy);
+                }
+            }
+        });
     };
 
     const reset = () => {
