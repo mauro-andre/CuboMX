@@ -208,4 +208,33 @@ describe('CuboMX - Directive Evaluation', () => {
         button.click();
         expect(parentHandler).not.toHaveBeenCalled();
     });
+
+    it('should handle two-way data binding with mx-model', () => {
+        CuboMX.component('form', { username: 'Mauro' });
+        document.body.innerHTML = `
+            <div mx-data="form">
+                <input type="text" mx-model="form.username">
+                <span mx-text="form.username"></span>
+            </div>
+        `;
+        CuboMX.start();
+        const input = document.querySelector('input');
+        const span = document.querySelector('span');
+
+        // 1. Initial state check
+        expect(input.value).toBe('Mauro');
+        expect(span.innerText).toBe('Mauro');
+
+        // 2. Programmatic state change should update input and span
+        CuboMX.form.username = 'Andre';
+        expect(input.value).toBe('Andre');
+        expect(span.innerText).toBe('Andre');
+
+        // 3. User input should update state and other bindings (span)
+        input.value = 'Cubo';
+        input.dispatchEvent(new Event('input')); // Simulate input event
+        
+        expect(CuboMX.form.username).toBe('Cubo');
+        expect(span.innerText).toBe('Cubo');
+    });
 });

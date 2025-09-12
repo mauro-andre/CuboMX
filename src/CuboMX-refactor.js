@@ -99,6 +99,27 @@ const CuboMX = (() => {
                 bindings.push(binding);
             }
 
+            if (el.hasAttribute('mx-model')) {
+                const expression = el.getAttribute('mx-model');
+                
+                const setter = new Function('value', `with(this) { ${expression} = value }`);
+                el.addEventListener('input', () => {
+                    setter.call(activeProxies, el.value);
+                });
+            
+                const binding = {
+                    el,
+                    evaluate() {
+                        const value = evaluate(expression);
+                        if (el.value !== value) {
+                            el.value = value ?? '';
+                        }
+                    }
+                };
+                binding.evaluate();
+                bindings.push(binding);
+            }
+
             // Prefixed directives
             for (const attr of [...el.attributes]) {
                 if (attr.name.startsWith(':')) {
