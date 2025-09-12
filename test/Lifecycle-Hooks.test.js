@@ -35,4 +35,33 @@ describe('CuboMX - Lifecycle Hooks', () => {
         expect(storeHook).toHaveBeenCalledTimes(1);
         expect(componentHook).toHaveBeenCalledTimes(1);
     });
+
+    it('should expose this.$el inside component methods', () => {
+        let initEl = null;
+        let customMethodEl = null;
+
+        const compDef = {
+            init() {
+                initEl = this.$el;
+            },
+            checkEl() {
+                customMethodEl = this.$el;
+            }
+        };
+
+        CuboMX.component('myComp', compDef);
+        document.body.innerHTML = '<div mx-data="myComp" class="test-div"></div>';
+        const div = document.querySelector('.test-div');
+
+        CuboMX.start();
+
+        // Check from init()
+        expect(initEl).toBeInstanceOf(HTMLElement);
+        expect(initEl).toBe(div);
+
+        // Check from a custom method
+        CuboMX.myComp.checkEl();
+        expect(customMethodEl).toBeInstanceOf(HTMLElement);
+        expect(customMethodEl).toBe(div);
+    });
 });

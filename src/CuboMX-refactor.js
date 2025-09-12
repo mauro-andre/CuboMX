@@ -32,7 +32,7 @@ const CuboMX = (() => {
         watchers[path].push(cb);
     };
 
-    const createProxy = (obj, name) => {
+    const createProxy = (obj, name, el = null) => {
         const handler = {
             set(target, property, value) {
                 const oldValue = target[property];
@@ -54,6 +54,9 @@ const CuboMX = (() => {
                         watch(path, callback);
                     }
                 }
+                if (property === '$el') {
+                    return el;
+                }
                 return Reflect.get(target, property);
             }
         };
@@ -68,118 +71,95 @@ const CuboMX = (() => {
         activeProxies[name] = proxy;
     };
 
+    const directiveHandlers = {
+        'mx-text': (el, expression) => {
+            const binding = {
+                el,
+                evaluate: () => el.innerText = String(evaluate(expression) ?? '')
+            };
+            binding.evaluate();
+            bindings.push(binding);
+        },
+        'mx-show': (el, expression) => {
+            const originalDisplay = el.style.display === 'none' ? '' : el.style.display;
+            const binding = {
+                el,
+                evaluate: () => el.style.display = evaluate(expression) ? originalDisplay : 'none'
+            };
+            binding.evaluate();
+            bindings.push(binding);
+        },
+        'mx-model': (el, expression) => {
+            const setter = new Function('value', `with(this) { ${expression} = value }`);
+            el.addEventListener('input', () => setter.call(activeProxies, el.value));
+            
+            const binding = {
+                el,
+                evaluate() {
+                    const value = evaluate(expression);
+                    if (el.value !== value) el.value = value ?? '';
+                }
+            };
+            binding.evaluate();
+            bindings.push(binding);
+        },
+        ':': (el, attr) => {
+            const attrName = attr.name.substring(1);
+            const expression = attr.value;
+            let binding;
+
+            if (attrName === 'class') {
+                let lastAddedClasses = [];
+                binding = {
+                    el,
+                    evaluate() {
+                        const newClasses = String(evaluate(expression) || '').split(' ').filter(Boolean);
+                        lastAddedClasses.forEach(c => el.classList.remove(c));
+                        newClasses.forEach(c => el.classList.add(c));
+                        lastAddedClasses = newClasses;
+                    }
+                };
+            } else if (['disabled', 'readonly', 'required', 'checked', 'selected', 'open'].includes(attrName)) {
+                binding = {
+                    el,
+                    evaluate() {
+                        evaluate(expression) ? el.setAttribute(attrName, '') : el.removeAttribute(attrName);
+                    }
+                };
+            } else {
+                binding = {
+                    el,
+                    evaluate: () => el.setAttribute(attrName, evaluate(expression) ?? '')
+                };
+            }
+            binding.evaluate();
+            bindings.push(binding);
+        },
+        'mx-on:': (el, attr) => {
+            const eventAndModifiers = attr.name.substring(6); // 'mx-on:'.length
+            const [eventName, ...modifiers] = eventAndModifiers.split('.');
+            const expression = attr.value;
+
+            el.addEventListener(eventName, (event) => {
+                if (modifiers.includes('prevent')) event.preventDefault();
+                if (modifiers.includes('stop')) event.stopPropagation();
+                evaluateEventExpression(expression, el, event);
+            });
+        }
+    };
+
     const bindDirectives = (rootElement) => {
         const elements = [rootElement, ...rootElement.querySelectorAll('*')];
-
         for (const el of elements) {
-            // Fixed directives
-            if (el.hasAttribute('mx-text')) {
-                const expression = el.getAttribute('mx-text');
-                const binding = {
-                    el,
-                    evaluate() {
-                        const value = evaluate(expression);
-                        el.innerText = String(value ?? '');
-                    }
-                };
-                binding.evaluate();
-                bindings.push(binding);
-            }
-            if (el.hasAttribute('mx-show')) {
-                const expression = el.getAttribute('mx-show');
-                const originalDisplay = el.style.display === 'none' ? '' : el.style.display;
-                const binding = {
-                    el,
-                    evaluate() {
-                        const show = evaluate(expression);
-                        el.style.display = show ? originalDisplay : 'none';
-                    }
-                };
-                binding.evaluate();
-                bindings.push(binding);
-            }
-
-            if (el.hasAttribute('mx-model')) {
-                const expression = el.getAttribute('mx-model');
-                
-                const setter = new Function('value', `with(this) { ${expression} = value }`);
-                el.addEventListener('input', () => {
-                    setter.call(activeProxies, el.value);
-                });
-            
-                const binding = {
-                    el,
-                    evaluate() {
-                        const value = evaluate(expression);
-                        if (el.value !== value) {
-                            el.value = value ?? '';
-                        }
-                    }
-                };
-                binding.evaluate();
-                bindings.push(binding);
-            }
+            // Fixed-name directives
+            if (el.hasAttribute('mx-text')) directiveHandlers['mx-text'](el, el.getAttribute('mx-text'));
+            if (el.hasAttribute('mx-show')) directiveHandlers['mx-show'](el, el.getAttribute('mx-show'));
+            if (el.hasAttribute('mx-model')) directiveHandlers['mx-model'](el, el.getAttribute('mx-model'));
 
             // Prefixed directives
             for (const attr of [...el.attributes]) {
-                if (attr.name.startsWith(':')) {
-                    const attrName = attr.name.substring(1);
-                    const expression = attr.value;
-
-                    let binding;
-
-                    if (attrName === 'class') {
-                        let lastAddedClasses = [];
-                        binding = {
-                            el,
-                            evaluate() {
-                                const newClasses = String(evaluate(expression) || '').split(' ').filter(Boolean);
-                                lastAddedClasses.forEach(c => el.classList.remove(c));
-                                newClasses.forEach(c => el.classList.add(c));
-                                lastAddedClasses = newClasses;
-                            }
-                        };
-                    } else if (['disabled', 'readonly', 'required', 'checked', 'selected', 'open'].includes(attrName)) {
-                        binding = {
-                            el,
-                            evaluate() {
-                                const result = evaluate(expression);
-                                if (result) {
-                                    el.setAttribute(attrName, '');
-                                } else {
-                                    el.removeAttribute(attrName);
-                                }
-                            }
-                        };
-                    } else { // Default attribute
-                        binding = {
-                            el,
-                            evaluate() {
-                                const result = evaluate(expression);
-                                el.setAttribute(attrName, result ?? '');
-                            }
-                        };
-                    }
-                    binding.evaluate();
-                    bindings.push(binding);
-                }
-
-                const eventPrefix = 'mx-on:';
-                if (attr.name.startsWith(eventPrefix)) {
-                    const eventAndModifiers = attr.name.substring(eventPrefix.length);
-                    const [eventName, ...modifiers] = eventAndModifiers.split('.');
-                    const expression = attr.value;
-
-                    el.addEventListener(eventName, (event) => {
-                        if (modifiers.includes('prevent')) {
-                            event.preventDefault();
-                        }
-                        if (modifiers.includes('stop')) {
-                            event.stopPropagation();
-                        }
-                        evaluateEventExpression(expression, el, event);
-                    });
-                }
+                if (attr.name.startsWith(':')) directiveHandlers[':'](el, attr);
+                if (attr.name.startsWith('mx-on:')) directiveHandlers['mx-on:'](el, attr);
             }
         }
     };
@@ -215,12 +195,12 @@ const CuboMX = (() => {
                     el.setAttribute('mx-ref', refName);
                 }
                 if (activeProxies[refName]) return; // Already initialized
-                const proxy = createProxy(instanceObj, refName);
+                const proxy = createProxy(instanceObj, refName, el);
                 addActiveProxy(refName, proxy);
                 newInstances.push(proxy);
             } else { // Singleton
                 if (activeProxies[componentName]) return; // Already initialized
-                const proxy = createProxy({ ...definition }, componentName);
+                const proxy = createProxy({ ...definition }, componentName, el);
                 addActiveProxy(componentName, proxy);
                 newInstances.push(proxy);
             }
@@ -308,11 +288,41 @@ const CuboMX = (() => {
     };
 
     const publicAPI = {
+        /**
+         * Registers a global store. Stores are always singletons.
+         * @param {string} name The name of the store, used to access it globally (e.g., `CuboMX.storeName`).
+         * @param {object} obj The store object.
+         */
         store: (name, obj) => registeredStores[name] = obj,
+
+        /**
+         * Registers a component. A component can be a singleton (plain object)
+         * or a factory (a function that returns an object).
+         * @param {string} name The name used in the `mx-data` attribute.
+         * @param {object|Function} def The component object or factory function.
+         */
         component: (name, def) => registeredComponents[name] = def,
+
+        /**
+         * Watches a property on any global store or component for changes.
+         * @param {string} path A string path to the property (e.g., 'componentName.propertyName' or 'storeName.propertyName').
+         * @param {Function} cb A function to execute when the property changes. It receives the new and old values.
+         */
         watch,
+
+        /**
+         * Scans the DOM, initializes all registered stores and components,
+         * and starts listening for DOM mutations. This function should be called
+         * once the entire application is ready.
+         */
         start,
+
+        /**
+         * Resets the internal state of CuboMX. Used primarily for testing.
+         */
         reset,
+
+        // External utilities from other modules
         request: a,
         swapHTML: b,
         renderTemplate: c,
