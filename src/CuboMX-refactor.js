@@ -73,6 +73,19 @@ const CuboMX = (() => {
 
     const directiveHandlers = {
         'mx-text': (el, expression) => {
+            const initialValue = evaluate(expression);
+
+            // If the state is null or undefined, hydrate it from the DOM's text content.
+            if (initialValue === null || initialValue === undefined) {
+                try {
+                    // Use textContent for better reliability in test environments like jsdom
+                    const setter = new Function('value', `with(this) { ${expression} = value }`);
+                    setter.call(activeProxies, el.textContent);
+                } catch (e) {
+                    console.error(`[CuboMX] Could not set initial value for mx-text expression: "${expression}"`, e);
+                }
+            }
+
             const binding = {
                 el,
                 evaluate: () => el.innerText = String(evaluate(expression) ?? '')
