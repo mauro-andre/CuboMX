@@ -51,4 +51,34 @@ describe('CuboMX Refactor - Flat API & Component Registration', () => {
         expect(CuboMX[generatedRef]).toBeDefined();
         expect(CuboMX[generatedRef].email).toBe('test@test.com');
     });
+
+    it('should call init() on all new components and stores AFTER they are all created', () => {
+        const initSpyStore = vi.fn();
+        const initSpySingleton = vi.fn();
+        const initSpyFactory = vi.fn();
+
+        // Um componente que tentará acessar outro em seu init
+        const userSingleton = {
+            init() {
+                initSpySingleton();
+                // Isso não deve falhar, pois o proxy contactForm já deve existir
+                expect(CuboMX.contactForm).toBeDefined();
+            }
+        };
+
+        CuboMX.store('theme', { init: initSpyStore });
+        CuboMX.component('user', userSingleton);
+        CuboMX.component('form', () => ({ init: initSpyFactory }));
+
+        document.body.innerHTML = `
+            <div mx-data="user"></div>
+            <div mx-data="form()" mx-ref="contactForm"></div>
+        `;
+
+        CuboMX.start();
+
+        expect(initSpyStore).toHaveBeenCalled();
+        expect(initSpySingleton).toHaveBeenCalled();
+        expect(initSpyFactory).toHaveBeenCalled();
+    });
 });

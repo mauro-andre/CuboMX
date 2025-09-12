@@ -4,10 +4,40 @@ import { renderTemplate as c } from "./template.js";
 const CuboMX = (() => {
     let registeredComponents = {};
     let registeredStores = {};
+    let watchers = {};
     let activeProxies = {};
     let anonCounter = 0;
 
-    const createProxy = (obj) => new Proxy(obj, {});
+    const watch = (path, cb) => {
+        if (!watchers[path]) watchers[path] = [];
+        watchers[path].push(cb);
+    };
+
+    const createProxy = (obj, name) => {
+        const handler = {
+            set(target, property, value) {
+                const oldValue = target[property];
+                const success = Reflect.set(target, property, value);
+                if (success && oldValue !== value) {
+                    const path = `${name}.${property}`;
+                    if (watchers[path]) {
+                        watchers[path].forEach(cb => cb(value, oldValue));
+                    }
+                }
+                return success;
+            },
+            get(target, property) {
+                if (property === '$watch') {
+                    return (propToWatch, callback) => {
+                        const path = `${name}.${propToWatch}`;
+                        watch(path, callback);
+                    }
+                }
+                return Reflect.get(target, property);
+            }
+        };
+        return new Proxy(obj, handler);
+    };
 
     const addActiveProxy = (name, proxy) => {
         if (activeProxies[name]) {
@@ -17,8 +47,19 @@ const CuboMX = (() => {
         activeProxies[name] = proxy;
     };
 
+    const processInit = (initQueue) => {
+        for (const proxy of initQueue) {
+            if (typeof proxy.init === 'function') {
+                proxy.init.call(proxy);
+            }
+        }
+    };
+
     const scanDOM = (rootElement) => {
-        const elements = rootElement.querySelectorAll('[mx-data]');
+        const newInstances = [];
+        const elements = rootElement.matches('[mx-data]') 
+            ? [rootElement, ...rootElement.querySelectorAll('[mx-data]')]
+            : [...rootElement.querySelectorAll('[mx-data]')];
 
         elements.forEach(el => {
             const expression = el.getAttribute('mx-data');
@@ -37,30 +78,77 @@ const CuboMX = (() => {
                     el.setAttribute('mx-ref', refName);
                 }
                 if (activeProxies[refName]) return; // Already initialized
-                const proxy = createProxy(instanceObj);
+                const proxy = createProxy(instanceObj, refName);
                 addActiveProxy(refName, proxy);
+                newInstances.push(proxy);
             } else { // Singleton
                 if (activeProxies[componentName]) return; // Already initialized
-                const proxy = createProxy({ ...definition });
+                const proxy = createProxy({ ...definition }, componentName);
                 addActiveProxy(componentName, proxy);
+                newInstances.push(proxy);
+            }
+        });
+
+        return newInstances;
+    };
+
+    const destroyProxies = (removedNode) => {
+        if (removedNode.nodeType !== 1) return;
+
+        const elements = removedNode.matches('[mx-data]')
+            ? [removedNode, ...removedNode.querySelectorAll('[mx-data]')]
+            : [...removedNode.querySelectorAll('[mx-data]')];
+
+        elements.forEach(el => {
+            const componentName = el.getAttribute('mx-data').replace('()', '');
+            const refName = el.getAttribute('mx-ref') || componentName;
+            
+            const proxy = activeProxies[refName];
+
+            if (proxy) {
+                if (typeof proxy.destroy === 'function') {
+                    proxy.destroy.call(proxy);
+                }
+                delete activeProxies[refName];
             }
         });
     };
 
     const start = () => {
-        // 1. Processa Stores
+        let initQueue = [];
+
         for (const name in registeredStores) {
-            const proxy = createProxy({ ...registeredStores[name] });
+            const proxy = createProxy({ ...registeredStores[name] }, name);
             addActiveProxy(name, proxy);
+            if (proxy.init) initQueue.push(proxy);
         }
 
-        // 2. Processa Componentes do DOM
-        scanDOM(document.body);
+        const domInstances = scanDOM(document.body);
+        initQueue = initQueue.concat(domInstances);
+
+        processInit(initQueue);
+
+        const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType !== 1) return;
+                    const newInstances = scanDOM(node);
+                    processInit(newInstances);
+                });
+
+                mutation.removedNodes.forEach(node => {
+                    destroyProxies(node);
+                });
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
     };
 
     const reset = () => {
         registeredComponents = {};
         registeredStores = {};
+        watchers = {};
         activeProxies = {};
         anonCounter = 0;
     };
@@ -68,6 +156,7 @@ const CuboMX = (() => {
     const publicAPI = {
         store: (name, obj) => registeredStores[name] = obj,
         component: (name, def) => registeredComponents[name] = def,
+        watch,
         start,
         reset,
         request: a,
