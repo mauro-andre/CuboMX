@@ -49,4 +49,9 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    // Set up the test environment
+    environment: 'jsdom',
+    // You can add other test configurations here in the future
+  },
 });

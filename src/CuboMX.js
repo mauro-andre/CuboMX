@@ -428,7 +428,7 @@ const CuboMX = (() => {
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType !== Node.ELEMENT_NODE) return;
+                    if (node.nodeType !== 1 /* Node.ELEMENT_NODE */) return;
 
                     // 1. Initialize any NEW components within the added node.
                     initComponents(node);
@@ -446,7 +446,7 @@ const CuboMX = (() => {
                     });
                 });
                 mutation.removedNodes.forEach((node) => {
-                    if (node.nodeType === Node.ELEMENT_NODE)
+                    if (node.nodeType === 1 /* Node.ELEMENT_NODE */)
                         destroyComponents(node);
                 });
             }
@@ -469,6 +469,28 @@ const CuboMX = (() => {
         });
     };
 
+    const reset = () => {
+        // Limpa os objetos de estado em vez de reatribuí-los
+        for (const key in registeredComponents) {
+            delete registeredComponents[key];
+        }
+        activeInstances.clear();
+        for (const key in watchers) {
+            delete watchers[key];
+        }
+        for (const key in refs) {
+            delete refs[key];
+        }
+        initQueue.length = 0;
+        isInitScheduled = false;
+        for (const key in registeredStores) {
+            delete registeredStores[key];
+        }
+        for (const key in activeStores) {
+            delete activeStores[key];
+        }
+    };
+
     return {
         component,
         watch,
@@ -480,6 +502,7 @@ const CuboMX = (() => {
         renderTemplate: c,
         actions: d,
         refs,
+        reset, // Expor a função de reset
     };
 })();
 
