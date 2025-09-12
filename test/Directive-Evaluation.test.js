@@ -27,4 +27,113 @@ describe('CuboMX - Directive Evaluation', () => {
         // 3. Verifica se o DOM reagiu à mudança
         expect(span.innerText).toBe('5');
     });
+
+    it('should initialize and reactively update mx-show', () => {
+        CuboMX.component('modal', { isOpen: false });
+
+        document.body.innerHTML = `
+            <div mx-data="modal">
+                <div mx-show="modal.isOpen" style="display: block;">Modal Content</div>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        const modalContent = document.querySelector('div[mx-show]');
+
+        // 1. Verifica se o elemento está escondido inicialmente (display: none)
+        expect(modalContent.style.display).toBe('none');
+
+        // 2. Muda o estado para exibir o elemento
+        CuboMX.modal.isOpen = true;
+
+        // 3. Verifica se o elemento voltou a ter seu display original
+        expect(modalContent.style.display).toBe('block');
+
+        // 4. Muda o estado para esconder novamente
+        CuboMX.modal.isOpen = false;
+
+        // 5. Verifica se foi escondido de novo
+        expect(modalContent.style.display).toBe('none');
+    });
+
+    it('should correctly toggle visibility for elements with display: flex', () => {
+        CuboMX.component('container', { isVisible: false });
+
+        document.body.innerHTML = `
+            <div mx-data="container">
+                <div mx-show="container.isVisible" style="display: flex;">Flex Content</div>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        const flexContent = document.querySelector('div[mx-show]');
+
+        // 1. Initial state: should be hidden
+        expect(flexContent.style.display).toBe('none');
+
+        // 2. Change state to visible
+        CuboMX.container.isVisible = true;
+
+        // 3. Check if it's now display: flex
+        expect(flexContent.style.display).toBe('flex');
+
+        // 4. Change state to hidden again
+        CuboMX.container.isVisible = false;
+
+        // 5. Check if it's hidden again
+        expect(flexContent.style.display).toBe('none');
+    });
+
+    it('should reactively update boolean attributes like :disabled', () => {
+        CuboMX.component('form', { isLoading: true });
+        document.body.innerHTML = '<div mx-data="form"><button :disabled="form.isLoading">Submit</button></div>';
+        CuboMX.start();
+        const button = document.querySelector('button');
+
+        expect(button.hasAttribute('disabled')).toBe(true);
+
+        CuboMX.form.isLoading = false;
+        expect(button.hasAttribute('disabled')).toBe(false);
+    });
+
+    it('should reactively update standard attributes like :href', () => {
+        CuboMX.component('user', { id: 123 });
+        document.body.innerHTML = '<div mx-data="user"><a :href="`/users/${user.id}`">Profile</a></div>';
+        CuboMX.start();
+        const link = document.querySelector('a');
+
+        expect(link.getAttribute('href')).toBe('/users/123');
+
+        CuboMX.user.id = 456;
+        expect(link.getAttribute('href')).toBe('/users/456');
+    });
+
+    it('should intelligently toggle classes for :class without affecting static ones', () => {
+        CuboMX.component('status', { isActive: true, isError: false });
+        document.body.innerHTML = `
+            <div mx-data="status">
+                <div class="static" :class="[status.isActive && 'active', status.isError && 'error'].filter(Boolean).join(' ')"></div>
+            </div>
+        `;
+        CuboMX.start();
+        const div = document.querySelector('.static');
+
+        expect(div.classList.contains('static')).toBe(true);
+        expect(div.classList.contains('active')).toBe(true);
+        expect(div.classList.contains('error')).toBe(false);
+
+        // Change one property
+        CuboMX.status.isError = true;
+        expect(div.classList.contains('static')).toBe(true);
+        expect(div.classList.contains('active')).toBe(true);
+        expect(div.classList.contains('error')).toBe(true);
+
+        // Change another property
+        CuboMX.status.isActive = false;
+        expect(div.classList.contains('static')).toBe(true);
+        expect(div.classList.contains('active')).toBe(false);
+        expect(div.classList.contains('error')).toBe(true);
+    });
 });

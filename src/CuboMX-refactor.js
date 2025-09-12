@@ -60,23 +60,81 @@ const CuboMX = (() => {
     };
 
     const bindDirectives = (rootElement) => {
-        const elements = rootElement.matches('[mx-text]')
-            ? [rootElement, ...rootElement.querySelectorAll('[mx-text]')]
-            : [...rootElement.querySelectorAll('[mx-text]')];
+        const elements = [rootElement, ...rootElement.querySelectorAll('*')];
 
-        elements.forEach(el => {
-            const expression = el.getAttribute('mx-text');
-            const binding = {
-                el,
-                expression,
-                evaluate() {
-                    const value = evaluate(this.expression);
-                    this.el.innerText = String(value);
+        for (const el of elements) {
+            // Fixed directives
+            if (el.hasAttribute('mx-text')) {
+                const expression = el.getAttribute('mx-text');
+                const binding = {
+                    el,
+                    evaluate() {
+                        const value = evaluate(expression);
+                        el.innerText = String(value ?? '');
+                    }
+                };
+                binding.evaluate();
+                bindings.push(binding);
+            }
+            if (el.hasAttribute('mx-show')) {
+                const expression = el.getAttribute('mx-show');
+                const originalDisplay = el.style.display === 'none' ? '' : el.style.display;
+                const binding = {
+                    el,
+                    evaluate() {
+                        const show = evaluate(expression);
+                        el.style.display = show ? originalDisplay : 'none';
+                    }
+                };
+                binding.evaluate();
+                bindings.push(binding);
+            }
+
+            // Prefixed directives
+            for (const attr of [...el.attributes]) {
+                if (!attr.name.startsWith(':')) continue;
+
+                const attrName = attr.name.substring(1);
+                const expression = attr.value;
+
+                let binding;
+
+                if (attrName === 'class') {
+                    let lastAddedClasses = [];
+                    binding = {
+                        el,
+                        evaluate() {
+                            const newClasses = String(evaluate(expression) || '').split(' ').filter(Boolean);
+                            lastAddedClasses.forEach(c => el.classList.remove(c));
+                            newClasses.forEach(c => el.classList.add(c));
+                            lastAddedClasses = newClasses;
+                        }
+                    };
+                } else if (['disabled', 'readonly', 'required', 'checked', 'selected', 'open'].includes(attrName)) {
+                    binding = {
+                        el,
+                        evaluate() {
+                            const result = evaluate(expression);
+                            if (result) {
+                                el.setAttribute(attrName, '');
+                            } else {
+                                el.removeAttribute(attrName);
+                            }
+                        }
+                    };
+                } else { // Default attribute
+                    binding = {
+                        el,
+                        evaluate() {
+                            const result = evaluate(expression);
+                            el.setAttribute(attrName, result ?? '');
+                        }
+                    };
                 }
-            };
-            binding.evaluate();
-            bindings.push(binding);
-        });
+                binding.evaluate();
+                bindings.push(binding);
+            }
+        }
     };
 
     const processInit = (initQueue) => {
@@ -127,11 +185,12 @@ const CuboMX = (() => {
     const destroyProxies = (removedNode) => {
         if (removedNode.nodeType !== 1) return;
 
-        const elements = removedNode.matches('[mx-data]')
+        // Part 1: Destroy component proxies
+        const elementsWithData = removedNode.matches('[mx-data]')
             ? [removedNode, ...removedNode.querySelectorAll('[mx-data]')]
             : [...removedNode.querySelectorAll('[mx-data]')];
 
-        elements.forEach(el => {
+        elementsWithData.forEach(el => {
             const componentName = el.getAttribute('mx-data').replace('()', '');
             const refName = el.getAttribute('mx-ref') || componentName;
             
@@ -144,6 +203,10 @@ const CuboMX = (() => {
                 delete activeProxies[refName];
             }
         });
+
+        // Part 2: Clean up bindings from all removed nodes to prevent memory leaks
+        const allRemovedChildren = [removedNode, ...removedNode.querySelectorAll('*')];
+        bindings = bindings.filter(b => !allRemovedChildren.includes(b.el));
     };
 
     const start = () => {
