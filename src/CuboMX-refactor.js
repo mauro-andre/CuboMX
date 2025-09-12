@@ -7,6 +7,16 @@ const CuboMX = (() => {
     let watchers = {};
     let activeProxies = {};
     let anonCounter = 0;
+    let bindings = [];
+
+    const evaluate = (expression) => {
+        try {
+            // Avalia a expressão no contexto dos proxies ativos
+            return new Function(`with(this) { return ${expression} }`).call(activeProxies);
+        } catch (e) {
+            console.error(`[CuboMX] Error evaluating expression: "${expression}"`, e);
+        }
+    };
 
     const watch = (path, cb) => {
         if (!watchers[path]) watchers[path] = [];
@@ -23,6 +33,8 @@ const CuboMX = (() => {
                     if (watchers[path]) {
                         watchers[path].forEach(cb => cb(value, oldValue));
                     }
+                    // Adiciona a reavaliação das diretivas do DOM
+                    bindings.forEach(b => b.evaluate());
                 }
                 return success;
             },
@@ -45,6 +57,26 @@ const CuboMX = (() => {
             return;
         }
         activeProxies[name] = proxy;
+    };
+
+    const bindDirectives = (rootElement) => {
+        const elements = rootElement.matches('[mx-text]')
+            ? [rootElement, ...rootElement.querySelectorAll('[mx-text]')]
+            : [...rootElement.querySelectorAll('[mx-text]')];
+
+        elements.forEach(el => {
+            const expression = el.getAttribute('mx-text');
+            const binding = {
+                el,
+                expression,
+                evaluate() {
+                    const value = evaluate(this.expression);
+                    this.el.innerText = String(value);
+                }
+            };
+            binding.evaluate();
+            bindings.push(binding);
+        });
     };
 
     const processInit = (initQueue) => {
@@ -128,12 +160,15 @@ const CuboMX = (() => {
 
         processInit(initQueue);
 
+        bindDirectives(document.body);
+
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 mutation.addedNodes.forEach(node => {
                     if (node.nodeType !== 1) return;
                     const newInstances = scanDOM(node);
                     processInit(newInstances);
+                    bindDirectives(node); // Vincula diretivas nos nós adicionados
                 });
 
                 mutation.removedNodes.forEach(node => {
@@ -151,6 +186,7 @@ const CuboMX = (() => {
         watchers = {};
         activeProxies = {};
         anonCounter = 0;
+        bindings = [];
     };
 
     const publicAPI = {
