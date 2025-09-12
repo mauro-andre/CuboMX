@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CuboMX } from '../src/CuboMX-refactor.js';
+import { CuboMX } from '../src/CuboMX.js';
 
 describe('CuboMX Refactor - Flat API & Component Registration', () => {
 

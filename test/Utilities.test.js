@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { CuboMX } from '../src/CuboMX-refactor.js';
+import { CuboMX } from '../src/CuboMX.js';
 
 // Mocking global fetch
 const mockFetch = vi.fn();
