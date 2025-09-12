@@ -136,4 +136,76 @@ describe('CuboMX - Directive Evaluation', () => {
         expect(div.classList.contains('active')).toBe(false);
         expect(div.classList.contains('error')).toBe(true);
     });
+
+    it('should handle mx-on:click events', () => {
+        const clickHandler = vi.fn();
+        CuboMX.component('buttonComp', { handleClick: clickHandler });
+        document.body.innerHTML = `
+            <div mx-data="buttonComp">
+                <button mx-on:click="buttonComp.handleClick()"></button>
+            </div>
+        `;
+        CuboMX.start();
+        const button = document.querySelector('button');
+
+        button.click();
+        expect(clickHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it('should expose $el and $event to mx-on expressions', () => {
+        let receivedEl = null;
+        let receivedEvent = null;
+        CuboMX.component('buttonComp', {
+            handleClick(el, evt) {
+                receivedEl = el;
+                receivedEvent = evt;
+            }
+        });
+        document.body.innerHTML = `
+            <div mx-data="buttonComp">
+                <button mx-on:click="buttonComp.handleClick($el, $event)"></button>
+            </div>
+        `;
+        CuboMX.start();
+        const button = document.querySelector('button');
+
+        button.click();
+        expect(receivedEl).toBe(button);
+        expect(receivedEvent).toBeInstanceOf(Event);
+    });
+
+    it('should handle the .prevent modifier', () => {
+        CuboMX.component('formComp', {});
+        document.body.innerHTML = `
+            <form mx-data="formComp" mx-on:submit.prevent="() => {}">
+                <button type="submit"></button>
+            </form>
+        `;
+        CuboMX.start();
+        const form = document.querySelector('form');
+        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+        
+        form.dispatchEvent(submitEvent);
+
+        expect(submitEvent.defaultPrevented).toBe(true);
+    });
+
+    it('should handle the .stop modifier', () => {
+        const parentHandler = vi.fn();
+        CuboMX.component('eventComp', {});
+        // Register the spy on the global object so the expression can find it
+        CuboMX.parentHandler = parentHandler;
+
+        document.body.innerHTML = `
+            <div mx-on:click="parentHandler()" mx-data="eventComp">
+                <button mx-on:click.stop="() => {}"></button>
+            </div>
+        `;
+
+        CuboMX.start();
+        const button = document.querySelector('button');
+
+        button.click();
+        expect(parentHandler).not.toHaveBeenCalled();
+    });
 });

@@ -18,6 +18,15 @@ const CuboMX = (() => {
         }
     };
 
+    const evaluateEventExpression = (expression, el, event) => {
+        try {
+            const func = new Function('$el', '$event', `with(this) { ${expression} }`);
+            func.call(activeProxies, el, event);
+        } catch (e) {
+            console.error(`[CuboMX] Error evaluating expression: "${expression}"`, e);
+        }
+    };
+
     const watch = (path, cb) => {
         if (!watchers[path]) watchers[path] = [];
         watchers[path].push(cb);
@@ -92,47 +101,64 @@ const CuboMX = (() => {
 
             // Prefixed directives
             for (const attr of [...el.attributes]) {
-                if (!attr.name.startsWith(':')) continue;
+                if (attr.name.startsWith(':')) {
+                    const attrName = attr.name.substring(1);
+                    const expression = attr.value;
 
-                const attrName = attr.name.substring(1);
-                const expression = attr.value;
+                    let binding;
 
-                let binding;
-
-                if (attrName === 'class') {
-                    let lastAddedClasses = [];
-                    binding = {
-                        el,
-                        evaluate() {
-                            const newClasses = String(evaluate(expression) || '').split(' ').filter(Boolean);
-                            lastAddedClasses.forEach(c => el.classList.remove(c));
-                            newClasses.forEach(c => el.classList.add(c));
-                            lastAddedClasses = newClasses;
-                        }
-                    };
-                } else if (['disabled', 'readonly', 'required', 'checked', 'selected', 'open'].includes(attrName)) {
-                    binding = {
-                        el,
-                        evaluate() {
-                            const result = evaluate(expression);
-                            if (result) {
-                                el.setAttribute(attrName, '');
-                            } else {
-                                el.removeAttribute(attrName);
+                    if (attrName === 'class') {
+                        let lastAddedClasses = [];
+                        binding = {
+                            el,
+                            evaluate() {
+                                const newClasses = String(evaluate(expression) || '').split(' ').filter(Boolean);
+                                lastAddedClasses.forEach(c => el.classList.remove(c));
+                                newClasses.forEach(c => el.classList.add(c));
+                                lastAddedClasses = newClasses;
                             }
-                        }
-                    };
-                } else { // Default attribute
-                    binding = {
-                        el,
-                        evaluate() {
-                            const result = evaluate(expression);
-                            el.setAttribute(attrName, result ?? '');
-                        }
-                    };
+                        };
+                    } else if (['disabled', 'readonly', 'required', 'checked', 'selected', 'open'].includes(attrName)) {
+                        binding = {
+                            el,
+                            evaluate() {
+                                const result = evaluate(expression);
+                                if (result) {
+                                    el.setAttribute(attrName, '');
+                                } else {
+                                    el.removeAttribute(attrName);
+                                }
+                            }
+                        };
+                    } else { // Default attribute
+                        binding = {
+                            el,
+                            evaluate() {
+                                const result = evaluate(expression);
+                                el.setAttribute(attrName, result ?? '');
+                            }
+                        };
+                    }
+                    binding.evaluate();
+                    bindings.push(binding);
                 }
-                binding.evaluate();
-                bindings.push(binding);
+
+                const eventPrefix = 'mx-on:';
+                if (attr.name.startsWith(eventPrefix)) {
+                    const eventAndModifiers = attr.name.substring(eventPrefix.length);
+                    const [eventName, ...modifiers] = eventAndModifiers.split('.');
+                    const expression = attr.value;
+
+                    el.addEventListener(eventName, (event) => {
+                        if (modifiers.includes('prevent')) {
+                            event.preventDefault();
+                        }
+                        if (modifiers.includes('stop')) {
+                            event.stopPropagation();
+                        }
+                        evaluateEventExpression(expression, el, event);
+                    });
+                }
             }
         }
     };
