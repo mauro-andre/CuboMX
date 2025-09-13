@@ -1,466 +1,450 @@
-import { request as a, swapHTML as b } from "./request.js";
+import { request as a, swapHTML as b, processActions as d } from "./request.js";
 import { renderTemplate as c } from "./template.js";
 
 const CuboMX = (() => {
-    const registeredComponents = {};
-    const activeInstances = new Map();
-    const watchers = {};
-    const refs = {};
-    const initQueue = [];
-    let isInitScheduled = false;
-    const registeredStores = {};
-    const activeStores = {};
+    let registeredComponents = {};
+    let registeredStores = {};
+    let watchers = {};
+    let activeProxies = {};
+    let anonCounter = 0;
+    let bindings = [];
 
-    /**
-     * Registers a new global store. Must be called before start().
-     * @param {string} name The name of the store.
-     * @param {object} obj The store object, containing state, methods, and optional init/onDOMUpdate hooks.
-     */
-    const store = (name, obj) => {
-        registeredStores[name] = obj;
-    };
-
-    const parseAttributeValue = (value) => {
-        const lowerValue = value.toLowerCase();
-        if (lowerValue === "true") return true;
-        if (lowerValue === "false") return false;
-        if (lowerValue === "null" || lowerValue === "none") return null;
-        if (value === "undefined") return undefined;
-
-        const num = Number(value);
-        if (!isNaN(num) && value.trim() !== "") return num;
-
+    const evaluate = (expression) => {
         try {
-            if (
-                (value.startsWith("{") && value.endsWith("}")) ||
-                (value.startsWith("[") && value.endsWith("]"))
-            ) {
-                return JSON.parse(value);
-            }
+            // Avalia a expressão no contexto dos proxies ativos
+            return new Function(`with(this) { return ${expression} }`).call(
+                activeProxies
+            );
         } catch (e) {
-            // Ignore the error and return the original string
+            console.error(
+                `[CuboMX] Error evaluating expression: "${expression}"`,
+                e
+            );
         }
-        return value;
     };
 
-    const kebabToCamel = (str) =>
-        str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-
-    const createReactiveInstance = (componentName, element) => {
-        const blueprint = registeredComponents[componentName];
-        if (!blueprint) return null;
-        const instanceData =
-            typeof blueprint === "function" ? blueprint() : { ...blueprint };
-
-        const propPrefix = "mx-prop:";
-        for (const attr of element.attributes) {
-            if (attr.name.startsWith(propPrefix)) {
-                let propName = attr.name.substring(propPrefix.length);
-                propName = kebabToCamel(propName);
-                instanceData[propName] = parseAttributeValue(attr.value);
-            }
+    const evaluateEventExpression = (expression, el, event) => {
+        try {
+            const func = new Function(
+                "$el",
+                "$event",
+                `with(this) { ${expression} }`
+            );
+            func.call(activeProxies, el, event);
+        } catch (e) {
+            console.error(
+                `[CuboMX] Error evaluating expression: "${expression}"`,
+                e
+            );
         }
+    };
 
-        const bindings = { model: {}, text: {}, show: [], expressions: [] };
+    const watch = (path, cb) => {
+        if (!watchers[path]) watchers[path] = [];
+        watchers[path].push(cb);
+    };
 
-        const reevaluateShowBindings = () => {
-            bindings.show.forEach((binding) => {
-                let show = false;
-                try {
-                    show = new Function(
-                        `with(this) { return ${binding.expression} }`
-                    ).call(instance);
-                } catch (e) {}
-                if (!show) {
-                    if (binding.element.style.display !== "none")
-                        binding.originalDisplay = binding.element.style.display;
-                    binding.element.style.display = "none";
-                } else {
-                    binding.element.style.display =
-                        binding.originalDisplay || "";
-                }
-            });
-        };
-
-        const reevaluateExpressionBindings = () => {
-            bindings.expressions.forEach((binding) => {
-                let result;
-                try {
-                    result = new Function(
-                        `with(this) { return ${binding.expression} }`
-                    ).call(instance);
-                } catch (e) {}
-
-                if (binding.attribute === "class") {
-                    const newClasses = result ? String(result).split(" ") : [];
-                    const oldClasses = binding.lastResult
-                        ? String(binding.lastResult).split(" ")
-                        : [];
-
-                    oldClasses.forEach((cls) => {
-                        if (cls && !newClasses.includes(cls)) {
-                            binding.element.classList.remove(cls);
-                        }
-                    });
-
-                    newClasses.forEach((cls) => {
-                        if (cls) {
-                            binding.element.classList.add(cls);
-                        }
-                    });
-
-                    binding.lastResult = result;
-                } else if (typeof result === "boolean") {
-                    result
-                        ? binding.element.setAttribute(binding.attribute, "")
-                        : binding.element.removeAttribute(binding.attribute);
-                } else {
-                    binding.element.setAttribute(binding.attribute, result);
-                }
-            });
-        };
-
-        const instance = new Proxy(instanceData, {
+    const createProxy = (obj, name, el = null) => {
+        const handler = {
             set(target, property, value) {
                 const oldValue = target[property];
                 const success = Reflect.set(target, property, value);
                 if (success && oldValue !== value) {
-                    if (bindings.model[property])
-                        bindings.model[property].forEach((el) => {
-                            if (el.value !== value) el.value = value;
-                        });
-                    if (bindings.text[property])
-                        bindings.text[property].forEach(
-                            (el) => (el.innerText = value)
-                        );
-
-                    const refName = Object.keys(refs).find(
-                        (key) => refs[key] === instance
-                    );
-                    const watchPath = refName
-                        ? `$refs.${refName}.${property}`
-                        : `${componentName}.${property}`;
-                    if (watchers[watchPath])
-                        watchers[watchPath].forEach((cb) =>
-                            cb(value, oldValue)
-                        );
-                    const internalWatchPath = `${componentName}.${property}`;
-                    if (watchers[internalWatchPath])
-                        watchers[internalWatchPath].forEach((cb) =>
-                            cb(value, oldValue)
-                        );
-                    reevaluateShowBindings();
-                    reevaluateExpressionBindings();
+                    const path = `${name}.${property}`;
+                    if (watchers[path]) {
+                        watchers[path].forEach((cb) => cb(value, oldValue));
+                    }
+                    // Adiciona a reavaliação das diretivas do DOM
+                    bindings.forEach((b) => b.evaluate());
                 }
                 return success;
             },
             get(target, property) {
-                if (property === "$el") return element;
-                if (property === "$stores") return activeStores;
                 if (property === "$watch") {
-                    return (prop, cb) => watch(`${componentName}.${prop}`, cb);
+                    return (propToWatch, callback) => {
+                        const path = `${name}.${propToWatch}`;
+                        watch(path, callback);
+                    };
+                }
+                if (property === "$el") {
+                    return el;
                 }
                 return Reflect.get(target, property);
             },
-        });
-        instance.__bindings = bindings;
-        instance.__reevaluateShowBindings = reevaluateShowBindings;
-        instance.__reevaluateExpressionBindings = reevaluateExpressionBindings;
-        return instance;
+        };
+        return new Proxy(obj, handler);
     };
 
-    /**
-     * Registers a new component.
-     * @param {string} name The name of the component, used in the `mx-data` attribute.
-     * @param {object|Function} obj The component definition (an object for a singleton, a function for a factory).
-     */
-    const component = (name, obj) => (registeredComponents[name] = obj);
-
-    /**
-     * Watches a property on a reactive object (store or ref) for changes.
-     * @param {string} pathString The path to the property to watch (e.g., '$stores.theme.mode', '$refs.myComponent.value').
-     * @param {Function} callback The function to execute when the property changes. It receives (newValue, oldValue).
-     */
-    const watch = (pathString, callback) => {
-        if (typeof pathString !== "string" || !pathString.includes(".")) {
-            let valid = false;
-            if (pathString.startsWith("$stores.")) valid = true;
-            if (pathString.startsWith("$refs.")) valid = true;
-            if (!valid) {
-                console.error(
-                    `[CuboMX] Invalid format for watch. Use '$stores.storeName.property' or '$refs.refName.property'.`
-                );
-                return;
-            }
-        }
-        if (!watchers[pathString]) watchers[pathString] = [];
-        watchers[pathString].push(callback);
-    };
-
-    const bindDirectives = (element) => {
-        const dataElement = element.closest("[mx-data]");
-        // If there is no parent data element, create an empty instance context.
-        // This allows directives like mx-on="$stores.something()" to work globally.
-        const instance = dataElement
-            ? activeInstances.get(dataElement)
-            : { __bindings: {} };
-
-        // If the instance is null (i.e., the dataElement was found but is not active), exit.
-        if (!instance) return;
-
-        const bindings = instance.__bindings;
-
-        if (element.hasAttribute("mx-model") && !element._mxModelAttached) {
-            const stateKey = element.getAttribute("mx-model");
-            if (instance[stateKey] === undefined)
-                instance[stateKey] = element.value || "";
-            else element.value = instance[stateKey];
-            if (!bindings.model[stateKey]) bindings.model[stateKey] = [];
-            bindings.model[stateKey].push(element);
-            element.addEventListener("input", () => {
-                instance[stateKey] = element.value;
-            });
-            element._mxModelAttached = true;
-        }
-        if (element.hasAttribute("mx-text") && !element._mxTextAttached) {
-            const stateKey = element.getAttribute("mx-text");
-            if (!bindings.text[stateKey]) bindings.text[stateKey] = [];
-            bindings.text[stateKey].push(element);
-            if (instance[stateKey] !== undefined)
-                element.innerText = instance[stateKey];
-            element._mxTextAttached = true;
-        }
-        if (element.hasAttribute("mx-show") && !element._mxShowAttached) {
-            const expression = element.getAttribute("mx-show");
-            bindings.show.push({
-                element,
-                expression,
-                originalDisplay: element.style.display,
-            });
-            element._mxShowAttached = true;
-        }
-        for (const attr of element.attributes) {
-            if (attr.name.startsWith(":")) {
-                const attributeName = attr.name.substring(1);
-                const expression = attr.value;
-                bindings.expressions.push({
-                    element,
-                    attribute: attributeName,
-                    expression,
-                });
-            }
-            const prefix = "mx-on:";
-            if (attr.name.startsWith(prefix)) {
-                const eventAndModifiers = attr.name.substring(prefix.length);
-                const [eventName, ...modifiers] = eventAndModifiers.split(".");
-                if (eventName && !element[`_${attr.name}Attached`]) {
-                    const handler = new Function(
-                        "$el",
-                        "$event",
-                        "$stores",
-                        `with(this) { ${attr.value} }`
-                    );
-                    element.addEventListener(eventName, (event) => {
-                        if (modifiers.includes("prevent"))
-                            event.preventDefault();
-                        if (modifiers.includes("stop")) event.stopPropagation();
-                        handler.call(instance, element, event, activeStores);
-                    });
-                    element[`_${attr.name}Attached`] = true;
-                }
-            }
-        }
-    };
-
-    const processInitQueue = async () => {
-        if (!initQueue.length) {
-            isInitScheduled = false;
+    const addActiveProxy = (name, proxy) => {
+        if (activeProxies[name]) {
+            console.error(
+                `[CuboMX] Name collision: The name '${name}' is already in use.`
+            );
             return;
         }
-
-        const queueToProcess = [...initQueue];
-        initQueue.length = 0;
-
-        for (const { instance, el } of queueToProcess) {
-            if (!instance.__initialized) {
-                const childElements = [el, ...el.querySelectorAll("*")];
-                childElements.forEach(bindDirectives);
-
-                if (typeof instance.init === "function") {
-                    await instance.init.call(instance);
-                }
-                instance.__initialized = true;
-                instance.__reevaluateShowBindings();
-                instance.__reevaluateExpressionBindings();
-            }
-        }
-
-        isInitScheduled = false;
-        // If new components were added during initialization, process them
-        if (initQueue.length > 0) {
-            scheduleInit();
-        }
+        activeProxies[name] = proxy;
     };
 
-    const scheduleInit = () => {
-        if (!isInitScheduled) {
-            isInitScheduled = true;
-            Promise.resolve().then(processInitQueue);
-        }
-    };
+    const directiveHandlers = {
+        "mx-text": (el, expression) => {
+            const initialValue = evaluate(expression);
 
-    const initComponents = (rootNode) => {
-        const childElements = Array.from(
-            rootNode.querySelectorAll("[mx-data]")
-        );
-        const elements = rootNode.matches("[mx-data]")
-            ? [rootNode, ...childElements]
-            : childElements;
-        let addedToQueue = false;
-
-        for (const el of elements) {
-            if (!activeInstances.has(el)) {
-                const expression = el.getAttribute("mx-data");
-                const isFactory = expression.endsWith("()");
-                const componentName = isFactory
-                    ? expression.slice(0, -2)
-                    : expression;
-                const instance = createReactiveInstance(componentName, el);
-                if (instance) {
-                    activeInstances.set(el, instance);
-                    if (!isFactory) {
-                        CuboMX[componentName] = instance;
-                    }
-                    if (el.hasAttribute("mx-ref")) {
-                        refs[el.getAttribute("mx-ref")] = instance;
-                    }
-                    initQueue.push({ instance, el });
-                    addedToQueue = true;
+            if (initialValue === null || initialValue === undefined) {
+                try {
+                    const setter = new Function(
+                        "value",
+                        `with(this) { ${expression} = value }`
+                    );
+                    setter.call(activeProxies, el.textContent);
+                } catch (e) {
+                    console.warn(
+                        `[CuboMX] Could not set initial value for mx-text expression: "${expression}". The expression is not assignable.`
+                    );
                 }
             }
-        }
 
-        if (addedToQueue) {
-            scheduleInit();
-        }
-    };
+            const binding = {
+                el,
+                evaluate: () =>
+                    (el.innerText = String(evaluate(expression) ?? "")),
+            };
+            binding.evaluate();
+            bindings.push(binding);
+        },
+        "mx-show": (el, expression) => {
+            const originalDisplay =
+                el.style.display === "none" ? "" : el.style.display;
+            const binding = {
+                el,
+                evaluate: () =>
+                    (el.style.display = evaluate(expression)
+                        ? originalDisplay
+                        : "none"),
+            };
+            binding.evaluate();
+            bindings.push(binding);
+        },
+        "mx-model": (el, expression) => {
+            const isCheckbox = el.type === "checkbox";
+            const initialValue = evaluate(expression);
 
-    const destroyComponents = async (rootNode) => {
-        const childElements = Array.from(
-            rootNode.querySelectorAll("[mx-data]")
-        );
-        const elements = rootNode.matches("[mx-data]")
-            ? [rootNode, ...childElements]
-            : childElements;
-        for (const el of elements) {
-            if (activeInstances.has(el)) {
-                const instance = activeInstances.get(el);
-                const expression = el.getAttribute("mx-data");
-                const isFactory = expression.endsWith("()");
-                const componentName = isFactory
-                    ? expression.slice(0, -2)
-                    : expression;
-                if (el.hasAttribute("mx-ref")) {
-                    delete refs[el.getAttribute("mx-ref")];
+            // Hydration logic
+            if (initialValue === null || initialValue === undefined) {
+                try {
+                    const valueToSet = isCheckbox ? el.checked : el.value;
+                    const setter = new Function(
+                        "value",
+                        `with(this) { ${expression} = value }`
+                    );
+                    setter.call(activeProxies, valueToSet);
+                } catch (e) {
+                    console.warn(
+                        `[CuboMX] Could not set initial value for mx-model expression: "${expression}". The expression is not assignable.`
+                    );
                 }
-                if (!isFactory) {
-                    delete CuboMX[componentName];
-                }
-                if (typeof instance.destroy === "function") {
-                    await instance.destroy.call(instance);
-                }
-                activeInstances.delete(el);
             }
-        }
-    };
 
-    /**
-     * Initializes all stores and starts the framework.
-     * Scans the entire DOM for components, initializes them, and sets up a MutationObserver to handle dynamic changes.
-     */
-    const start = () => {
-        for (const name in registeredStores) {
-            const storeDefinition = registeredStores[name];
-            const { init: storeInit, ...storeData } = storeDefinition;
+            // Binding logic
+            if (isCheckbox) {
+                el.addEventListener("change", () => {
+                    const setter = new Function(
+                        "value",
+                        `with(this) { ${expression} = value }`
+                    );
+                    setter.call(activeProxies, el.checked);
+                });
+                const binding = {
+                    el,
+                    evaluate() {
+                        el.checked = !!evaluate(expression);
+                    },
+                };
+                binding.evaluate();
+                bindings.push(binding);
+            } else {
+                const setter = new Function(
+                    "value",
+                    `with(this) { ${expression} = value }`
+                );
+                el.addEventListener("input", () =>
+                    setter.call(activeProxies, el.value)
+                );
+                const binding = {
+                    el,
+                    evaluate() {
+                        const value = evaluate(expression);
+                        if (el.value !== value) el.value = value ?? "";
+                    },
+                };
+                binding.evaluate();
+                bindings.push(binding);
+            }
+        },
+        ":": (el, attr) => {
+            const attrName = attr.name.substring(1);
+            const expression = attr.value;
+            let binding;
 
-            const storeProxy = new Proxy(storeData, {
-                set(target, property, value) {
-                    const oldValue = target[property];
-                    const success = Reflect.set(target, property, value);
-                    if (success && oldValue !== value) {
-                        const fullPath = `$stores.${name}.${property}`;
-                        if (watchers[fullPath]) {
-                            watchers[fullPath].forEach((cb) =>
-                                cb(value, oldValue)
-                            );
-                        }
-                    }
-                    return success;
-                },
+            if (attrName === "class") {
+                let lastAddedClasses = [];
+                binding = {
+                    el,
+                    evaluate() {
+                        const newClasses = String(evaluate(expression) || "")
+                            .split(" ")
+                            .filter(Boolean);
+                        lastAddedClasses.forEach((c) => el.classList.remove(c));
+                        newClasses.forEach((c) => el.classList.add(c));
+                        lastAddedClasses = newClasses;
+                    },
+                };
+            } else if (
+                [
+                    "disabled",
+                    "readonly",
+                    "required",
+                    "checked",
+                    "selected",
+                    "open",
+                ].includes(attrName)
+            ) {
+                binding = {
+                    el,
+                    evaluate() {
+                        evaluate(expression)
+                            ? el.setAttribute(attrName, "")
+                            : el.removeAttribute(attrName);
+                    },
+                };
+            } else {
+                binding = {
+                    el,
+                    evaluate: () =>
+                        el.setAttribute(attrName, evaluate(expression) ?? ""),
+                };
+            }
+            binding.evaluate();
+            bindings.push(binding);
+        },
+        "mx-on:": (el, attr) => {
+            const eventAndModifiers = attr.name.substring(6); // 'mx-on:'.length
+            const [eventName, ...modifiers] = eventAndModifiers.split(".");
+            const expression = attr.value;
+
+            el.addEventListener(eventName, (event) => {
+                if (modifiers.includes("prevent")) event.preventDefault();
+                if (modifiers.includes("stop")) event.stopPropagation();
+                evaluateEventExpression(expression, el, event);
             });
+        },
+    };
 
-            activeStores[name] = storeProxy;
+    const bindDirectives = (rootElement) => {
+        const elements = [rootElement, ...rootElement.querySelectorAll("*")];
+        for (const el of elements) {
+            // Fixed-name directives
+            if (el.hasAttribute("mx-text"))
+                directiveHandlers["mx-text"](el, el.getAttribute("mx-text"));
+            if (el.hasAttribute("mx-show"))
+                directiveHandlers["mx-show"](el, el.getAttribute("mx-show"));
+            if (el.hasAttribute("mx-model"))
+                directiveHandlers["mx-model"](el, el.getAttribute("mx-model"));
 
-            if (typeof storeInit === "function") {
-                storeInit.call(storeProxy);
+            // Prefixed directives
+            for (const attr of [...el.attributes]) {
+                if (attr.name.startsWith(":")) directiveHandlers[":"](el, attr);
+                if (attr.name.startsWith("mx-on:"))
+                    directiveHandlers["mx-on:"](el, attr);
             }
         }
+    };
 
-        initComponents(document.body);
+    const processInit = (initQueue) => {
+        for (const proxy of initQueue) {
+            if (typeof proxy.init === "function") {
+                proxy.init.call(proxy);
+            }
+        }
+    };
+
+    const scanDOM = (rootElement) => {
+        const newInstances = [];
+        const elements = rootElement.matches("[mx-data]")
+            ? [rootElement, ...rootElement.querySelectorAll("[mx-data]")]
+            : [...rootElement.querySelectorAll("[mx-data]")];
+
+        elements.forEach((el) => {
+            const expression = el.getAttribute("mx-data");
+            const isFactory = expression.endsWith("()");
+            const componentName = isFactory
+                ? expression.slice(0, -2)
+                : expression;
+
+            if (!registeredComponents[componentName]) return;
+
+            let refName = el.getAttribute("mx-ref");
+            const definition = registeredComponents[componentName];
+
+            if (isFactory) {
+                const instanceObj = definition();
+                if (!refName) {
+                    refName = `_cubo_${anonCounter++}`;
+                    el.setAttribute("mx-ref", refName);
+                }
+                if (activeProxies[refName]) return; // Already initialized
+                const proxy = createProxy(instanceObj, refName, el);
+                addActiveProxy(refName, proxy);
+                newInstances.push(proxy);
+            } else {
+                // Singleton
+                if (activeProxies[componentName]) return; // Already initialized
+                const proxy = createProxy({ ...definition }, componentName, el);
+                addActiveProxy(componentName, proxy);
+                newInstances.push(proxy);
+            }
+        });
+
+        return newInstances;
+    };
+
+    const destroyProxies = (removedNode) => {
+        if (removedNode.nodeType !== 1) return;
+
+        // Part 1: Destroy component proxies
+        const elementsWithData = removedNode.matches("[mx-data]")
+            ? [removedNode, ...removedNode.querySelectorAll("[mx-data]")]
+            : [...removedNode.querySelectorAll("[mx-data]")];
+
+        elementsWithData.forEach((el) => {
+            const componentName = el.getAttribute("mx-data").replace("()", "");
+            const refName = el.getAttribute("mx-ref") || componentName;
+
+            const proxy = activeProxies[refName];
+
+            if (proxy) {
+                if (typeof proxy.destroy === "function") {
+                    proxy.destroy.call(proxy);
+                }
+                delete activeProxies[refName];
+            }
+        });
+
+        // Part 2: Clean up bindings from all removed nodes to prevent memory leaks
+        const allRemovedChildren = [
+            removedNode,
+            ...removedNode.querySelectorAll("*"),
+        ];
+        bindings = bindings.filter((b) => !allRemovedChildren.includes(b.el));
+    };
+
+    const start = () => {
+        let initQueue = [];
+
+        for (const name in registeredStores) {
+            const proxy = createProxy({ ...registeredStores[name] }, name);
+            addActiveProxy(name, proxy);
+            if (proxy.init) initQueue.push(proxy);
+        }
+
+        const domInstances = scanDOM(document.body);
+        initQueue = initQueue.concat(domInstances);
+
+        processInit(initQueue);
+
+        bindDirectives(document.body);
+
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-                    // 1. Initialize any NEW components within the added node.
-                    initComponents(node);
-
-                    // 2. Bind directives on the node itself and its children.
-                    // The bindDirectives function is smart enough to find
-                    // the correct context (whether a parent component or the global context).
-                    const elementsToBind = [
-                        node,
-                        ...node.querySelectorAll("*"),
-                    ];
-                    elementsToBind.forEach((el) => {
-                        bindDirectives(el);
-                    });
+                    if (node.nodeType !== 1) return;
+                    const newInstances = scanDOM(node);
+                    processInit(newInstances);
+                    bindDirectives(node); // Vincula diretivas nos nós adicionados
                 });
+
                 mutation.removedNodes.forEach((node) => {
-                    if (node.nodeType === Node.ELEMENT_NODE)
-                        destroyComponents(node);
+                    destroyProxies(node);
                 });
             }
         });
+
         observer.observe(document.body, { childList: true, subtree: true });
 
         window.addEventListener("cubo:dom-updated", () => {
-            for (const instance of activeInstances.values()) {
-                if (typeof instance.onDOMUpdate === "function") {
-                    instance.onDOMUpdate.call(instance);
-                }
-            }
-            for (const name in registeredStores) {
-                const storeDefinition = registeredStores[name];
-                if (typeof storeDefinition.onDOMUpdate === "function") {
-                    const instance = activeStores[name];
-                    storeDefinition.onDOMUpdate.call(instance);
+            for (const proxy of Object.values(activeProxies)) {
+                if (typeof proxy.onDOMUpdate === "function") {
+                    proxy.onDOMUpdate.call(proxy);
                 }
             }
         });
     };
 
-    return {
-        component,
+    const reset = () => {
+        registeredComponents = {};
+        registeredStores = {};
+        watchers = {};
+        activeProxies = {};
+        anonCounter = 0;
+        bindings = [];
+    };
+
+    const publicAPI = {
+        /**
+         * Registers a global store. Stores are always singletons.
+         * @param {string} name The name of the store, used to access it globally (e.g., `CuboMX.storeName`).
+         * @param {object} obj The store object.
+         */
+        store: (name, obj) => (registeredStores[name] = obj),
+
+        /**
+         * Registers a component. A component can be a singleton (plain object)
+         * or a factory (a function that returns an object).
+         * @param {string} name The name used in the `mx-data` attribute.
+         * @param {object|Function} def The component object or factory function.
+         */
+        component: (name, def) => (registeredComponents[name] = def),
+
+        /**
+         * Watches a property on any global store or component for changes.
+         * @param {string} path A string path to the property (e.g., 'componentName.propertyName' or 'storeName.propertyName').
+         * @param {Function} cb A function to execute when the property changes. It receives the new and old values.
+         */
         watch,
+
+        /**
+         * Scans the DOM, initializes all registered stores and components,
+         * and starts listening for DOM mutations. This function should be called
+         * once the entire application is ready.
+         */
         start,
-        store,
-        stores: activeStores,
+
+        /**
+         * Resets the internal state of CuboMX. Used primarily for testing.
+         */
+        reset,
+
+        // External utilities from other modules
         request: a,
         swapHTML: b,
         renderTemplate: c,
-        refs,
+        actions: d,
     };
+
+    return new Proxy(publicAPI, {
+        get(target, prop) {
+            if (prop in target) {
+                return target[prop];
+            }
+            return activeProxies[prop];
+        },
+        set(target, prop, value) {
+            if (!(prop in target)) {
+                activeProxies[prop] = value;
+                return true;
+            }
+            return Reflect.set(target, prop, value);
+        },
+    });
 })();
 
 export { CuboMX };

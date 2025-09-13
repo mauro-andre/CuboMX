@@ -1,94 +1,116 @@
 declare module 'cubomx' {
-    // Type definitions for CuboMX
+    // Type definitions for CuboMX (Refactored)
 
+    /**
+     * Represents the definition of a component.
+     * It can be a simple object for a singleton component,
+     * or a function that returns an object for a factory component.
+     */
     type ComponentDefinition = object | (() => object);
 
-    interface StoreDefinition {
+    /**
+     * Represents the definition of a global store.
+     * It's an object containing state and methods.
+     */
+    type StoreDefinition = {
         [key: string]: any;
-        init?: () => void;
+        init?: () => void | Promise<void>;
+        destroy?: () => void;
         onDOMUpdate?: () => void;
-    }
+    };
 
-    interface RequestConfig {
-        url: string;
-        method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-        body?: object | FormData | null;
-        headers?: object;
-        pushUrl?: boolean;
-        history?: boolean;
-        loadingSelectors?: string[];
-        strategies?: object[];
-        actions?: object[];
-        rootElement?: HTMLElement;
-    }
-
-    interface SwapOptions {
-        targetUrl?: string;
-        history?: boolean;
-        actions?: object[] | null;
-        rootElement?: HTMLElement;
-    }
-
+    /**
+     * The core CuboMX API.
+     * This interface includes the static methods for registering components/stores,
+     * starting the framework, and watching for changes.
+     * It also allows for dynamic properties, representing the globally accessible
+     * stores and component instances.
+     */
     interface CuboMXAPI {
         /**
-         * Registers a new component.
-         * @param name The name of the component, used in the `mx-data` attribute.
-         * @param obj The component definition (an object for a singleton, a function for a factory).
+         * Registers a component. A component can be a singleton (plain object)
+         * or a factory (a function that returns an object).
+         * @param name The name used in the `mx-data` attribute.
+         * @param definition The component object or factory function.
          */
-        component(name: string, obj: ComponentDefinition): void;
+        component(name: string, definition: ComponentDefinition): void;
 
         /**
-         * Watches a property on a reactive object (store or ref) for changes.
-         * @param pathString The path to the property to watch (e.g., '$stores.theme.mode', '$refs.myComponent.value').
-         * @param callback The function to execute when the property changes. It receives (newValue, oldValue).
+         * Registers a global store. Stores are always singletons.
+         * @param name The name of the store, used to access it globally (e.g., `CuboMX.storeName`).
+         * @param object The store object.
          */
-        watch(pathString: string, callback: (newValue: any, oldValue: any) => void): void;
+        store(name: string, object: StoreDefinition): void;
 
         /**
-         * Initializes all stores and starts the framework.
-         * Scans the entire DOM for components, initializes them, and sets up a MutationObserver to handle dynamic changes.
+         * Watches a property on any global store or component for changes.
+         * @param path A string path to the property (e.g., 'componentName.propertyName' or 'storeName.propertyName').
+         * @param callback A function to execute when the property changes. It receives the new and old values.
+         */
+        watch(path: string, callback: (newValue: any, oldValue: any) => void): void;
+
+        /**
+         * Scans the DOM, initializes all registered stores and components,
+         * and starts listening for DOM mutations. This function should be called
+         * once the entire application is ready.
          */
         start(): void;
 
         /**
-         * Registers a new global store. Must be called before start().
-         * @param name The name of the store.
-         * @param obj The store object, containing state, methods, and optional init/onDOMUpdate hooks.
-         */
-        store(name: string, obj: StoreDefinition): void;
-
-        /**
          * Performs an asynchronous request and updates the DOM based on the response.
          * @param config The request configuration object.
-         * @returns A promise that resolves with the status and final URL of the response.
          */
-        request(config: RequestConfig): Promise<{ ok: boolean; status: number; url: string; redirected?: boolean; }>;
+        request(config: {
+            url: string;
+            method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+            body?: object | FormData | null;
+            headers?: object;
+            pushUrl?: boolean;
+            history?: boolean;
+            loadingSelectors?: string[];
+            strategies?: object[];
+            actions?: object[];
+            rootElement?: HTMLElement;
+        }): Promise<{ ok: boolean; status: number; url: string; redirected?: boolean; }>;
 
         /**
-         * Updates the DOM from HTML content and local strategies.
-         * @param htmlContent The source HTML content containing the elements to be swapped.
-         * @param strategies The list of swap strategies. E.g., [{ select: '#src', target: '#dest' }]
+         * Updates the DOM from an HTML string using specified strategies.
+         * @param htmlContent The source HTML content.
+         * @param strategies The list of swap strategies.
          * @param options Options for URL, history, and scope control.
          */
-        swapHTML(htmlContent: string, strategies: object[], options?: SwapOptions): void;
+        swapHTML(htmlContent: string, strategies: object[], options?: {
+            targetUrl?: string;
+            history?: boolean;
+            actions?: object[] | null;
+            rootElement?: HTMLElement;
+        }): void;
 
         /**
-         * Replaces placeholders in a template string with values from a data object.
+         * Renders a template string with data.
          * @param template The template string.
-         * @param data A data object with key-value pairs.
+         * @param data A data object.
          * @returns The rendered template.
          */
         renderTemplate(template: string, data: object): string;
 
         /**
-         * A reactive object containing all component instances named with `mx-ref`.
+         * Programmatically executes a list of DOM actions.
+         * @param actions An array of action objects.
+         * @param rootElement The root element for selector queries.
          */
-        readonly refs: { [key: string]: object };
+        actions(actions: object[], rootElement?: HTMLElement): void;
 
         /**
-         * A reactive object containing the instances of all registered stores.
+         * Resets the internal state of CuboMX. Used primarily for testing.
          */
-        readonly stores: { [key: string]: object };
+        reset(): void;
+
+        /**
+         * Allows dynamic access to any registered store or component instance.
+         * For example, `CuboMX.myStore` or `CuboMX.myComponentRef`.
+         */
+        [key: string]: any;
     }
 
     export const CuboMX: CuboMXAPI;
