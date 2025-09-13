@@ -50,12 +50,14 @@ const CuboMX = (() => {
 
     const evaluateEventExpression = (expression, el, event) => {
         try {
+            const itemData = el.__cubo_item_data__; // Procura pelos dados do item
             const func = new Function(
                 "$el",
                 "$event",
+                "$item", // Adiciona $item aos parâmetros
                 `with(this) { ${expression} }`
             );
-            func.call(activeProxies, el, event);
+            func.call(activeProxies, el, event, itemData); // Passa os dados como argumento
         } catch (e) {
             console.error(
                 `[CuboMX] Error evaluating expression: "${expression}"`,
@@ -272,11 +274,12 @@ const CuboMX = (() => {
 
             const items = [];
             el.querySelectorAll('[mx-item]').forEach(itemEl => {
-                const itemValue = itemEl.getAttribute('mx-item');
+                const itemValueAttr = itemEl.getAttribute('mx-item');
+                let itemData;
                 
                 // Se mx-item tem valor, trata como primitivo
-                if (itemValue) {
-                    items.push(parseValue(itemValue));
+                if (itemValueAttr) {
+                    itemData = parseValue(itemValueAttr);
                 } else { // Se não tem valor, constrói um objeto a partir dos atributos mx-obj
                     const newObject = {};
                     for (const attr of itemEl.attributes) {
@@ -285,8 +288,11 @@ const CuboMX = (() => {
                             newObject[key] = parseValue(attr.value);
                         }
                     }
-                    items.push(newObject);
+                    itemData = newObject;
                 }
+                items.push(itemData);
+                // Anexa os dados do item diretamente ao elemento para referência futura
+                itemEl.__cubo_item_data__ = itemData;
             });
 
             targetObject[propName] = items;

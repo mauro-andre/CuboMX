@@ -91,4 +91,49 @@ describe('CuboMX - Advanced Hydration', () => {
 
         expect(CuboMX.cart.userId).toBe(12345);
     });
+
+    it('should expose an object item as $item in mx-on expressions', () => {
+        const itemSpy = vi.fn();
+        CuboMX.component('list', { items: [], handleItemClick: itemSpy });
+
+        document.body.innerHTML = `
+            <div mx-data="list">
+                <ul mx-array:list.items>
+                    <li mx-item mx-obj:id="1" mx-obj:name="'A'" mx-on:click="list.handleItemClick($item)"></li>
+                    <li mx-item mx-obj:id="2" mx-obj:name="'B'" mx-on:click="list.handleItemClick($item)"></li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        const secondItem = document.querySelectorAll('li')[1];
+        secondItem.click();
+
+        expect(itemSpy).toHaveBeenCalledTimes(1);
+        const expectedItemData = { id: 2, name: 'B' };
+        expect(itemSpy).toHaveBeenCalledWith(expectedItemData);
+    });
+
+    it('should expose a primitive item as $item in mx-on expressions', () => {
+        const itemSpy = vi.fn();
+        CuboMX.component('list', { tags: [], handleTagClick: itemSpy });
+
+        document.body.innerHTML = `
+            <div mx-data="list">
+                <ul mx-array:list.tags>
+                    <li mx-item="'new'" mx-on:click="list.handleTagClick($item)"></li>
+                    <li mx-item="'featured'" mx-on:click="list.handleTagClick($item)"></li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        const firstItem = document.querySelector('li');
+        firstItem.click();
+
+        expect(itemSpy).toHaveBeenCalledTimes(1);
+        expect(itemSpy).toHaveBeenCalledWith('new');
+    });
 });
