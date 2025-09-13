@@ -207,9 +207,16 @@ Attaches an event listener to an element.
 -   **Magic Variables:** Inside an `mx-on` expression, you have access to:
     -   `$el`: The DOM element the listener is attached to.
     -   `$event`: The DOM `Event` object.
+    -   `$item`: If the element is an `mx-item` within an `mx-array`, `$item` holds the corresponding data item (primitive or object) for that element. This is incredibly useful for handling clicks on lists.
+
+    **Example with `$item`:**
     ```html
-    <button mx-on:click="console.log($event.target)">Log Target</button>
+    <ul mx-array:cart.items>
+        <li mx-item mx-obj:id="1" mx-on:click="cart.selectItem($item)">Item 1</li>
+        <li mx-item mx-obj:id="2" mx-on:click="cart.selectItem($item)">Item 2</li>
+    </ul>
     ```
+    In this case, clicking the first `<li>` would call `cart.selectItem` with the object `{ id: 1 }`.
 
 ### `mx-ref`
 
