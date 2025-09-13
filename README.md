@@ -1,14 +1,15 @@
-# CuboMX Documentation (Refactored)
+# CuboMX Documentation
 
 ## 1. Introduction
 
-CuboMX is a reactive micro-framework for JavaScript, designed to be lightweight, powerful, and easy to maintain. Its philosophy is based on enhancing HTML with reactivity through a simple, explicit, and predictable global API.
+CuboMX is a reactive micro-framework for JavaScript, built from the ground up to be the best way to add modern, reactive user interfaces to Server-Side Rendered (SSR) applications. Its philosophy is based on enhancing HTML with reactivity through a simple, explicit, and predictable global API.
 
 **Core Principles:**
 
--   **Global Flat API:** All reactive state (stores and components) is accessed directly from the global `CuboMX` object (e.g., `CuboMX.theme`, `CuboMX.myForm`). This eliminates complexity by removing implicit scopes.
--   **HTML as the Source of Truth:** The UI structure and bindings are defined directly in the HTML, with explicit references to the global state.
--   **Minimal Overhead:** With no virtual DOM, CuboMX manipulates the real DOM efficiently.
+-   **JavaScript is the Home for Logic:** Unlike other frameworks that encourage complex logic within HTML attributes, CuboMX believes that JavaScript is the proper place for application logic. Components are written in pure JavaScript, keeping your HTML clean and focused on structure.
+-   **HTML is for State Binding, Not Logic:** The role of HTML is to declaratively bind elements to your JavaScript state. Directives like `mx-text` and `mx-on` are simple, explicit bridges, not a place to write inline JavaScript programs.
+-   **Global, Predictable State:** All reactive state is managed on a single, flat global `CuboMX` object. This eliminates the complexity of nested scopes and makes it immediately clear where your data lives, creating a predictable and easy-to-debug environment.
+-   **SSR-First Hydration:** CuboMX is built with Server-Side Rendering as a primary use case. Its directives are designed to effortlessly "hydrate" the state of your application from the initial HTML rendered by the server, bridging the gap between backend and frontend.
 
 ## 2. Installation and Initialization
 
@@ -223,28 +224,70 @@ Crucial for factory components, `mx-ref` gives a component instance a unique glo
 CuboMX.passwordField.isVisible = true;
 ```
 
-## 5. Server-Side Data
+## 5. Advanced SSR Hydration Directives
 
-To inject server-rendered data, simply render a `<script>` tag that populates your stores or components before `CuboMX.start()` is called. The `mx-prop` directive is no longer used.
+For deep integration with Server-Side Rendering (SSR), CuboMX offers a powerful set of declarative directives to hydrate complex data structures directly from your HTML, without writing any inline JavaScript.
 
-**Example (e.g., rendered by Django, Rails, etc.):**
+This is the primary method for populating your components with data (like database query results) that is rendered on the server.
 
-```html
-<div mx-data="salesChart" mx-ref="chart"></div>
+#### `mx-prop:component.property="value"`
 
-<script>
-    CuboMX.component('salesChart', () => ({
-        month: '{{ current_month }}', // Server-rendered value
-        totalSales: {{ total_sales }},
-        chartData: JSON.parse('{{ chart_json|escapejs }}'),
-        init() {
-            console.log(this.month, this.totalSales);
-        }
-    }));
+This is the simplest way to hydrate a single, primitive value (string, number, boolean) into a component.
 
-    CuboMX.start();
-</script>
-```
+- **HTML:** `<div mx-prop:cart.user-id="123"></div>`
+- **JS:** `CuboMX.component('cart', { userId: null });`
+- **Result:** After `CuboMX.start()`, `CuboMX.cart.userId` will be `123`.
+
+#### `mx-obj:component.objectProperty`
+
+This directive, combined with `mx-obj:*` attributes on the same element, allows you to build a complete object.
+
+- **HTML:** 
+  ```html
+  <div mx-obj:cart.user 
+       mx-obj:id="456" 
+       mx-obj:display-name="'Mauro'" 
+       class="user-data">
+  </div>
+  ```
+- **JS:** `CuboMX.component('cart', { user: null });`
+- **Result:** `CuboMX.cart.user` will be `{ id: 456, displayName: 'Mauro' }`. Note that the standard `class` attribute is ignored.
+
+#### `mx-array:component.arrayProperty` & `mx-item`
+
+This is the most powerful combination, used to hydrate arrays of primitives or objects.
+
+1.  **`mx-array`**: Placed on a parent element, it declares the target array property.
+2.  **`mx-item`**: Placed on child elements, it defines each item in the array.
+
+**Example 1: Array of Primitives**
+
+If `mx-item` has a value, it's evaluated as an expression.
+
+- **HTML:**
+  ```html
+  <ul mx-array:product.tags>
+      <li mx-item="'new-arrival'"></li>
+      <li mx-item="'featured'"></li>
+  </ul>
+  ```
+- **JS:** `CuboMX.component('product', { tags: [] });`
+- **Result:** `CuboMX.product.tags` will be `['new-arrival', 'featured']`.
+
+**Example 2: Array of Objects**
+
+If `mx-item` has no value, it collects the `mx-obj:*` attributes from its own element to build an object.
+
+- **HTML:**
+  ```html
+  <ul mx-array:cart.items>
+      <li mx-item mx-obj:id="1" mx-obj:name="'Product A'"></li>
+      <li mx-item mx-obj:id="2" mx-obj:name="'Product B'"></li>
+  </ul>
+  ```
+- **JS:** `CuboMX.component('cart', { items: [] });`
+- **Result:** `CuboMX.cart.items` will be `[{ id: 1, name: 'Product A' }, { id: 2, name: 'Product B' }]`.
+
 
 ## 6. Magic Properties
 
