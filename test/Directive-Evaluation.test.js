@@ -283,4 +283,87 @@ describe("CuboMX - Directive Evaluation", () => {
         expect(CuboMX.stats.description).toBe('');
         expect(document.querySelector('p').innerText).toBe('');
     });
+
+    it('should warn when trying to hydrate mx-text with a non-assignable expression', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        
+        CuboMX.component('user', {
+            // This function returns null, which should trigger a hydration attempt
+            getFullName: () => null
+        });
+        document.body.innerHTML = `
+            <div mx-data="user">
+                <span mx-text="user.getFullName()">Initial Text</span>
+            </div>
+        `;
+        CuboMX.start();
+
+        // The warning should be called because "user.getFullName()" is not a valid assignment target
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Could not set initial value for mx-text'));
+        
+        warnSpy.mockRestore();
+    });
+
+    describe('mx-model hydration and checkbox support', () => {
+        it('should hydrate text input state from the value attribute', () => {
+            CuboMX.component('form', { username: null });
+            document.body.innerHTML = `
+                <div mx-data="form">
+                    <input type="text" mx-model="form.username" value="SSR Username">
+                </div>
+            `;
+            CuboMX.start();
+
+            expect(CuboMX.form.username).toBe('SSR Username');
+        });
+
+        it('should handle two-way data binding for checkboxes', () => {
+            CuboMX.component('settings', { notifications: true });
+            document.body.innerHTML = `
+                <div mx-data="settings">
+                    <input type="checkbox" mx-model="settings.notifications">
+                </div>
+            `;
+            CuboMX.start();
+            const checkbox = document.querySelector('input');
+
+            // 1. Initial state check (State -> DOM)
+            expect(checkbox.checked).toBe(true);
+
+            // 2. Programmatic state change should update checkbox
+            CuboMX.settings.notifications = false;
+            expect(checkbox.checked).toBe(false);
+
+            // 3. User interaction should update state (DOM -> State)
+            checkbox.click(); // Simulates user checking the box
+            expect(CuboMX.settings.notifications).toBe(true);
+            
+            checkbox.click(); // Simulates user unchecking the box
+            expect(CuboMX.settings.notifications).toBe(false);
+        });
+
+        it('should hydrate checkbox state from the checked attribute', () => {
+            CuboMX.component('form', { agreed: null });
+            document.body.innerHTML = `
+                <div mx-data="form">
+                    <input type="checkbox" mx-model="form.agreed" checked>
+                </div>
+            `;
+            CuboMX.start();
+
+            expect(CuboMX.form.agreed).toBe(true);
+        });
+
+        it('should hydrate checkbox state to false if checked attribute is absent', () => {
+            CuboMX.component('form', { agreed: null });
+            document.body.innerHTML = `
+                <div mx-data="form">
+                    <input type="checkbox" mx-model="form.agreed">
+                </div>
+            `;
+            CuboMX.start();
+
+            expect(CuboMX.form.agreed).toBe(false);
+        });
+    });
 });

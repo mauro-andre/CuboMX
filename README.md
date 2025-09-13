@@ -94,10 +94,40 @@ Declares a component and manages its lifecycle (`init` and `destroy` hooks). It 
 
 ### `mx-model`
 
-Creates a two-way data binding on a form element (`input`, `textarea`, `select`).
+Creates a two-way data binding on a form element. It supports standard inputs (`text`, `textarea`, `select`) as well as checkboxes.
 
 ```html
+<!-- Binds the input's value to the 'email' property -->
 <input type="text" mx-model="loginControl.email" />
+
+<!-- Binds the checkbox's checked status to the 'notifications' property -->
+<input type="checkbox" mx-model="settings.notifications" />
+```
+
+**SSR Hydration:**
+Similar to `mx-text`, `mx-model` can hydrate the initial state from server-rendered attributes. If the bound property is `null` or `undefined`, CuboMX will use the element's `value` (for text inputs) or `checked` status (for checkboxes) to populate the state.
+
+**Example:**
+
+**Server-Rendered HTML:**
+```html
+<div mx-data="userForm">
+    <input type="text" mx-model="userForm.name" value="John Doe" />
+    <input type="checkbox" mx-model="userForm.agreed" checked />
+</div>
+```
+
+**JavaScript:**
+```javascript
+CuboMX.component("userForm", {
+    name: null,
+    agreed: undefined
+});
+CuboMX.start();
+
+// After start():
+// CuboMX.userForm.name will be "John Doe"
+// CuboMX.userForm.agreed will be true
 ```
 
 ### `mx-show`

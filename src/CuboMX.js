@@ -89,19 +89,16 @@ const CuboMX = (() => {
         "mx-text": (el, expression) => {
             const initialValue = evaluate(expression);
 
-            // If the state is null or undefined, hydrate it from the DOM's text content.
             if (initialValue === null || initialValue === undefined) {
                 try {
-                    // Use textContent for better reliability in test environments like jsdom
                     const setter = new Function(
                         "value",
                         `with(this) { ${expression} = value }`
                     );
                     setter.call(activeProxies, el.textContent);
                 } catch (e) {
-                    console.error(
-                        `[CuboMX] Could not set initial value for mx-text expression: "${expression}"`,
-                        e
+                    console.warn(
+                        `[CuboMX] Could not set initial value for mx-text expression: "${expression}". The expression is not assignable.`
                     );
                 }
             }
@@ -128,23 +125,60 @@ const CuboMX = (() => {
             bindings.push(binding);
         },
         "mx-model": (el, expression) => {
-            const setter = new Function(
-                "value",
-                `with(this) { ${expression} = value }`
-            );
-            el.addEventListener("input", () =>
-                setter.call(activeProxies, el.value)
-            );
+            const isCheckbox = el.type === "checkbox";
+            const initialValue = evaluate(expression);
 
-            const binding = {
-                el,
-                evaluate() {
-                    const value = evaluate(expression);
-                    if (el.value !== value) el.value = value ?? "";
-                },
-            };
-            binding.evaluate();
-            bindings.push(binding);
+            // Hydration logic
+            if (initialValue === null || initialValue === undefined) {
+                try {
+                    const valueToSet = isCheckbox ? el.checked : el.value;
+                    const setter = new Function(
+                        "value",
+                        `with(this) { ${expression} = value }`
+                    );
+                    setter.call(activeProxies, valueToSet);
+                } catch (e) {
+                    console.warn(
+                        `[CuboMX] Could not set initial value for mx-model expression: "${expression}". The expression is not assignable.`
+                    );
+                }
+            }
+
+            // Binding logic
+            if (isCheckbox) {
+                el.addEventListener("change", () => {
+                    const setter = new Function(
+                        "value",
+                        `with(this) { ${expression} = value }`
+                    );
+                    setter.call(activeProxies, el.checked);
+                });
+                const binding = {
+                    el,
+                    evaluate() {
+                        el.checked = !!evaluate(expression);
+                    },
+                };
+                binding.evaluate();
+                bindings.push(binding);
+            } else {
+                const setter = new Function(
+                    "value",
+                    `with(this) { ${expression} = value }`
+                );
+                el.addEventListener("input", () =>
+                    setter.call(activeProxies, el.value)
+                );
+                const binding = {
+                    el,
+                    evaluate() {
+                        const value = evaluate(expression);
+                        if (el.value !== value) el.value = value ?? "";
+                    },
+                };
+                binding.evaluate();
+                bindings.push(binding);
+            }
         },
         ":": (el, attr) => {
             const attrName = attr.name.substring(1);
