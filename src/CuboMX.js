@@ -349,17 +349,17 @@ const CuboMX = (() => {
         const domInstances = scanDOM(document.body);
         initQueue = initQueue.concat(domInstances);
 
-        processInit(initQueue);
-
         bindDirectives(document.body);
+
+        processInit(initQueue);
 
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType !== 1) return;
                     const newInstances = scanDOM(node);
+                    bindDirectives(node); // Vincula diretivas ANTES de inicializar
                     processInit(newInstances);
-                    bindDirectives(node); // Vincula diretivas nos nós adicionados
                 });
 
                 mutation.removedNodes.forEach((node) => {
