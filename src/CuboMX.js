@@ -9,6 +9,31 @@ const CuboMX = (() => {
     let anonCounter = 0;
     let bindings = [];
 
+    const kebabToCamel = (str) => str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+
+    const parseValue = (value) => {
+        const lowerValue = value.toLowerCase();
+        if (lowerValue === "true") return true;
+        if (lowerValue === "false") return false;
+        if (lowerValue === "null" || lowerValue === "none") return null;
+        if (value === "undefined") return undefined;
+
+        const num = Number(value);
+        if (!isNaN(num) && value.trim() !== "") return num;
+
+        // Se parece um objeto, array ou string literal, avalia como expressão
+        if (
+            (value.startsWith("{") && value.endsWith("}")) ||
+            (value.startsWith("[") && value.endsWith("]")) ||
+            (value.startsWith("'") && value.endsWith("'")) ||
+            (value.startsWith('"') && value.endsWith('"'))
+        ) {
+            return evaluate(value);
+        }
+
+        return value;
+    };
+
     const evaluate = (expression) => {
         try {
             // Avalia a expressão no contexto dos proxies ativos
@@ -237,6 +262,63 @@ const CuboMX = (() => {
                 evaluateEventExpression(expression, el, event);
             });
         },
+        "mx-array": (el, expression) => {
+            const targetPath = expression.split('.');
+            const propName = targetPath.pop();
+            const objName = targetPath.join('.');
+            const targetObject = evaluate(objName);
+
+            if (typeof targetObject !== 'object' || targetObject === null) return;
+
+            const items = [];
+            el.querySelectorAll('[mx-item]').forEach(itemEl => {
+                const itemValue = itemEl.getAttribute('mx-item');
+                
+                // Se mx-item tem valor, trata como primitivo
+                if (itemValue) {
+                    items.push(parseValue(itemValue));
+                } else { // Se não tem valor, constrói um objeto a partir dos atributos mx-obj
+                    const newObject = {};
+                    for (const attr of itemEl.attributes) {
+                        if (attr.name.startsWith('mx-obj:')) {
+                            const key = kebabToCamel(attr.name.substring(7));
+                            newObject[key] = parseValue(attr.value);
+                        }
+                    }
+                    items.push(newObject);
+                }
+            });
+
+            targetObject[propName] = items;
+        },
+        "mx-obj": (el, expression) => {
+            const targetPath = expression.split('.');
+            const propName = targetPath.pop();
+            const objName = targetPath.join('.');
+            const targetObject = evaluate(objName);
+
+            if (typeof targetObject !== 'object' || targetObject === null) return;
+
+            const newObject = {};
+            for (const attr of el.attributes) {
+                // Considera apenas atributos `mx-obj:` que têm um valor (são propriedades do objeto)
+                if (attr.name.startsWith('mx-obj:') && attr.value !== '') {
+                    const key = kebabToCamel(attr.name.substring(7)); // 7 = length of "mx-obj:"
+                    newObject[key] = parseValue(attr.value);
+                }
+            }
+            targetObject[propName] = newObject;
+        },
+        "mx-prop": (el, expression) => {
+            const targetPath = expression.split('.');
+            const propName = kebabToCamel(targetPath.pop());
+            const objName = targetPath.map(kebabToCamel).join('.');
+            const targetObject = evaluate(objName);
+
+            if (typeof targetObject !== 'object' || targetObject === null) return;
+
+            targetObject[propName] = parseValue(el.getAttribute(`mx-prop:${expression}`));
+        },
     };
 
     const bindDirectives = (rootElement) => {
@@ -252,6 +334,16 @@ const CuboMX = (() => {
 
             // Prefixed directives
             for (const attr of [...el.attributes]) {
+                if (attr.name.startsWith("mx-prop:")) {
+                    directiveHandlers["mx-prop"](el, attr.name.substring(8)); // 8 = length of "mx-prop:"
+                }
+                if (attr.name.startsWith("mx-array:")) {
+                    directiveHandlers["mx-array"](el, attr.name.substring(9));
+                }
+                // Procura pelo atributo "âncora" do objeto, que não tem valor
+                if (attr.name.startsWith("mx-obj:") && attr.value === '') {
+                    directiveHandlers["mx-obj"](el, attr.name.substring(7));
+                }
                 if (attr.name.startsWith(":")) directiveHandlers[":"](el, attr);
                 if (attr.name.startsWith("mx-on:"))
                     directiveHandlers["mx-on:"](el, attr);
@@ -349,17 +441,17 @@ const CuboMX = (() => {
         const domInstances = scanDOM(document.body);
         initQueue = initQueue.concat(domInstances);
 
-        processInit(initQueue);
-
         bindDirectives(document.body);
+
+        processInit(initQueue);
 
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType !== 1) return;
                     const newInstances = scanDOM(node);
+                    bindDirectives(node); // Vincula diretivas ANTES de inicializar
                     processInit(newInstances);
-                    bindDirectives(node); // Vincula diretivas nos nós adicionados
                 });
 
                 mutation.removedNodes.forEach((node) => {

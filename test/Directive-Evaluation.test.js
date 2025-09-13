@@ -366,4 +366,32 @@ describe("CuboMX - Directive Evaluation", () => {
             expect(CuboMX.form.agreed).toBe(false);
         });
     });
+
+    it('should hydrate properties BEFORE calling init()', () => {
+        let nameInInit = null;
+        let agreedInInit = null;
+
+        CuboMX.component('form', {
+            name: null,
+            agreed: null,
+            init() {
+                // Captura os valores das propriedades DENTRO do init
+                nameInInit = this.name;
+                agreedInInit = this.agreed;
+            }
+        });
+
+        document.body.innerHTML = `
+            <div mx-data="form">
+                <h1 mx-text="form.name">SSR Name</h1>
+                <input type="checkbox" mx-model="form.agreed" checked>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        // Verifica se os valores capturados no init são os valores hidratados, e não null
+        expect(nameInInit).toBe('SSR Name');
+        expect(agreedInInit).toBe(true);
+    });
 });
