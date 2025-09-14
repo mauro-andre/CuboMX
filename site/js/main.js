@@ -16,13 +16,9 @@ CuboMX.component('featureGrid', {
     }
 });
 
-CuboMX.component('showcase', {
-    // Para o contador
+CuboMX.component('counter', {
     value: 0,
     increment() { this.value++ },
-
-    // Para o input reativo
-    message: 'Hello CuboMX!',
 });
 
 CuboMX.component('codeBlock', () => ({
