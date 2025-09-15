@@ -1,17 +1,16 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CuboMX } from '../src/CuboMX.js';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { CuboMX } from "../src/CuboMX.js";
 
-describe('CuboMX - Advanced Hydration', () => {
-
+describe("CuboMX - Advanced Hydration", () => {
     beforeEach(() => {
-        document.body.innerHTML = '';
+        document.body.innerHTML = "";
         CuboMX.reset();
     });
 
-    it('should hydrate an array of primitive values using mx-array and mx-item', () => {
-        CuboMX.component('product', { 
+    it("should hydrate an array of primitive values using mx-array and mx-item", () => {
+        CuboMX.component("product", {
             tags: null, // A propriedade começa como null para ser hidratada
-            ratings: null
+            ratings: null,
         });
 
         document.body.innerHTML = `
@@ -31,18 +30,18 @@ describe('CuboMX - Advanced Hydration', () => {
         CuboMX.start();
 
         // Verifica se os arrays foram populados corretamente
-        expect(CuboMX.product.tags).toEqual(['new-arrival', 'featured']);
+        expect(CuboMX.product.tags).toEqual(["new-arrival", "featured"]);
         expect(CuboMX.product.ratings).toEqual([5, 4, 5]);
     });
 
-    it('should hydrate a simple object using mx-obj', () => {
-        CuboMX.component('product', { 
-            details: null // O objeto começa como null para ser hidratado
+    it("should hydrate a simple object using mx-obj", () => {
+        CuboMX.component("myProduct", {
+            myDetails: null, // O objeto começa como null para ser hidratado
         });
 
         document.body.innerHTML = `
-            <div mx-data="product">
-                <div mx-obj:product.details 
+            <div mx-data="my-product">
+                <div mx-obj:my-product.my-details 
                      mx-obj:id="123" 
                      mx-obj:sku="'ABC-XYZ'" 
                      mx-obj:is-active="true">
@@ -52,12 +51,12 @@ describe('CuboMX - Advanced Hydration', () => {
 
         CuboMX.start();
 
-        const expected = { id: 123, sku: 'ABC-XYZ', isActive: true };
-        expect(CuboMX.product.details).toEqual(expected);
+        const expected = { id: 123, sku: "ABC-XYZ", isActive: true };
+        expect(CuboMX.myProduct.myDetails).toEqual(expected);
     });
 
-    it('should hydrate an array of objects using mx-array, mx-item and mx-obj', () => {
-        CuboMX.component('cart', { items: null });
+    it("should hydrate an array of objects using mx-array, mx-item and mx-obj", () => {
+        CuboMX.component("cart", { items: null });
 
         document.body.innerHTML = `
             <div mx-data="cart">
@@ -71,15 +70,15 @@ describe('CuboMX - Advanced Hydration', () => {
         CuboMX.start();
 
         const expected = [
-            { id: 1, name: 'Product A', quantity: 2 },
-            { id: 2, name: 'Product B', quantity: 1 },
+            { id: 1, name: "Product A", quantity: 2 },
+            { id: 2, name: "Product B", quantity: 1 },
         ];
 
         expect(CuboMX.cart.items).toEqual(expected);
     });
 
-    it('should hydrate a primitive property using mx-prop', () => {
-        CuboMX.component('cart', { userId: null });
+    it("should hydrate a primitive property using mx-prop", () => {
+        CuboMX.component("cart", { userId: null });
 
         document.body.innerHTML = `
             <div mx-data="cart">
@@ -92,9 +91,9 @@ describe('CuboMX - Advanced Hydration', () => {
         expect(CuboMX.cart.userId).toBe(12345);
     });
 
-    it('should expose an object item as $item in mx-on expressions', () => {
+    it("should expose an object item as $item in mx-on expressions", () => {
         const itemSpy = vi.fn();
-        CuboMX.component('list', { items: [], handleItemClick: itemSpy });
+        CuboMX.component("list", { items: [], handleItemClick: itemSpy });
 
         document.body.innerHTML = `
             <div mx-data="list">
@@ -107,17 +106,17 @@ describe('CuboMX - Advanced Hydration', () => {
 
         CuboMX.start();
 
-        const secondItem = document.querySelectorAll('li')[1];
+        const secondItem = document.querySelectorAll("li")[1];
         secondItem.click();
 
         expect(itemSpy).toHaveBeenCalledTimes(1);
-        const expectedItemData = { id: 2, name: 'B' };
+        const expectedItemData = { id: 2, name: "B" };
         expect(itemSpy).toHaveBeenCalledWith(expectedItemData);
     });
 
-    it('should expose a primitive item as $item in mx-on expressions', () => {
+    it("should expose a primitive item as $item in mx-on expressions", () => {
         const itemSpy = vi.fn();
-        CuboMX.component('list', { tags: [], handleTagClick: itemSpy });
+        CuboMX.component("list", { tags: [], handleTagClick: itemSpy });
 
         document.body.innerHTML = `
             <div mx-data="list">
@@ -130,10 +129,10 @@ describe('CuboMX - Advanced Hydration', () => {
 
         CuboMX.start();
 
-        const firstItem = document.querySelector('li');
+        const firstItem = document.querySelector("li");
         firstItem.click();
 
         expect(itemSpy).toHaveBeenCalledTimes(1);
-        expect(itemSpy).toHaveBeenCalledWith('new');
+        expect(itemSpy).toHaveBeenCalledWith("new");
     });
 });
