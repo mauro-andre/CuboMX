@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CuboMX } from '../src/CuboMX.js';
 
 describe('CuboMX - mx-item Directive', () => {
@@ -63,5 +63,40 @@ describe('CuboMX - mx-item Directive', () => {
         expect(songs).toHaveLength(2);
         expect(songs[0].songId).toBe('s1');
         expect(songs[1].text).toBe('Song 2');
+    });
+
+    it('should expose the reactive item object as $item in mx-on events', () => {
+        const itemSpy = vi.fn();
+        CuboMX.component('myComp', { 
+            songs: null,
+            selectSong(item) {
+                itemSpy(item);
+            }
+        });
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <ul>
+                    <li mx-item:my-comp.songs song-id="s1" mx-on:click="myComp.selectSong($item)">Song 1</li>
+                    <li mx-item:my-comp.songs song-id="s2" mx-on:click="myComp.selectSong($item)">Song 2</li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        const secondItemEl = document.querySelectorAll('li')[1];
+        secondItemEl.click();
+
+        // 1. Assert the spy was called
+        expect(itemSpy).toHaveBeenCalledTimes(1);
+
+        // 2. Assert it was called with the correct reactive object
+        const secondSongObject = CuboMX.myComp.songs[1];
+        expect(itemSpy).toHaveBeenCalledWith(secondSongObject);
+
+        // 3. Assert that the passed item is reactive
+        const passedItem = itemSpy.mock.calls[0][0];
+        passedItem.text = 'New Song Title';
+        expect(secondItemEl.innerText).toBe('New Song Title');
     });
 });

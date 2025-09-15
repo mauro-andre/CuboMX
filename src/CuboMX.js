@@ -245,6 +245,7 @@ const CuboMX = (() => {
 
             const fullPath = `${objName}.${propName}`;
             const attrsProxy = hydrateElementToObject(el, fullPath);
+            el.__cubo_item_data__ = attrsProxy;
             targetObject[propName] = attrsProxy;
 
             // Add mx-model-like behavior for input elements
@@ -285,6 +286,7 @@ const CuboMX = (() => {
             const index = targetObject[propName].length;
             const fullPath = `${objName}.${propName}[${index}]`;
             const itemObject = hydrateElementToObject(el, fullPath);
+            el.__cubo_item_data__ = itemObject;
             targetObject[propName].push(itemObject);
         },
     };

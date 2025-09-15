@@ -115,7 +115,7 @@ Attaches an event listener to an element.
 -   **Magic Variables:** Inside an `mx-on` expression, you have access to:
     -   `$el`: The DOM element the listener is attached to.
     -   `$event`: The DOM `Event` object.
-    -   `$item`: If the element is an `mx-item` within an `mx-array`, `$item` holds the corresponding data item (primitive or object) for that element. This is incredibly useful for handling clicks on lists.
+    -   `$item`: If the element has an `mx-item` or `mx-attrs` directive, `$item` holds the corresponding reactive object for that element. This is incredibly useful for handling events on lists or specific components.
 
     **Example with `$item`:**
     ```html
@@ -211,7 +211,7 @@ The created object is fully reactive.
     CuboMX.userProfile.user.class.push('highlight');
     ```
 
-#### Two-Way Data Binding (like `mx-model`)
+#### Two-Way Data Binding
 
 A powerful feature of `mx-attrs` is that when used on form elements like `<input>`, `<textarea>`, or `<select>`, it provides full two-way data binding automatically, making it a superior alternative to `mx-model`.
 
