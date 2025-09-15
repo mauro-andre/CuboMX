@@ -346,7 +346,7 @@ const CuboMX = (() => {
             const hydratedAttrs = {};
             for (const attr of el.attributes) {
                 if (attr.name.startsWith('mx-') || attr.name === 'class') continue;
-                hydratedAttrs[kebabToCamel(attr.name)] = attr.value;
+                hydratedAttrs[kebabToCamel(attr.name)] = parseValue(attr.value);
             }
             hydratedAttrs.text = el.textContent;
             hydratedAttrs.html = el.innerHTML;

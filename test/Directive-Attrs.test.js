@@ -29,7 +29,7 @@ describe('CuboMX - mx-attrs Directive', () => {
         const attrs = CuboMX.myComp.myAttrs;
         expect(attrs).toBeDefined();
         expect(attrs.href).toBe('/um/path');
-        expect(attrs.dataId).toBe('123'); // Changed from data-id to dataId
+        expect(attrs.dataId).toBe(123); // Changed from data-id to dataId, and '123' to 123
         expect(attrs.class).toEqual(['text-class', 'active']);
         expect(attrs.text).toBe('Um texto');
         expect(attrs.html).toBe('<span>Um texto</span>');
@@ -117,5 +117,30 @@ describe('CuboMX - mx-attrs Directive', () => {
         el.value = 'Digitado pelo usuário';
         el.dispatchEvent(new Event('input'));
         expect(attrs.value).toBe('Digitado pelo usuário');
+    });
+
+    it('should hydrate attribute values using parseValue for correct types', () => {
+        CuboMX.component('myComp', { myAttrs: null });
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <div id="test-el" 
+                     mx-attrs:my-comp.my-attrs
+                     count="123"
+                     is-active="true"
+                     has-error="false"
+                     user="null"
+                     owner="None">
+                </div>
+            </div>
+        `;
+
+        CuboMX.start();
+        const attrs = CuboMX.myComp.myAttrs;
+
+        expect(attrs.count).toBe(123);
+        expect(attrs.isActive).toBe(true);
+        expect(attrs.hasError).toBe(false);
+        expect(attrs.user).toBe(null);
+        expect(attrs.owner).toBe(null);
     });
 });
