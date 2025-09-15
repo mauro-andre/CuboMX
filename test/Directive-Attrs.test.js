@@ -64,4 +64,33 @@ describe('CuboMX - mx-attrs Directive', () => {
         expect(el.classList.contains('active')).toBe(false);
         expect(el.classList.contains('nova-classe')).toBe(true);
     });
+
+    it('should have text hydrated before init() is called and remain reactive', () => {
+        let initialTextCorrect = false;
+        
+        CuboMX.component('myComp', {
+            myAttrs: null,
+            init() {
+                // Use textContent and trim for a more robust comparison in jsdom
+                initialTextCorrect = (this.myAttrs.text === this.$el.textContent.trim());
+            }
+        });
+
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <div id="test-el" mx-attrs:my-comp.my-attrs>Texto Inicial</div>
+            </div>
+        `;
+        const el = document.getElementById('test-el');
+
+        CuboMX.start();
+
+        // 1. Hydration Assertion (checked via init)
+        expect(initialTextCorrect).toBe(true);
+        expect(CuboMX.myComp.myAttrs.text).toBe('Texto Inicial');
+
+        // 2. Reactivity Assertion
+        CuboMX.myComp.myAttrs.text = 'Texto Alterado';
+        expect(el.innerText).toBe('Texto Alterado');
+    });
 });
