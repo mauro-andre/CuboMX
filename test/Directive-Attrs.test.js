@@ -1,16 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CuboMX } from '../src/CuboMX.js';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { CuboMX } from "../src/CuboMX.js";
 
-describe('CuboMX - mx-attrs Directive', () => {
-
+describe("CuboMX - mx-attrs Directive", () => {
     beforeEach(() => {
-        document.body.innerHTML = '';
+        document.body.innerHTML = "";
         CuboMX.reset();
     });
 
-    it('should two-way bind element attributes, text, and html to an object', () => {
+    it("should two-way bind element attributes, text, and html to an object", () => {
         // 1. Setup
-        CuboMX.component('myComp', { myAttrs: null });
+        CuboMX.component("myComp", { myAttrs: null });
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <a id="test-el" 
@@ -20,7 +19,7 @@ describe('CuboMX - mx-attrs Directive', () => {
                    data-id="123"><span>Um texto</span></a>
             </div>
         `;
-        const el = document.getElementById('test-el');
+        const el = document.getElementById("test-el");
 
         // 2. Initialize
         CuboMX.start();
@@ -28,52 +27,53 @@ describe('CuboMX - mx-attrs Directive', () => {
         // 3. Hydration Assertions (DOM -> State)
         const attrs = CuboMX.myComp.myAttrs;
         expect(attrs).toBeDefined();
-        expect(attrs.href).toBe('/um/path');
+        expect(attrs.href).toBe("/um/path");
         expect(attrs.dataId).toBe(123); // Changed from data-id to dataId, and '123' to 123
-        expect(attrs.class).toEqual(['text-class', 'active']);
-        expect(attrs.text).toBe('Um texto');
-        expect(attrs.html).toBe('<span>Um texto</span>');
+        expect(attrs.class).toEqual(["text-class", "active"]);
+        expect(attrs.text).toBe("Um texto");
+        expect(attrs.html).toBe("<span>Um texto</span>");
 
         // 4. Reactivity Assertions (State -> DOM)
-        
+
         // Attribute
-        attrs.href = '/novo/path';
-        expect(el.getAttribute('href')).toBe('/novo/path');
+        attrs.href = "/novo/path";
+        expect(el.getAttribute("href")).toBe("/novo/path");
 
         // camelCase to kebab-case attribute
-        attrs.ariaLabel = 'An accessible label';
-        expect(el.getAttribute('aria-label')).toBe('An accessible label');
+        attrs.ariaLabel = "An accessible label";
+        expect(el.getAttribute("aria-label")).toBe("An accessible label");
 
         // Text
-        attrs.text = 'Novo texto';
-        expect(el.innerText).toBe('Novo texto');
-        
+        attrs.text = "Novo texto";
+        expect(el.innerText).toBe("Novo texto");
+
         // HTML
-        attrs.html = '<strong>Negrito</strong>';
-        expect(el.innerHTML).toBe('<strong>Negrito</strong>');
+        attrs.html = "<strong>Negrito</strong>";
+        expect(el.innerHTML).toBe("<strong>Negrito</strong>");
 
         // Class (add)
-        attrs.class.push('nova-classe');
-        expect(el.classList.contains('text-class')).toBe(true);
-        expect(el.classList.contains('active')).toBe(true);
-        expect(el.classList.contains('nova-classe')).toBe(true);
+        attrs.class.push("nova-classe");
+        expect(el.classList.contains("text-class")).toBe(true);
+        expect(el.classList.contains("active")).toBe(true);
+        expect(el.classList.contains("nova-classe")).toBe(true);
 
         // Class (remove)
         attrs.class.splice(1, 1); // remove 'active'
-        expect(el.classList.contains('text-class')).toBe(true);
-        expect(el.classList.contains('active')).toBe(false);
-        expect(el.classList.contains('nova-classe')).toBe(true);
+        expect(el.classList.contains("text-class")).toBe(true);
+        expect(el.classList.contains("active")).toBe(false);
+        expect(el.classList.contains("nova-classe")).toBe(true);
     });
 
-    it('should have text hydrated before init() is called and remain reactive', () => {
+    it("should have text hydrated before init() is called and remain reactive", () => {
         let initialTextCorrect = false;
-        
-        CuboMX.component('myComp', {
+
+        CuboMX.component("myComp", {
             myAttrs: null,
             init() {
                 // Use textContent and trim for a more robust comparison in jsdom
-                initialTextCorrect = (this.myAttrs.text === this.$el.textContent.trim());
-            }
+                initialTextCorrect =
+                    this.myAttrs.text === this.$el.textContent.trim();
+            },
         });
 
         document.body.innerHTML = `
@@ -81,46 +81,46 @@ describe('CuboMX - mx-attrs Directive', () => {
                 <div id="test-el" mx-attrs:my-comp.my-attrs>Texto Inicial</div>
             </div>
         `;
-        const el = document.getElementById('test-el');
+        const el = document.getElementById("test-el");
 
         CuboMX.start();
 
         // 1. Hydration Assertion (checked via init)
         expect(initialTextCorrect).toBe(true);
-        expect(CuboMX.myComp.myAttrs.text).toBe('Texto Inicial');
+        expect(CuboMX.myComp.myAttrs.text).toBe("Texto Inicial");
 
         // 2. Reactivity Assertion
-        CuboMX.myComp.myAttrs.text = 'Texto Alterado';
-        expect(el.innerText).toBe('Texto Alterado');
+        CuboMX.myComp.myAttrs.text = "Texto Alterado";
+        expect(el.innerText).toBe("Texto Alterado");
     });
 
-    it('should provide two-way binding for input value, like mx-model', () => {
-        CuboMX.component('myComp', { myAttrs: null });
+    it("should provide two-way binding for input value, like mx-model", () => {
+        CuboMX.component("myComp", { myAttrs: null });
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <input id="test-el" mx-attrs:my-comp.my-attrs value="Texto inicial">
             </div>
         `;
-        const el = document.getElementById('test-el');
+        const el = document.getElementById("test-el");
 
         CuboMX.start();
         const attrs = CuboMX.myComp.myAttrs;
 
         // 1. Hydration Assertion (DOM -> State)
-        expect(attrs.value).toBe('Texto inicial');
+        expect(attrs.value).toBe("Texto inicial");
 
         // 2. Reactivity Assertion (State -> DOM)
-        attrs.value = 'Alterado pelo estado';
-        expect(el.value).toBe('Alterado pelo estado');
+        attrs.value = "Alterado pelo estado";
+        expect(el.value).toBe("Alterado pelo estado");
 
         // 3. Reactivity Assertion (DOM -> State)
-        el.value = 'Digitado pelo usuário';
-        el.dispatchEvent(new Event('input'));
-        expect(attrs.value).toBe('Digitado pelo usuário');
+        el.value = "Digitado pelo usuário";
+        el.dispatchEvent(new Event("input"));
+        expect(attrs.value).toBe("Digitado pelo usuário");
     });
 
-    it('should hydrate attribute values using parseValue for correct types', () => {
-        CuboMX.component('myComp', { myAttrs: null });
+    it("should hydrate attribute values using parseValue for correct types", () => {
+        CuboMX.component("myComp", { myAttrs: null });
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <div id="test-el" 
@@ -142,5 +142,65 @@ describe('CuboMX - mx-attrs Directive', () => {
         expect(attrs.hasError).toBe(false);
         expect(attrs.user).toBe(null);
         expect(attrs.owner).toBe(null);
+    });
+
+    it('should handle boolean attributes by presence or absence', () => {
+        CuboMX.component('myComp', { myAttrs: null });
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <button id="test-el" 
+                        mx-attrs:my-comp.my-attrs
+                        disabled
+                        is-active="true">
+                    Click me
+                </button>
+            </div>
+        `;
+        const el = document.getElementById('test-el');
+
+        CuboMX.start();
+        const attrs = CuboMX.myComp.myAttrs;
+
+        // 1. Hydration Assertions
+        expect(attrs.disabled).toBe(true);
+        expect(attrs.isActive).toBe(true);
+
+        // 2. Reactivity Assertions (State -> DOM)
+        attrs.disabled = false;
+        expect(el.hasAttribute('disabled')).toBe(false);
+
+        attrs.disabled = true;
+        expect(el.hasAttribute('disabled')).toBe(true);
+        expect(el.getAttribute('disabled')).toBe('');
+    });
+
+    it('should handle two-way binding for checkbox checked property', () => {
+        CuboMX.component('myComp', { myAttrs: null });
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <input type="checkbox" 
+                       id="test-el"
+                       mx-attrs:my-comp.my-attrs
+                       checked>
+            </div>
+        `;
+        const el = document.getElementById('test-el');
+
+        CuboMX.start();
+        const attrs = CuboMX.myComp.myAttrs;
+
+        // 1. Hydration Assertion
+        expect(attrs.checked).toBe(true);
+
+        // 2. Reactivity Assertion (State -> DOM)
+        attrs.checked = false;
+        expect(el.checked).toBe(false);
+
+        attrs.checked = true;
+        expect(el.checked).toBe(true);
+
+        // 3. Reactivity Assertion (DOM -> State via click)
+        el.click();
+        expect(attrs.checked).toBe(false);
     });
 });

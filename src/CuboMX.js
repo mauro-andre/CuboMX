@@ -115,6 +115,66 @@ const CuboMX = (() => {
         activeProxies[name] = proxy;
     };
 
+    const hydrateElementToObject = (el) => {
+        // 1. Hydration (DOM -> State)
+        const hydratedAttrs = {};
+        for (const attr of el.attributes) {
+            if (attr.name.startsWith('mx-') || attr.name === 'class') continue;
+            const value = attr.value === '' ? true : parseValue(attr.value);
+            hydratedAttrs[kebabToCamel(attr.name)] = value;
+        }
+        hydratedAttrs.text = el.textContent;
+        hydratedAttrs.html = el.innerHTML;
+        
+        // 2. Reactivity Setup
+        const classArray = Array.from(el.classList);
+        const MUTATION_METHODS = ['push', 'pop', 'splice', 'shift', 'unshift', 'sort', 'reverse'];
+        
+        const classProxy = new Proxy(classArray, {
+            get(target, prop) {
+                const value = Reflect.get(target, prop);
+                if (typeof value === 'function' && MUTATION_METHODS.includes(prop)) {
+                    return function(...args) {
+                        const result = value.apply(target, args);
+                        el.className = target.join(' ');
+                        return result;
+                    };
+                }
+                return typeof value === 'function' ? value.bind(target) : value;
+            }
+        });
+        hydratedAttrs.class = classProxy;
+
+        const attrsProxy = new Proxy(hydratedAttrs, {
+            set(target, prop, value) {
+                const success = Reflect.set(target, prop, value);
+                if (prop === 'text') {
+                    el.innerText = value;
+                } else if (prop === 'html') {
+                    el.innerHTML = value;
+                } else if (prop === 'class') {
+                    if (Array.isArray(value)) el.className = value.join(' ');
+                } else {
+                    if (typeof value === 'boolean') {
+                        if (value) {
+                            el.setAttribute(camelToKebab(prop), '');
+                        } else {
+                            el.removeAttribute(camelToKebab(prop));
+                        }
+                    } else {
+                        el.setAttribute(camelToKebab(prop), value);
+                    }
+                }
+                if (prop in el) {
+                    el[prop] = value;
+                }
+                return success;
+            }
+        });
+
+        return attrsProxy;
+    };
+
     const directiveHandlers = {
         "mx-text": (el, expression) => {
             const initialValue = evaluate(expression);
@@ -342,60 +402,40 @@ const CuboMX = (() => {
 
             if (typeof targetObject !== 'object' || targetObject === null) return;
 
-            // 1. Hydration (DOM -> State)
-            const hydratedAttrs = {};
-            for (const attr of el.attributes) {
-                if (attr.name.startsWith('mx-') || attr.name === 'class') continue;
-                hydratedAttrs[kebabToCamel(attr.name)] = parseValue(attr.value);
-            }
-            hydratedAttrs.text = el.textContent;
-            hydratedAttrs.html = el.innerHTML;
-            
-            // 2. Reactivity Setup
-            const classArray = Array.from(el.classList);
-            const MUTATION_METHODS = ['push', 'pop', 'splice', 'shift', 'unshift', 'sort', 'reverse'];
-            
-            const classProxy = new Proxy(classArray, {
-                get(target, prop) {
-                    const value = Reflect.get(target, prop);
-                    if (typeof value === 'function' && MUTATION_METHODS.includes(prop)) {
-                        return function(...args) {
-                            const result = value.apply(target, args);
-                            el.className = target.join(' ');
-                            return result;
-                        };
-                    }
-                    return typeof value === 'function' ? value.bind(target) : value;
-                }
-            });
-            hydratedAttrs.class = classProxy;
-
-            const attrsProxy = new Proxy(hydratedAttrs, {
-                set(target, prop, value) {
-                    const success = Reflect.set(target, prop, value);
-                    if (prop === 'text') {
-                        el.innerText = value;
-                    } else if (prop === 'html') {
-                        el.innerHTML = value;
-                    } else if (prop === 'class') {
-                        if (Array.isArray(value)) el.className = value.join(' ');
-                    } else {
-                        el.setAttribute(camelToKebab(prop), value);
-                    }
-                    return success;
-                }
-            });
-
-            // Assign the reactive proxy to the component state
+            const attrsProxy = hydrateElementToObject(el);
             targetObject[propName] = attrsProxy;
 
             // Add mx-model-like behavior for input elements
-            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) {
+            if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+                el.addEventListener('change', () => {
+                    attrsProxy.checked = el.checked;
+                });
+            } else if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) {
                 el.addEventListener('input', () => {
-                    // Directly set the value on the proxy to ensure reactivity
                     attrsProxy.value = el.value;
                 });
             }
+        },
+        "mx-item": (el, expression) => {
+            const targetPath = expression.split('.').map(kebabToCamel);
+            const propName = targetPath.pop();
+            const objName = targetPath.join('.');
+            const targetObject = evaluate(objName);
+
+            if (typeof targetObject !== 'object' || targetObject === null) return;
+
+            // Ensure the target array exists
+            if (typeof targetObject[propName] === 'undefined' || targetObject[propName] === null) {
+                targetObject[propName] = [];
+            }
+
+            if (!Array.isArray(targetObject[propName])) {
+                console.error(`[CuboMX] mx-item target '${expression}' is not an array.`);
+                return;
+            }
+
+            const itemObject = hydrateElementToObject(el);
+            targetObject[propName].push(itemObject);
         },
     };
 
@@ -424,6 +464,9 @@ const CuboMX = (() => {
                 }
                 if (attr.name.startsWith("mx-attrs:")) {
                     directiveHandlers["mx-attrs"](el, attr.name.substring(9));
+                }
+                if (attr.name.startsWith("mx-item:")) {
+                    directiveHandlers["mx-item"](el, attr.name.substring(8));
                 }
                 if (attr.name.startsWith(":")) directiveHandlers[":"](el, attr);
                 if (attr.name.startsWith("mx-on:"))
