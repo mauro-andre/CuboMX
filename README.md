@@ -7,7 +7,7 @@ CuboMX is a reactive micro-framework for JavaScript, built from the ground up to
 **Core Principles:**
 
 -   **JavaScript is the Home for Logic:** Unlike other frameworks that encourage complex logic within HTML attributes, CuboMX believes that JavaScript is the proper place for application logic. Components are written in pure JavaScript, keeping your HTML clean and focused on structure.
--   **HTML is for State Binding, Not Logic:** The role of HTML is to declaratively bind elements to your JavaScript state. Directives like `mx-text` and `mx-on` are simple, explicit bridges, not a place to write inline JavaScript programs.
+-   **HTML is for State Binding, Not Logic:** The role of HTML is to declaratively bind elements to your JavaScript state. Directives like `mx-attrs` and `mx-on` are simple, explicit bridges, not a place to write inline JavaScript programs.
 -   **Global, Predictable State:** All reactive state is managed on a single, flat global `CuboMX` object. This eliminates the complexity of nested scopes and makes it immediately clear where your data lives, creating a predictable and easy-to-debug environment.
 -   **SSR-First Hydration:** CuboMX is built with Server-Side Rendering as a primary use case. Its directives are designed to effortlessly "hydrate" the state of your application from the initial HTML rendered by the server, bridging the gap between backend and frontend.
 
@@ -93,106 +93,12 @@ Directives are special HTML attributes that create a bridge between your DOM and
 
 Declares a component and manages its lifecycle (`init` and `destroy` hooks). It **does not** create a scope; all child elements still access state from the global `CuboMX` object.
 
-### `mx-model`
-
-Creates a two-way data binding on a form element. It supports standard inputs (`text`, `textarea`, `select`) as well as checkboxes.
-
-```html
-<!-- Binds the input's value to the 'email' property -->
-<input type="text" mx-model="loginControl.email" />
-
-<!-- Binds the checkbox's checked status to the 'notifications' property -->
-<input type="checkbox" mx-model="settings.notifications" />
-```
-
-**SSR Hydration:**
-Similar to `mx-text`, `mx-model` can hydrate the initial state from server-rendered attributes. If the bound property is `null` or `undefined`, CuboMX will use the element's `value` (for text inputs) or `checked` status (for checkboxes) to populate the state.
-
-**Example:**
-
-**Server-Rendered HTML:**
-```html
-<div mx-data="userForm">
-    <input type="text" mx-model="userForm.name" value="John Doe" />
-    <input type="checkbox" mx-model="userForm.agreed" checked />
-</div>
-```
-
-**JavaScript:**
-```javascript
-CuboMX.component("userForm", {
-    name: null,
-    agreed: undefined
-});
-CuboMX.start();
-
-// After start():
-// CuboMX.userForm.name will be "John Doe"
-// CuboMX.userForm.agreed will be true
-```
-
 ### `mx-show`
 
 Shows or hides an element based on the result of a JavaScript expression.
 
 ```html
 <div mx-show="theme.mode === 'dark'">...</div>
-```
-
-### `mx-text`
-
-Updates the `innerText` of an element with a value from your state.
-
-```html
-<span mx-text="loginControl.email"></span>
-```
-
-**SSR Hydration:**
-For applications using Server-Side Rendering (SSR), `mx-text` has a special behavior. If the bound property in your component is `null` or `undefined` when CuboMX starts, the directive will automatically update your component's state with the initial text content rendered by the server. This provides a simple way to "hydrate" your frontend state from the server-rendered HTML.
-
-**Example:**
-
-**Server-Rendered HTML:**
-
-```html
-<div mx-data="userProfile">
-    <h1 mx-text="userProfile.name">John Doe</h1>
-</div>
-```
-
-**JavaScript:**
-
-```javascript
-CuboMX.component("userProfile", {
-    name: null, // or just {}, where name is undefined
-});
-CuboMX.start();
-
-// After start(), CuboMX.userProfile.name will be "John Doe"
-```
-
-### `:` (Attribute Binding)
-
-Binds an HTML attribute to the result of a JavaScript expression. Because all expressions are evaluated within the global context of `CuboMX`, you can access your stores and components directly (e.g., `user.id`) or explicitly for clarity (e.g., `CuboMX.user.id`).
-
-```html
-<button :disabled="loginControl.isLoading">Save</button>
-
-<!-- Both forms are valid -->
-<a :href="`/users/${user.id}`">Profile</a>
-<a :href="`/users/${CuboMX.user.id}`">Profile (Explicit)</a>
-```
-
-**Special Behavior for `:class`:**
-This binding intelligently adds and removes classes from your expression without affecting other static classes on the element.
-
-```html
-<div
-    class="static-class"
-    :class="theme.mode === 'dark' ? 'bg-dark' : 'bg-light'"
->
-    ...
-</div>
 ```
 
 ### `mx-on:`
@@ -211,12 +117,12 @@ Attaches an event listener to an element.
 
     **Example with `$item`:**
     ```html
-    <ul mx-array:cart.items>
-        <li mx-item mx-obj:id="1" mx-on:click="cart.selectItem($item)">Item 1</li>
-        <li mx-item mx-obj:id="2" mx-on:click="cart.selectItem($item)">Item 2</li>
+    <ul>
+        <li mx-item:cart.items item-id="1" mx-on:click="cart.selectItem($item)">Item 1</li>
+        <li mx-item:cart.items item-id="2" mx-on:click="cart.selectItem($item)">Item 2</li>
     </ul>
     ```
-    In this case, clicking the first `<li>` would call `cart.selectItem` with the object `{ id: 1 }`.
+    In this case, clicking the first `<li>` would call `cart.selectItem` with the reactive object for that item, which would include `{ itemId: 1, ... }`.
 
 ### `mx-ref`
 
@@ -390,70 +296,6 @@ This creates a nested data structure. The `profile` object contains a `songs` ar
     }
 }
 ```
-
-## 5.1. Advanced SSR Hydration Directives (Legacy)
-
-> [!NOTE]
-> The directives below are still functional but are considered legacy. The new **Unified Hydration** system using `mx-attrs` and `mx-item` is the recommended approach as it is more powerful and consistent.
-
-#### `mx-prop:component.property="value"`
-
-This is the simplest way to hydrate a single, primitive value (string, number, boolean) into a component.
-
-- **HTML:** `<div mx-prop:cart.user-id="123"></div>`
-- **JS:** `CuboMX.component('cart', { userId: null });`
-- **Result:** After `CuboMX.start()`, `CuboMX.cart.userId` will be `123`.
-
-#### `mx-obj:component.objectProperty`
-
-This directive, combined with `mx-obj:*` attributes on the same element, allows you to build a complete object.
-
-- **HTML:** 
-  ```html
-  <div mx-obj:cart.user 
-       mx-obj:id="456" 
-       mx-obj:display-name="'Mauro'" 
-       class="user-data">
-  </div>
-  ```
-- **JS:** `CuboMX.component('cart', { user: null });`
-- **Result:** `CuboMX.cart.user` will be `{ id: 456, displayName: 'Mauro' }`. Note that the standard `class` attribute is ignored.
-
-#### `mx-array:component.arrayProperty` & `mx-item`
-
-This is the most powerful combination, used to hydrate arrays of primitives or objects.
-
-1.  **`mx-array`**: Placed on a parent element, it declares the target array property.
-2.  **`mx-item`**: Placed on child elements, it defines each item in the array.
-
-**Example 1: Array of Primitives**
-
-If `mx-item` has a value, it's evaluated as an expression.
-
-- **HTML:**
-  ```html
-  <ul mx-array:product.tags>
-      <li mx-item="'new-arrival'"></li>
-      <li mx-item="'featured'"></li>
-  </ul>
-  ```
-- **JS:** `CuboMX.component('product', { tags: [] });`
-- **Result:** `CuboMX.product.tags` will be `['new-arrival', 'featured']`.
-
-**Example 2: Array of Objects**
-
-If `mx-item` has no value, it collects the `mx-obj:*` attributes from its own element to build an object.
-
-- **HTML:**
-  ```html
-  <ul mx-array:cart.items>
-      <li mx-item mx-obj:id="1" mx-obj:name="'Product A'"></li>
-      <li mx-item mx-obj:id="2" mx-obj:name="'Product B'"></li>
-  </ul>
-  ```
-- **JS:** `CuboMX.component('cart', { items: [] });`
-- **Result:** `CuboMX.cart.items` will be `[{ id: 1, name: 'Product A' }, { id: 2, name: 'Product B' }]`.
-
 
 ## 6. Magic Properties
 
