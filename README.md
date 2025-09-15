@@ -231,11 +231,170 @@ Crucial for factory components, `mx-ref` gives a component instance a unique glo
 CuboMX.passwordField.isVisible = true;
 ```
 
-## 5. Advanced SSR Hydration Directives
+## 5. Unified Hydration Directives (`mx-attrs` & `mx-item`)
 
-For deep integration with Server-Side Rendering (SSR), CuboMX offers a powerful set of declarative directives to hydrate complex data structures directly from your HTML, without writing any inline JavaScript.
+CuboMX features a powerful and unified system for hydrating component state directly from server-rendered HTML. This system is centered around two directives, `mx-attrs` and `mx-item`, which together can build complex, nested, and fully reactive data structures. This is the recommended approach for populating components with data from the backend.
 
-This is the primary method for populating your components with data (like database query results) that is rendered on the server.
+### `mx-attrs:component.property`
+
+This is the primary directive for hydrating an object. It transforms the DOM element it's attached to into a reactive JavaScript object, assigning it to the specified component property.
+
+**Example:**
+
+**HTML:**
+```html
+<div mx-data="user-profile">
+    <div mx-attrs:user-profile.user
+         user-id="99"
+         is-active="true"
+         guest>
+        Welcome, John Doe!
+    </div>
+</div>
+```
+
+**JavaScript:**
+```javascript
+CuboMX.component('userProfile', { user: null });
+CuboMX.start();
+```
+
+**Resulting State:**
+After initialization, `CuboMX.userProfile.user` will be a reactive object:
+```javascript
+{
+    userId: 99,
+    isActive: true,
+    guest: true,
+    text: "Welcome, John Doe!",
+    html: "Welcome, John Doe!",
+    class: []
+}
+```
+
+#### Hydration Rules:
+
+-   **Attributes to Properties:** All HTML attributes are converted into properties on the object.
+-   **Case Conversion:** Attribute names are converted from `kebab-case` to `camelCase` (e.g., `user-id` becomes `userId`).
+-   **Value Parsing:** Attribute values are automatically parsed into their correct JavaScript types using `parseValue`. `"123"` becomes `123`, `"true"` becomes `true`, `"null"` becomes `null`, etc.
+-   **Boolean Attributes:** Attributes without a value (like `guest` in the example) are treated as `true`.
+-   **Special Properties:** Three special properties are always created:
+    -   `text`: The element's `textContent`.
+    -   `html`: The element's `innerHTML`.
+    -   `class`: A reactive array containing the element's CSS classes.
+-   **Ignored Attributes:** All `mx-*` attributes are ignored during hydration.
+
+#### Reactivity:
+
+The created object is fully reactive.
+
+-   **Updating State -> DOM:** Changing a property on the object updates the corresponding attribute or content in the DOM.
+    ```javascript
+    // Updates the `user-id` attribute to "100"
+    CuboMX.userProfile.user.userId = 100;
+
+    // Removes the `disabled` attribute from the element
+    CuboMX.userProfile.user.disabled = false;
+
+    // Updates the element's text content
+    CuboMX.userProfile.user.text = "New Text";
+
+    // Adds the 'highlight' class to the element
+    CuboMX.userProfile.user.class.push('highlight');
+    ```
+
+#### Two-Way Data Binding (like `mx-model`)
+
+A powerful feature of `mx-attrs` is that when used on form elements like `<input>`, `<textarea>`, or `<select>`, it provides full two-way data binding automatically, making it a superior alternative to `mx-model`.
+
+-   For text inputs, it binds the `value` property.
+-   For checkboxes, it binds the `checked` property.
+
+This means the state is not only hydrated from the DOM, but any user interaction (like typing or clicking a checkbox) will update the state, and any change in the state will update the DOM.
+
+**Example:**
+```html
+<div mx-data="form">
+    <input type="text" mx-attrs:form.textInput>
+    <input type="checkbox" mx-attrs:form.checkboxInput>
+</div>
+```
+```javascript
+CuboMX.component('form', { textInput: null, checkboxInput: null });
+CuboMX.start();
+
+// Changing state updates the input value
+CuboMX.form.textInput.value = 'Hello from JS';
+
+// Clicking the checkbox will automatically set CuboMX.form.checkboxInput.checked to true/false
+```
+
+### `mx-item:component.arrayProperty`
+
+This directive hydrates an element into a reactive object and pushes it into a target array. It uses the **exact same hydration logic as `mx-attrs`**, meaning it captures all attributes, content, and provides two-way binding for inputs.
+
+`mx-item` is a standalone directive and does not need to be a child of an `mx-attrs` element, making it highly flexible.
+
+**Example 1: Standalone Usage**
+
+Use `mx-item` to hydrate a simple list of objects.
+
+**HTML:**
+```html
+<div mx-data="my-comp">
+    <ul>
+        <li mx-item:my-comp.songs song-id="s1">Song 1</li>
+        <li mx-item:my-comp.songs song-id="s2">Song 2</li>
+    </ul>
+</div>
+```
+**JS:** `CuboMX.component('myComp', { songs: null });`
+**Result:** `CuboMX.myComp.songs` will be an array of two reactive objects.
+
+**Example 2: Nested Usage with `mx-attrs`**
+
+You can combine `mx-attrs` and `mx-item` to hydrate complex, nested data structures from the DOM.
+
+**HTML:**
+```html
+<div mx-data="my-comp">
+    <div mx-attrs:my-comp.profile user-id="123" name="John Doe">
+        <ul>
+            <li mx-item:my-comp.profile.songs song-id="s1" title="Bohemian Rhapsody">Queen</li>
+            <li mx-item:my-comp.profile.songs song-id="s2" title="Stairway to Heaven">Led Zeppelin</li>
+        </ul>
+    </div>
+</div>
+```
+
+**JavaScript:**
+```javascript
+CuboMX.component('myComp', { profile: null });
+CuboMX.start();
+```
+
+**Resulting State:**
+This creates a nested data structure. The `profile` object contains a `songs` array, and each item in the array is a rich object created from its `<li>` element.
+```javascript
+{
+    profile: {
+        userId: 123,
+        name: "John Doe",
+        text: "...",
+        html: "<ul>...</ul>",
+        class: [],
+        songs: [
+            { songId: "s1", title: "Bohemian Rhapsody", text: "Queen", ... },
+            { songId: "s2", title: "Stairway to Heaven", text: "Led Zeppelin", ... }
+        ]
+    }
+}
+```
+
+## 5.1. Advanced SSR Hydration Directives (Legacy)
+
+> [!NOTE]
+> The directives below are still functional but are considered legacy. The new **Unified Hydration** system using `mx-attrs` and `mx-item` is the recommended approach as it is more powerful and consistent.
 
 #### `mx-prop:component.property="value"`
 

@@ -44,4 +44,24 @@ describe('CuboMX - mx-item Directive', () => {
         expect(profile.songs[1].title).toBe('Stairway to Heaven');
         expect(profile.songs[1].text).toBe('Led Zeppelin');
     });
+
+    it('should work independently to hydrate an array', () => {
+        CuboMX.component('myComp', { songs: null });
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <ul>
+                    <li mx-item:my-comp.songs song-id="s1">Song 1</li>
+                    <li mx-item:my-comp.songs song-id="s2">Song 2</li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        const songs = CuboMX.myComp.songs;
+        expect(songs).toBeInstanceOf(Array);
+        expect(songs).toHaveLength(2);
+        expect(songs[0].songId).toBe('s1');
+        expect(songs[1].text).toBe('Song 2');
+    });
 });
