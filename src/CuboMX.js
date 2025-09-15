@@ -115,7 +115,7 @@ const CuboMX = (() => {
         activeProxies[name] = proxy;
     };
 
-    const hydrateElementToObject = (el) => {
+    const hydrateElementToObject = (el, basePath) => {
         // 1. Hydration (DOM -> State)
         const hydratedAttrs = {};
         for (const attr of el.attributes) {
@@ -146,8 +146,26 @@ const CuboMX = (() => {
         hydratedAttrs.class = classProxy;
 
         const attrsProxy = new Proxy(hydratedAttrs, {
+            get(target, prop) {
+                if (prop === '$watch') {
+                    return (propToWatch, callback) => {
+                        const path = `${basePath}.${propToWatch}`;
+                        watch(path, callback);
+                    };
+                }
+                return Reflect.get(target, prop);
+            },
             set(target, prop, value) {
+                const oldValue = target[prop];
                 const success = Reflect.set(target, prop, value);
+
+                if (success && oldValue !== value) {
+                    const propertyPath = `${basePath}.${prop}`;
+                    if (watchers[propertyPath]) {
+                        watchers[propertyPath].forEach((cb) => cb(value, oldValue));
+                    }
+                }
+
                 if (prop === 'text') {
                     el.innerText = value;
                 } else if (prop === 'html') {
@@ -402,7 +420,8 @@ const CuboMX = (() => {
 
             if (typeof targetObject !== 'object' || targetObject === null) return;
 
-            const attrsProxy = hydrateElementToObject(el);
+            const fullPath = `${objName}.${propName}`;
+            const attrsProxy = hydrateElementToObject(el, fullPath);
             targetObject[propName] = attrsProxy;
 
             // Add mx-model-like behavior for input elements
@@ -434,7 +453,9 @@ const CuboMX = (() => {
                 return;
             }
 
-            const itemObject = hydrateElementToObject(el);
+            const index = targetObject[propName].length;
+            const fullPath = `${objName}.${propName}[${index}]`;
+            const itemObject = hydrateElementToObject(el, fullPath);
             targetObject[propName].push(itemObject);
         },
     };

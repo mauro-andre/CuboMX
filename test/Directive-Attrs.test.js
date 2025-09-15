@@ -203,4 +203,53 @@ describe("CuboMX - mx-attrs Directive", () => {
         el.click();
         expect(attrs.checked).toBe(false);
     });
+
+    it('should trigger this.$watch for property changes', () => {
+        const textWatcher = vi.fn();
+
+        CuboMX.component('myComp', {
+            myAttrs: null,
+            init() {
+                this.$watch('myAttrs.text', textWatcher);
+            }
+        });
+
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <div mx-attrs:my-comp.my-attrs>Texto Inicial</div>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        // Change the text property
+        CuboMX.myComp.myAttrs.text = 'Texto Alterado';
+
+        // Assert watcher was called
+        expect(textWatcher).toHaveBeenCalledTimes(1);
+        expect(textWatcher).toHaveBeenCalledWith('Texto Alterado', 'Texto Inicial');
+    });
+
+    it('should trigger CuboMX.watch for property changes', () => {
+        const hrefWatcher = vi.fn();
+        CuboMX.component('myComp', { myAttrs: null });
+        
+        // Register watcher before start
+        CuboMX.watch('myComp.myAttrs.href', hrefWatcher);
+
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <a mx-attrs:my-comp.my-attrs href="/path/inicial">Link</a>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        // Change the href property
+        CuboMX.myComp.myAttrs.href = '/path/novo';
+
+        // Assert watcher was called
+        expect(hrefWatcher).toHaveBeenCalledTimes(1);
+        expect(hrefWatcher).toHaveBeenCalledWith('/path/novo', '/path/inicial');
+    });
 });
