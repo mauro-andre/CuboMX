@@ -236,6 +236,22 @@ CuboMX.form.textInput.value = 'Hello from JS';
 // Clicking the checkbox will automatically set CuboMX.form.checkboxInput.checked to true/false
 ```
 
+#### Granular Binding: `mx-attrs:prop`
+
+For cases where you only need to bind a single property from a form element, you can use a modifier. This provides simple two-way data binding without creating a full object.
+
+-   **Syntax:** `mx-attrs:PROPERTY="component.target"`
+-   **Supported Properties:** `value`, `checked`, `text`, `html`.
+
+**Example:**
+```html
+<div mx-data="loginForm">
+    <input type="text" mx-attrs:value="loginForm.email">
+    <input type="checkbox" mx-attrs:checked="loginForm.rememberMe">
+</div>
+```
+This binds the input's value to `loginForm.email` and the checkbox's checked status to `loginForm.rememberMe`.
+
 ### `mx-item="component.arrayProperty"`
 
 This directive hydrates an element into a reactive object and pushes it into a target array. It uses the **exact same hydration logic as `mx-attrs`**, meaning it captures all attributes, content, and provides two-way data binding for inputs.
@@ -297,6 +313,24 @@ This creates a nested data structure. The `profile` object contains a `songs` ar
     }
 }
 ```
+
+#### Granular Binding: `mx-item:prop`
+
+To hydrate an array of primitive values instead of objects, you can specify which property of the element to use.
+
+-   **Syntax:** `mx-item:PROPERTY="component.targetArray"`
+-   **Supported Properties:** `value`, `text`, `html`.
+
+**Example:**
+```html
+<div mx-data="product">
+    <ul mx-item:text="product.tags">
+        <li>New</li>
+        <li>Featured</li>
+    </ul>
+</div>
+```
+This will result in `CuboMX.product.tags` being `['New', 'Featured']`. `mx-item:value` will prioritize the `value` attribute, falling back to `textContent` if it doesn't exist.
 
 ## 6. Magic Properties
 

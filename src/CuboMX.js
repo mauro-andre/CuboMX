@@ -234,6 +234,47 @@ const CuboMX = (() => {
                 evaluateEventExpression(expression, el, event);
             });
         },
+        "mx-attrs:": (el, attr) => {
+            const propToBind = attr.name.substring(9); // "mx-attrs:".length
+            const expression = attr.value;
+
+            if (!['value', 'text', 'html', 'checked'].includes(propToBind)) return;
+
+            const isCheckbox = propToBind === 'checked';
+            const domProperty = (propToBind === 'text') ? 'textContent' : (propToBind === 'html') ? 'innerHTML' : propToBind;
+
+            // Hydration (DOM -> State)
+            const initialValue = evaluate(expression);
+            if (initialValue === null || initialValue === undefined) {
+                try {
+                    const valueToSet = el[domProperty];
+                    const setter = new Function("value", `with(this) { ${expression} = value }`);
+                    setter.call(activeProxies, valueToSet);
+                } catch (e) { /* Suppress errors for non-assignable expressions */ }
+            }
+
+            // Reactivity (State -> DOM)
+            const binding = {
+                el,
+                evaluate: () => {
+                    const value = evaluate(expression);
+                    if (el[domProperty] !== value) {
+                        el[domProperty] = value ?? (isCheckbox ? false : '');
+                    }
+                },
+            };
+            bindings.push(binding);
+            binding.evaluate();
+
+            // Reactivity (DOM -> State) for form elements
+            if (['value', 'checked'].includes(propToBind)) {
+                const eventName = isCheckbox ? 'change' : 'input';
+                el.addEventListener(eventName, () => {
+                    const setter = new Function("value", `with(this) { ${expression} = value }`);
+                    setter.call(activeProxies, el[domProperty]);
+                });
+            }
+        },
         "mx-attrs": (el, expression) => {
             const targetPath = expression.split(".").map(kebabToCamel);
             const propName = targetPath.pop();
@@ -289,6 +330,36 @@ const CuboMX = (() => {
             el.__cubo_item_data__ = itemObject;
             targetObject[propName].push(itemObject);
         },
+        "mx-item:": (el, attr) => {
+            const propToBind = attr.name.substring(8); // "mx-item:".length
+            const expression = attr.value;
+
+            if (!['value', 'text', 'html'].includes(propToBind)) return;
+
+            let valueToPush;
+            if (propToBind === 'text') {
+                valueToPush = el.textContent;
+            } else if (propToBind === 'html') {
+                valueToPush = el.innerHTML;
+            } else if (propToBind === 'value') {
+                valueToPush = el.hasAttribute('value') ? el.getAttribute('value') : el.textContent;
+            }
+
+            const targetPath = expression.split('.');
+            const propName = targetPath.pop();
+            const objName = targetPath.join('.');
+            const targetObject = evaluate(objName);
+
+            if (typeof targetObject !== 'object' || targetObject === null) return;
+
+            if (targetObject[propName] === null || typeof targetObject[propName] === 'undefined') {
+                targetObject[propName] = [];
+            }
+
+            if (!Array.isArray(targetObject[propName])) return;
+
+            targetObject[propName].push(parseValue(valueToPush));
+        },
     };
 
     const bindDirectives = (rootElement) => {
@@ -305,8 +376,13 @@ const CuboMX = (() => {
                 directiveHandlers["mx-show"](el, el.getAttribute("mx-show"));
 
             for (const attr of [...el.attributes]) {
-                if (attr.name.startsWith("mx-on:"))
+                if (attr.name.startsWith("mx-attrs:")) {
+                    directiveHandlers["mx-attrs:"](el, attr);
+                } else if (attr.name.startsWith("mx-item:")) {
+                    directiveHandlers["mx-item:"](el, attr);
+                } else if (attr.name.startsWith("mx-on:")) {
                     directiveHandlers["mx-on:"](el, attr);
+                }
             }
         }
     };
