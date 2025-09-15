@@ -294,18 +294,17 @@ const CuboMX = (() => {
     const bindDirectives = (rootElement) => {
         const elements = [rootElement, ...rootElement.querySelectorAll("*")];
         for (const el of elements) {
-            // Fixed-name directives
+            // Process data-providing directives first to prevent race conditions
+            if (el.hasAttribute("mx-attrs"))
+                directiveHandlers["mx-attrs"](el, el.getAttribute("mx-attrs"));
+            if (el.hasAttribute("mx-item"))
+                directiveHandlers["mx-item"](el, el.getAttribute("mx-item"));
+
+            // Then process data-consuming and event directives
             if (el.hasAttribute("mx-show"))
                 directiveHandlers["mx-show"](el, el.getAttribute("mx-show"));
 
-            // Prefixed directives
             for (const attr of [...el.attributes]) {
-                if (attr.name.startsWith("mx-attrs:")) {
-                    directiveHandlers["mx-attrs"](el, attr.name.substring(9));
-                }
-                if (attr.name.startsWith("mx-item:")) {
-                    directiveHandlers["mx-item"](el, attr.name.substring(8));
-                }
                 if (attr.name.startsWith("mx-on:"))
                     directiveHandlers["mx-on:"](el, attr);
             }

@@ -76,7 +76,7 @@ describe('CuboMX - Reactivity', () => {
         CuboMX.component('myComp', { data: null });
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <div mx-attrs:my-comp.data is-active="true"></div>
+                <div mx-attrs="myComp.data" is-active="true"></div>
                 <span id="indicator" mx-show="myComp.data.isActive">Visible</span>
             </div>
         `;

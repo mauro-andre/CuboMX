@@ -76,7 +76,7 @@ describe('CuboMX Refactor - DOM Mutation Lifecycle', () => {
         // 2. Dynamically add a new chunk of HTML using mx-attrs.
         const newContent = document.createElement('div');
         newContent.innerHTML = `
-            <span mx-attrs:test-store.span-attrs>Hello</span>
+            <span mx-attrs="testStore.spanAttrs">Hello</span>
             <button mx-on:click="testStore.changeText()"></button>
         `;
         document.body.appendChild(newContent);

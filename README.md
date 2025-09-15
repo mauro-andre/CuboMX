@@ -120,8 +120,8 @@ Attaches an event listener to an element.
     **Example with `$item`:**
     ```html
     <ul>
-        <li mx-item:cart.items item-id="1" mx-on:click="cart.selectItem($item)">Item 1</li>
-        <li mx-item:cart.items item-id="2" mx-on:click="cart.selectItem($item)">Item 2</li>
+        <li mx-item="cart.items" item-id="1" mx-on:click="cart.selectItem($item)">Item 1</li>
+        <li mx-item="cart.items" item-id="2" mx-on:click="cart.selectItem($item)">Item 2</li>
     </ul>
     ```
     In this case, clicking the first `<li>` would call `cart.selectItem` with the reactive object for that item, which would include `{ itemId: 1, ... }`.
@@ -143,7 +143,7 @@ CuboMX.passwordField.isVisible = true;
 
 CuboMX features a powerful and unified system for hydrating component state directly from server-rendered HTML. This system is centered around two directives, `mx-attrs` and `mx-item`, which together can build complex, nested, and fully reactive data structures. This is the recommended approach for populating components with data from the backend.
 
-### `mx-attrs:component.property`
+### `mx-attrs="component.property"`
 
 This is the primary directive for hydrating an object. It transforms the DOM element it's attached to into a reactive JavaScript object, assigning it to the specified component property.
 
@@ -151,8 +151,8 @@ This is the primary directive for hydrating an object. It transforms the DOM ele
 
 **HTML:**
 ```html
-<div mx-data="user-profile">
-    <div mx-attrs:user-profile.user
+<div mx-data="userProfile">
+    <div mx-attrs="userProfile.user"
          user-id="99"
          is-active="true"
          guest>
@@ -184,8 +184,7 @@ After initialization, `CuboMX.userProfile.user` will be a reactive object:
 
 -   **Attributes to Properties:** All HTML attributes are converted into properties on the object.
 -   **Case Conversion:** Attribute names are converted from `kebab-case` to `camelCase` (e.g., `user-id` becomes `userId`).
--   **Value Parsing:** Attribute values are automatically parsed into their correct JavaScript types using `parseValue`. `"123"` becomes `123`, `"true"` becomes `true`, `"null"` becomes `null`, etc.
--   **Boolean Attributes:** Attributes without a value (like `guest` in the example) are treated as `true`.
+-   **Value Parsing:** Attribute values are automatically parsed into their correct JavaScript types. `"123"` becomes `123`, `"true"` becomes `true`, and attributes without a value (like `guest`) also become `true`.
 -   **Special Properties:** Three special properties are always created:
     -   `text`: The element's `textContent`.
     -   `html`: The element's `innerHTML`.
@@ -213,7 +212,7 @@ The created object is fully reactive.
 
 #### Two-Way Data Binding
 
-A powerful feature of `mx-attrs` is that when used on form elements like `<input>`, `<textarea>`, or `<select>`, it provides full two-way data binding automatically, making it a superior alternative to `mx-model`.
+A powerful feature of `mx-attrs` is that when used on form elements like `<input>`, `<textarea>`, or `<select>`, it provides full two-way data binding automatically.
 
 -   For text inputs, it binds the `value` property.
 -   For checkboxes, it binds the `checked` property.
@@ -223,8 +222,8 @@ This means the state is not only hydrated from the DOM, but any user interaction
 **Example:**
 ```html
 <div mx-data="form">
-    <input type="text" mx-attrs:form.textInput>
-    <input type="checkbox" mx-attrs:form.checkboxInput>
+    <input type="text" mx-attrs="form.textInput">
+    <input type="checkbox" mx-attrs="form.checkboxInput">
 </div>
 ```
 ```javascript
@@ -237,9 +236,9 @@ CuboMX.form.textInput.value = 'Hello from JS';
 // Clicking the checkbox will automatically set CuboMX.form.checkboxInput.checked to true/false
 ```
 
-### `mx-item:component.arrayProperty`
+### `mx-item="component.arrayProperty"`
 
-This directive hydrates an element into a reactive object and pushes it into a target array. It uses the **exact same hydration logic as `mx-attrs`**, meaning it captures all attributes, content, and provides two-way binding for inputs.
+This directive hydrates an element into a reactive object and pushes it into a target array. It uses the **exact same hydration logic as `mx-attrs`**, meaning it captures all attributes, content, and provides two-way data binding for inputs.
 
 `mx-item` is a standalone directive and does not need to be a child of an `mx-attrs` element, making it highly flexible.
 
@@ -249,10 +248,10 @@ Use `mx-item` to hydrate a simple list of objects.
 
 **HTML:**
 ```html
-<div mx-data="my-comp">
+<div mx-data="myComp">
     <ul>
-        <li mx-item:my-comp.songs song-id="s1">Song 1</li>
-        <li mx-item:my-comp.songs song-id="s2">Song 2</li>
+        <li mx-item="myComp.songs" song-id="s1">Song 1</li>
+        <li mx-item="myComp.songs" song-id="s2">Song 2</li>
     </ul>
 </div>
 ```
@@ -265,11 +264,11 @@ You can combine `mx-attrs` and `mx-item` to hydrate complex, nested data structu
 
 **HTML:**
 ```html
-<div mx-data="my-comp">
-    <div mx-attrs:my-comp.profile user-id="123" name="John Doe">
+<div mx-data="myComp">
+    <div mx-attrs="myComp.profile" user-id="123" name="John Doe">
         <ul>
-            <li mx-item:my-comp.profile.songs song-id="s1" title="Bohemian Rhapsody">Queen</li>
-            <li mx-item:my-comp.profile.songs song-id="s2" title="Stairway to Heaven">Led Zeppelin</li>
+            <li mx-item="myComp.profile.songs" song-id="s1" title="Bohemian Rhapsody">Queen</li>
+            <li mx-item="myComp.profile.songs" song-id="s2" title="Stairway to Heaven">Led Zeppelin</li>
         </ul>
     </div>
 </div>

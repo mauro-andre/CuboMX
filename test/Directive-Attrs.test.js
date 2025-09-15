@@ -13,7 +13,7 @@ describe("CuboMX - mx-attrs Directive", () => {
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <a id="test-el" 
-                   mx-attrs:my-comp.my-attrs 
+                   mx-attrs="myComp.myAttrs" 
                    href="/um/path" 
                    class="text-class active" 
                    data-id="123"><span>Um texto</span></a>
@@ -78,7 +78,7 @@ describe("CuboMX - mx-attrs Directive", () => {
 
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <div id="test-el" mx-attrs:my-comp.my-attrs>Texto Inicial</div>
+                <div id="test-el" mx-attrs="myComp.myAttrs">Texto Inicial</div>
             </div>
         `;
         const el = document.getElementById("test-el");
@@ -98,7 +98,7 @@ describe("CuboMX - mx-attrs Directive", () => {
         CuboMX.component("myComp", { myAttrs: null });
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <input id="test-el" mx-attrs:my-comp.my-attrs value="Texto inicial">
+                <input id="test-el" mx-attrs="myComp.myAttrs" value="Texto inicial">
             </div>
         `;
         const el = document.getElementById("test-el");
@@ -124,7 +124,7 @@ describe("CuboMX - mx-attrs Directive", () => {
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <div id="test-el" 
-                     mx-attrs:my-comp.my-attrs
+                     mx-attrs="myComp.myAttrs"
                      count="123"
                      is-active="true"
                      has-error="false"
@@ -149,7 +149,7 @@ describe("CuboMX - mx-attrs Directive", () => {
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <button id="test-el" 
-                        mx-attrs:my-comp.my-attrs
+                        mx-attrs="myComp.myAttrs"
                         disabled
                         is-active="true">
                     Click me
@@ -180,7 +180,7 @@ describe("CuboMX - mx-attrs Directive", () => {
             <div mx-data="my-comp">
                 <input type="checkbox" 
                        id="test-el"
-                       mx-attrs:my-comp.my-attrs
+                       mx-attrs="myComp.myAttrs"
                        checked>
             </div>
         `;
@@ -216,7 +216,7 @@ describe("CuboMX - mx-attrs Directive", () => {
 
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <div mx-attrs:my-comp.my-attrs>Texto Inicial</div>
+                <div mx-attrs="myComp.myAttrs">Texto Inicial</div>
             </div>
         `;
 
@@ -239,7 +239,7 @@ describe("CuboMX - mx-attrs Directive", () => {
 
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <a mx-attrs:my-comp.my-attrs href="/path/inicial">Link</a>
+                <a mx-attrs="myComp.myAttrs" href="/path/inicial">Link</a>
             </div>
         `;
 
