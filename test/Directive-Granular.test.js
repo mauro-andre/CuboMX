@@ -89,4 +89,29 @@ describe("CuboMX - Granular Directives", () => {
 
         expect(CuboMX.myComp.values).toEqual(['A', 'B', 'C']);
     });
+
+    it('should hydrate a generic attribute before init() is called', () => {
+        let hydratedId = null;
+        CuboMX.component('company', {
+            companyId: null,
+            init() {
+                hydratedId = this.companyId;
+            }
+        });
+
+        document.body.innerHTML = `
+            <section 
+                mx-data="company" 
+                mx-attrs:company-id="company.companyId" 
+                company-id="a1b1">
+            </section>
+        `;
+
+        CuboMX.start();
+
+        // Assert that the value was available inside init()
+        expect(hydratedId).toBe('a1b1');
+        // Also assert the final state is correct
+        expect(CuboMX.company.companyId).toBe('a1b1');
+    });
 });

@@ -116,16 +116,26 @@ const CuboMX = (() => {
         activeProxies[name] = proxy;
     };
 
-    const hydrateElementToObject = (el, basePath) => {
-        // 1. Hydration (DOM -> State)
-        const hydratedAttrs = {};
+    const extractDataFromElement = (el) => {
+        const data = {};
         for (const attr of el.attributes) {
             if (attr.name.startsWith("mx-") || attr.name === "class") continue;
             const value = attr.value === "" ? true : parseValue(attr.value);
-            hydratedAttrs[kebabToCamel(attr.name)] = value;
+            data[kebabToCamel(attr.name)] = value;
         }
-        hydratedAttrs.text = el.textContent;
-        hydratedAttrs.html = el.innerHTML;
+        data.text = el.textContent;
+        data.html = el.innerHTML;
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) {
+            data.value = el.value;
+        }
+        if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+            data.checked = el.checked;
+        }
+        return data;
+    };
+
+    const hydrateElementToObject = (el, basePath) => {
+        const hydratedAttrs = extractDataFromElement(el);
 
         // 2. Reactivity Setup
         const classArray = Array.from(el.classList);
@@ -235,43 +245,56 @@ const CuboMX = (() => {
             });
         },
         "mx-attrs:": (el, attr) => {
-            const propToBind = attr.name.substring(9); // "mx-attrs:".length
+            const directiveProp = kebabToCamel(attr.name.substring(9));
             const expression = attr.value;
 
-            if (!['value', 'text', 'html', 'checked'].includes(propToBind)) return;
+            const allElementData = extractDataFromElement(el);
+            const valueToSet = allElementData[directiveProp];
 
-            const isCheckbox = propToBind === 'checked';
-            const domProperty = (propToBind === 'text') ? 'textContent' : (propToBind === 'html') ? 'innerHTML' : propToBind;
-
-            // Hydration (DOM -> State)
-            const initialValue = evaluate(expression);
-            if (initialValue === null || initialValue === undefined) {
+            // Hydration logic
+            if (evaluate(expression) === null || evaluate(expression) === undefined) {
                 try {
-                    const valueToSet = el[domProperty];
                     const setter = new Function("value", `with(this) { ${expression} = value }`);
                     setter.call(activeProxies, valueToSet);
-                } catch (e) { /* Suppress errors for non-assignable expressions */ }
+                } catch (e) { /* Suppress errors */ }
             }
 
-            // Reactivity (State -> DOM)
+            // Reactivity (State -> DOM) for all granular attrs
             const binding = {
                 el,
                 evaluate: () => {
                     const value = evaluate(expression);
-                    if (el[domProperty] !== value) {
-                        el[domProperty] = value ?? (isCheckbox ? false : '');
+                    const domProperty = ['text', 'html', 'value', 'checked'].includes(directiveProp) ? (directiveProp === 'text' ? 'textContent' : directiveProp) : null;
+                    if (domProperty) {
+                        if (el[domProperty] !== value) {
+                            el[domProperty] = value ?? (directiveProp === 'checked' ? false : '');
+                        }
+                    } else { // It's a generic attribute
+                        el.setAttribute(directiveProp, value);
                     }
                 },
             };
             bindings.push(binding);
             binding.evaluate();
 
-            // Reactivity (DOM -> State) for form elements
-            if (['value', 'checked'].includes(propToBind)) {
-                const eventName = isCheckbox ? 'change' : 'input';
+            // Two-way binding for form properties
+            if (['value', 'checked'].includes(directiveProp)) {
+                const binding = {
+                    el,
+                    evaluate: () => {
+                        const value = evaluate(expression);
+                        if (el[directiveProp] !== value) {
+                            el[directiveProp] = value ?? (directiveProp === 'checked' ? false : '');
+                        }
+                    },
+                };
+                bindings.push(binding);
+                binding.evaluate();
+
+                const eventName = directiveProp === 'checked' ? 'change' : 'input';
                 el.addEventListener(eventName, () => {
                     const setter = new Function("value", `with(this) { ${expression} = value }`);
-                    setter.call(activeProxies, el[domProperty]);
+                    setter.call(activeProxies, el[directiveProp]);
                 });
             }
         },
@@ -331,7 +354,7 @@ const CuboMX = (() => {
             targetObject[propName].push(itemObject);
         },
         "mx-item:": (el, attr) => {
-            const propToBind = attr.name.substring(8); // "mx-item:".length
+            const propToBind = attr.name.substring(8);
             const expression = attr.value;
 
             if (!['value', 'text', 'html'].includes(propToBind)) return;
