@@ -126,10 +126,10 @@ const CuboMX = (() => {
         }
         data.text = el.textContent;
         data.html = el.innerHTML;
-        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) {
+        if (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) {
             data.value = el.value;
         }
-        if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+        if (el.tagName === "INPUT" && el.type === "checkbox") {
             data.checked = el.checked;
         }
         return data;
@@ -256,11 +256,20 @@ const CuboMX = (() => {
             // On initial load, it only runs if state is uninitialized.
             // On subsequent DOM mutations, the new DOM is the source of truth.
             const initialValue = evaluate(expression);
-            if (!isInitialLoad || initialValue === null || typeof initialValue === 'undefined') {
+            if (
+                !isInitialLoad ||
+                initialValue === null ||
+                typeof initialValue === "undefined"
+            ) {
                 try {
-                    const setter = new Function("value", `with(this) { ${expression} = value }`);
+                    const setter = new Function(
+                        "value",
+                        `with(this) { ${expression} = value }`
+                    );
                     setter.call(activeProxies, valueToSet);
-                } catch (e) { /* Suppress errors */ }
+                } catch (e) {
+                    /* Suppress errors */
+                }
             }
 
             // Reactivity (State -> DOM) for all granular attrs
@@ -268,14 +277,29 @@ const CuboMX = (() => {
                 el,
                 evaluate: () => {
                     const value = evaluate(expression);
-                    const domProperty = ['text', 'html', 'value', 'checked'].includes(directiveProp) ? (directiveProp === 'text' ? 'textContent' : directiveProp) : null;
-                    if (domProperty) { // Handle special properties
+                    const domProperty = [
+                        "text",
+                        "html",
+                        "value",
+                        "checked",
+                    ].includes(directiveProp)
+                        ? directiveProp === "text"
+                            ? "textContent"
+                            : directiveProp
+                        : null;
+                    if (domProperty) {
+                        // Handle special properties
                         if (el[domProperty] !== value) {
-                            el[domProperty] = value ?? (directiveProp === 'checked' ? false : '');
+                            el[domProperty] =
+                                value ??
+                                (directiveProp === "checked" ? false : "");
                         }
-                    } else { // It's a generic attribute
-                        if (typeof value === 'boolean') {
-                            value ? el.setAttribute(directiveProp, '') : el.removeAttribute(directiveProp);
+                    } else {
+                        // It's a generic attribute
+                        if (typeof value === "boolean") {
+                            value
+                                ? el.setAttribute(directiveProp, "")
+                                : el.removeAttribute(directiveProp);
                         } else {
                             if (el.getAttribute(directiveProp) !== value) {
                                 el.setAttribute(directiveProp, value);
@@ -288,22 +312,28 @@ const CuboMX = (() => {
             binding.evaluate();
 
             // Two-way binding for form properties
-            if (['value', 'checked'].includes(directiveProp)) {
+            if (["value", "checked"].includes(directiveProp)) {
                 const binding = {
                     el,
                     evaluate: () => {
                         const value = evaluate(expression);
                         if (el[directiveProp] !== value) {
-                            el[directiveProp] = value ?? (directiveProp === 'checked' ? false : '');
+                            el[directiveProp] =
+                                value ??
+                                (directiveProp === "checked" ? false : "");
                         }
                     },
                 };
                 bindings.push(binding);
                 binding.evaluate();
 
-                const eventName = directiveProp === 'checked' ? 'change' : 'input';
+                const eventName =
+                    directiveProp === "checked" ? "change" : "input";
                 el.addEventListener(eventName, () => {
-                    const setter = new Function("value", `with(this) { ${expression} = value }`);
+                    const setter = new Function(
+                        "value",
+                        `with(this) { ${expression} = value }`
+                    );
                     setter.call(activeProxies, el[directiveProp]);
                 });
             }
@@ -367,25 +397,31 @@ const CuboMX = (() => {
             const propToBind = attr.name.substring(8);
             const expression = attr.value;
 
-            if (!['value', 'text', 'html'].includes(propToBind)) return;
+            if (!["value", "text", "html"].includes(propToBind)) return;
 
             let valueToPush;
-            if (propToBind === 'text') {
+            if (propToBind === "text") {
                 valueToPush = el.textContent;
-            } else if (propToBind === 'html') {
+            } else if (propToBind === "html") {
                 valueToPush = el.innerHTML;
-            } else if (propToBind === 'value') {
-                valueToPush = el.hasAttribute('value') ? el.getAttribute('value') : el.textContent;
+            } else if (propToBind === "value") {
+                valueToPush = el.hasAttribute("value")
+                    ? el.getAttribute("value")
+                    : el.textContent;
             }
 
-            const targetPath = expression.split('.');
+            const targetPath = expression.split(".");
             const propName = targetPath.pop();
-            const objName = targetPath.join('.');
+            const objName = targetPath.join(".");
             const targetObject = evaluate(objName);
 
-            if (typeof targetObject !== 'object' || targetObject === null) return;
+            if (typeof targetObject !== "object" || targetObject === null)
+                return;
 
-            if (targetObject[propName] === null || typeof targetObject[propName] === 'undefined') {
+            if (
+                targetObject[propName] === null ||
+                typeof targetObject[propName] === "undefined"
+            ) {
                 targetObject[propName] = [];
             }
 
