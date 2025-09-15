@@ -98,4 +98,26 @@ describe('CuboMX Refactor - DOM Mutation Lifecycle', () => {
         expect(attrs.text).toBe('Clicked');
         expect(span.innerText).toBe('Clicked');
     });
+
+    it('should re-evaluate directives when child content is replaced', async () => {
+        // 1. Initial Setup
+        CuboMX.component('myComp', { myVar: null });
+        const parentDiv = document.createElement('div');
+        parentDiv.setAttribute('mx-data', 'myComp');
+        parentDiv.innerHTML = `<div id="child" mx-attrs:my-prop="myComp.myVar" my-prop="value1"></div>`;
+        document.body.appendChild(parentDiv);
+
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        // 2. Initial Assertion
+        expect(CuboMX.myComp.myVar).toBe('value1');
+
+        // 3. Replace the child element
+        parentDiv.innerHTML = `<div id="child" mx-attrs:my-prop="myComp.myVar" my-prop="value2"></div>`;
+        await vi.runAllTimersAsync();
+
+        // 4. Final Assertion
+        expect(CuboMX.myComp.myVar).toBe('value2');
+    });
 });

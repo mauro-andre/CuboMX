@@ -8,6 +8,7 @@ const CuboMX = (() => {
     let activeProxies = {};
     let anonCounter = 0;
     let bindings = [];
+    let isInitialLoad = true;
 
     const kebabToCamel = (str) =>
         str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
@@ -251,8 +252,11 @@ const CuboMX = (() => {
             const allElementData = extractDataFromElement(el);
             const valueToSet = allElementData[directiveProp];
 
-            // Hydration logic
-            if (evaluate(expression) === null || evaluate(expression) === undefined) {
+            // Hydration logic (DOM -> State).
+            // On initial load, it only runs if state is uninitialized.
+            // On subsequent DOM mutations, the new DOM is the source of truth.
+            const initialValue = evaluate(expression);
+            if (!isInitialLoad || initialValue === null || typeof initialValue === 'undefined') {
                 try {
                     const setter = new Function("value", `with(this) { ${expression} = value }`);
                     setter.call(activeProxies, valueToSet);
@@ -265,12 +269,18 @@ const CuboMX = (() => {
                 evaluate: () => {
                     const value = evaluate(expression);
                     const domProperty = ['text', 'html', 'value', 'checked'].includes(directiveProp) ? (directiveProp === 'text' ? 'textContent' : directiveProp) : null;
-                    if (domProperty) {
+                    if (domProperty) { // Handle special properties
                         if (el[domProperty] !== value) {
                             el[domProperty] = value ?? (directiveProp === 'checked' ? false : '');
                         }
                     } else { // It's a generic attribute
-                        el.setAttribute(directiveProp, value);
+                        if (typeof value === 'boolean') {
+                            value ? el.setAttribute(directiveProp, '') : el.removeAttribute(directiveProp);
+                        } else {
+                            if (el.getAttribute(directiveProp) !== value) {
+                                el.setAttribute(directiveProp, value);
+                            }
+                        }
                     }
                 },
             };
@@ -503,6 +513,7 @@ const CuboMX = (() => {
         initQueue = initQueue.concat(domInstances);
 
         bindDirectives(document.body);
+        isInitialLoad = false; // Mark initial load as complete
 
         processInit(initQueue);
 
@@ -539,6 +550,7 @@ const CuboMX = (() => {
         activeProxies = {};
         anonCounter = 0;
         bindings = [];
+        isInitialLoad = true; // Reset for tests
     };
 
     const publicAPI = {
