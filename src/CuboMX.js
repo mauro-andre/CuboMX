@@ -12,7 +12,8 @@ const CuboMX = (() => {
     const kebabToCamel = (str) =>
         str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
 
-    const camelToKebab = (str) => str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
+    const camelToKebab = (str) =>
+        str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
 
     const parseValue = (value) => {
         const lowerValue = value.toLowerCase();
@@ -119,35 +120,46 @@ const CuboMX = (() => {
         // 1. Hydration (DOM -> State)
         const hydratedAttrs = {};
         for (const attr of el.attributes) {
-            if (attr.name.startsWith('mx-') || attr.name === 'class') continue;
-            const value = attr.value === '' ? true : parseValue(attr.value);
+            if (attr.name.startsWith("mx-") || attr.name === "class") continue;
+            const value = attr.value === "" ? true : parseValue(attr.value);
             hydratedAttrs[kebabToCamel(attr.name)] = value;
         }
         hydratedAttrs.text = el.textContent;
         hydratedAttrs.html = el.innerHTML;
-        
+
         // 2. Reactivity Setup
         const classArray = Array.from(el.classList);
-        const MUTATION_METHODS = ['push', 'pop', 'splice', 'shift', 'unshift', 'sort', 'reverse'];
-        
+        const MUTATION_METHODS = [
+            "push",
+            "pop",
+            "splice",
+            "shift",
+            "unshift",
+            "sort",
+            "reverse",
+        ];
+
         const classProxy = new Proxy(classArray, {
             get(target, prop) {
                 const value = Reflect.get(target, prop);
-                if (typeof value === 'function' && MUTATION_METHODS.includes(prop)) {
-                    return function(...args) {
+                if (
+                    typeof value === "function" &&
+                    MUTATION_METHODS.includes(prop)
+                ) {
+                    return function (...args) {
                         const result = value.apply(target, args);
-                        el.className = target.join(' ');
+                        el.className = target.join(" ");
                         return result;
                     };
                 }
-                return typeof value === 'function' ? value.bind(target) : value;
-            }
+                return typeof value === "function" ? value.bind(target) : value;
+            },
         });
         hydratedAttrs.class = classProxy;
 
         const attrsProxy = new Proxy(hydratedAttrs, {
             get(target, prop) {
-                if (prop === '$watch') {
+                if (prop === "$watch") {
                     return (propToWatch, callback) => {
                         const path = `${basePath}.${propToWatch}`;
                         watch(path, callback);
@@ -162,20 +174,24 @@ const CuboMX = (() => {
                 if (success && oldValue !== value) {
                     const propertyPath = `${basePath}.${prop}`;
                     if (watchers[propertyPath]) {
-                        watchers[propertyPath].forEach((cb) => cb(value, oldValue));
+                        watchers[propertyPath].forEach((cb) =>
+                            cb(value, oldValue)
+                        );
                     }
+                    // Also trigger the global binding refresh for other directives
+                    bindings.forEach((b) => b.evaluate());
                 }
 
-                if (prop === 'text') {
+                if (prop === "text") {
                     el.innerText = value;
-                } else if (prop === 'html') {
+                } else if (prop === "html") {
                     el.innerHTML = value;
-                } else if (prop === 'class') {
-                    if (Array.isArray(value)) el.className = value.join(' ');
+                } else if (prop === "class") {
+                    if (Array.isArray(value)) el.className = value.join(" ");
                 } else {
-                    if (typeof value === 'boolean') {
+                    if (typeof value === "boolean") {
                         if (value) {
-                            el.setAttribute(camelToKebab(prop), '');
+                            el.setAttribute(camelToKebab(prop), "");
                         } else {
                             el.removeAttribute(camelToKebab(prop));
                         }
@@ -187,38 +203,13 @@ const CuboMX = (() => {
                     el[prop] = value;
                 }
                 return success;
-            }
+            },
         });
 
         return attrsProxy;
     };
 
     const directiveHandlers = {
-        "mx-text": (el, expression) => {
-            const initialValue = evaluate(expression);
-
-            if (initialValue === null || initialValue === undefined) {
-                try {
-                    const setter = new Function(
-                        "value",
-                        `with(this) { ${expression} = value }`
-                    );
-                    setter.call(activeProxies, el.textContent);
-                } catch (e) {
-                    console.warn(
-                        `[CuboMX] Could not set initial value for mx-text expression: "${expression}". The expression is not assignable.`
-                    );
-                }
-            }
-
-            const binding = {
-                el,
-                evaluate: () =>
-                    (el.innerText = String(evaluate(expression) ?? "")),
-            };
-            binding.evaluate();
-            bindings.push(binding);
-        },
         "mx-show": (el, expression) => {
             const originalDisplay =
                 el.style.display === "none" ? "" : el.style.display;
@@ -229,108 +220,6 @@ const CuboMX = (() => {
                         ? originalDisplay
                         : "none"),
             };
-            binding.evaluate();
-            bindings.push(binding);
-        },
-        "mx-model": (el, expression) => {
-            const isCheckbox = el.type === "checkbox";
-            const initialValue = evaluate(expression);
-
-            // Hydration logic
-            if (initialValue === null || initialValue === undefined) {
-                try {
-                    const valueToSet = isCheckbox ? el.checked : el.value;
-                    const setter = new Function(
-                        "value",
-                        `with(this) { ${expression} = value }`
-                    );
-                    setter.call(activeProxies, valueToSet);
-                } catch (e) {
-                    console.warn(
-                        `[CuboMX] Could not set initial value for mx-model expression: "${expression}". The expression is not assignable.`
-                    );
-                }
-            }
-
-            // Binding logic
-            if (isCheckbox) {
-                el.addEventListener("change", () => {
-                    const setter = new Function(
-                        "value",
-                        `with(this) { ${expression} = value }`
-                    );
-                    setter.call(activeProxies, el.checked);
-                });
-                const binding = {
-                    el,
-                    evaluate() {
-                        el.checked = !!evaluate(expression);
-                    },
-                };
-                binding.evaluate();
-                bindings.push(binding);
-            } else {
-                const setter = new Function(
-                    "value",
-                    `with(this) { ${expression} = value }`
-                );
-                el.addEventListener("input", () =>
-                    setter.call(activeProxies, el.value)
-                );
-                const binding = {
-                    el,
-                    evaluate() {
-                        const value = evaluate(expression);
-                        if (el.value !== value) el.value = value ?? "";
-                    },
-                };
-                binding.evaluate();
-                bindings.push(binding);
-            }
-        },
-        ":": (el, attr) => {
-            const attrName = attr.name.substring(1);
-            const expression = attr.value;
-            let binding;
-
-            if (attrName === "class") {
-                let lastAddedClasses = [];
-                binding = {
-                    el,
-                    evaluate() {
-                        const newClasses = String(evaluate(expression) || "")
-                            .split(" ")
-                            .filter(Boolean);
-                        lastAddedClasses.forEach((c) => el.classList.remove(c));
-                        newClasses.forEach((c) => el.classList.add(c));
-                        lastAddedClasses = newClasses;
-                    },
-                };
-            } else if (
-                [
-                    "disabled",
-                    "readonly",
-                    "required",
-                    "checked",
-                    "selected",
-                    "open",
-                ].includes(attrName)
-            ) {
-                binding = {
-                    el,
-                    evaluate() {
-                        evaluate(expression)
-                            ? el.setAttribute(attrName, "")
-                            : el.removeAttribute(attrName);
-                    },
-                };
-            } else {
-                binding = {
-                    el,
-                    evaluate: () =>
-                        el.setAttribute(attrName, evaluate(expression) ?? ""),
-                };
-            }
             binding.evaluate();
             bindings.push(binding);
         },
@@ -345,111 +234,51 @@ const CuboMX = (() => {
                 evaluateEventExpression(expression, el, event);
             });
         },
-        "mx-array": (el, expression) => {
-            const targetPath = expression.split(".").map(kebabToCamel);
-            const propName = targetPath.pop();
-            const objName = targetPath.join(".");
-            const targetObject = evaluate(objName);
-
-            if (typeof targetObject !== "object" || targetObject === null)
-                return;
-
-            const items = [];
-            el.querySelectorAll("[mx-item]").forEach((itemEl) => {
-                const itemValueAttr = itemEl.getAttribute("mx-item");
-                let itemData;
-
-                // Se mx-item tem valor, trata como primitivo
-                if (itemValueAttr) {
-                    itemData = parseValue(itemValueAttr);
-                } else {
-                    // Se não tem valor, constrói um objeto a partir dos atributos mx-obj
-                    const newObject = {};
-                    for (const attr of itemEl.attributes) {
-                        if (attr.name.startsWith("mx-obj:")) {
-                            const key = kebabToCamel(attr.name.substring(7));
-                            newObject[key] = parseValue(attr.value);
-                        }
-                    }
-                    itemData = newObject;
-                }
-                items.push(itemData);
-                // Anexa os dados do item diretamente ao elemento para referência futura
-                itemEl.__cubo_item_data__ = itemData;
-            });
-
-            targetObject[propName] = items;
-        },
-        "mx-obj": (el, expression) => {
-            const targetPath = expression.split(".").map(kebabToCamel);
-            const propName = targetPath.pop();
-            const objName = targetPath.join(".");
-            const targetObject = evaluate(objName);
-
-            if (typeof targetObject !== "object" || targetObject === null)
-                return;
-
-            const newObject = {};
-            for (const attr of el.attributes) {
-                // Considera apenas atributos `mx-obj:` que têm um valor (são propriedades do objeto)
-                if (attr.name.startsWith("mx-obj:") && attr.value !== "") {
-                    const key = kebabToCamel(attr.name.substring(7)); // 7 = length of "mx-obj:"
-                    newObject[key] = parseValue(attr.value);
-                }
-            }
-            targetObject[propName] = newObject;
-        },
-        "mx-prop": (el, expression) => {
-            const targetPath = expression.split(".");
-            const propName = kebabToCamel(targetPath.pop());
-            const objName = targetPath.map(kebabToCamel).join(".");
-            const targetObject = evaluate(objName);
-
-            if (typeof targetObject !== "object" || targetObject === null)
-                return;
-
-            targetObject[propName] = parseValue(
-                el.getAttribute(`mx-prop:${expression}`)
-            );
-        },
         "mx-attrs": (el, expression) => {
-            const targetPath = expression.split('.').map(kebabToCamel);
+            const targetPath = expression.split(".").map(kebabToCamel);
             const propName = targetPath.pop();
-            const objName = targetPath.join('.');
+            const objName = targetPath.join(".");
             const targetObject = evaluate(objName);
 
-            if (typeof targetObject !== 'object' || targetObject === null) return;
+            if (typeof targetObject !== "object" || targetObject === null)
+                return;
 
             const fullPath = `${objName}.${propName}`;
             const attrsProxy = hydrateElementToObject(el, fullPath);
             targetObject[propName] = attrsProxy;
 
             // Add mx-model-like behavior for input elements
-            if (el.tagName === 'INPUT' && el.type === 'checkbox') {
-                el.addEventListener('change', () => {
+            if (el.tagName === "INPUT" && el.type === "checkbox") {
+                el.addEventListener("change", () => {
                     attrsProxy.checked = el.checked;
                 });
-            } else if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) {
-                el.addEventListener('input', () => {
+            } else if (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) {
+                el.addEventListener("input", () => {
                     attrsProxy.value = el.value;
                 });
             }
         },
         "mx-item": (el, expression) => {
-            const targetPath = expression.split('.').map(kebabToCamel);
+            const targetPath = expression.split(".").map(kebabToCamel);
             const propName = targetPath.pop();
-            const objName = targetPath.join('.');
+            const objName = targetPath.join(".");
             const targetObject = evaluate(objName);
 
-            if (typeof targetObject !== 'object' || targetObject === null) return;
+            if (typeof targetObject !== "object" || targetObject === null)
+                return;
 
             // Ensure the target array exists
-            if (typeof targetObject[propName] === 'undefined' || targetObject[propName] === null) {
+            if (
+                typeof targetObject[propName] === "undefined" ||
+                targetObject[propName] === null
+            ) {
                 targetObject[propName] = [];
             }
 
             if (!Array.isArray(targetObject[propName])) {
-                console.error(`[CuboMX] mx-item target '${expression}' is not an array.`);
+                console.error(
+                    `[CuboMX] mx-item target '${expression}' is not an array.`
+                );
                 return;
             }
 
@@ -464,32 +293,17 @@ const CuboMX = (() => {
         const elements = [rootElement, ...rootElement.querySelectorAll("*")];
         for (const el of elements) {
             // Fixed-name directives
-            if (el.hasAttribute("mx-text"))
-                directiveHandlers["mx-text"](el, el.getAttribute("mx-text"));
             if (el.hasAttribute("mx-show"))
                 directiveHandlers["mx-show"](el, el.getAttribute("mx-show"));
-            if (el.hasAttribute("mx-model"))
-                directiveHandlers["mx-model"](el, el.getAttribute("mx-model"));
 
             // Prefixed directives
             for (const attr of [...el.attributes]) {
-                if (attr.name.startsWith("mx-prop:")) {
-                    directiveHandlers["mx-prop"](el, attr.name.substring(8)); // 8 = length of "mx-prop:"
-                }
-                if (attr.name.startsWith("mx-array:")) {
-                    directiveHandlers["mx-array"](el, attr.name.substring(9));
-                }
-                // Procura pelo atributo "âncora" do objeto, que não tem valor
-                if (attr.name.startsWith("mx-obj:") && attr.value === "") {
-                    directiveHandlers["mx-obj"](el, attr.name.substring(7));
-                }
                 if (attr.name.startsWith("mx-attrs:")) {
                     directiveHandlers["mx-attrs"](el, attr.name.substring(9));
                 }
                 if (attr.name.startsWith("mx-item:")) {
                     directiveHandlers["mx-item"](el, attr.name.substring(8));
                 }
-                if (attr.name.startsWith(":")) directiveHandlers[":"](el, attr);
                 if (attr.name.startsWith("mx-on:"))
                     directiveHandlers["mx-on:"](el, attr);
             }
