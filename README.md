@@ -2,14 +2,16 @@
 
 ## 1. Introduction
 
-CuboMX is a reactive micro-framework for JavaScript, built from the ground up to be the best way to add modern, reactive user interfaces to Server-Side Rendered (SSR) applications. Its philosophy is based on enhancing HTML with reactivity through a simple, explicit, and predictable global API.
+CuboMX is a reactive micro-framework for developers who believe in the power of Server-Side Rendered (SSR) applications and the simplicity of HTML. It challenges the complexity of modern SPAs by embracing a simple, powerful idea: **your server should send HTML, not JSON.**
+
+Following a server-centric philosophy, CuboMX is designed to seamlessly "hydrate" your server-rendered HTML into reactive JavaScript components. It's backend-agnostic, allowing you to enhance applications written in any language—PHP, Python, Ruby, Java, or Node.js—with a modern, reactive user experience without a full rewrite.
 
 **Core Principles:**
 
--   **JavaScript is the Home for Logic:** Unlike other frameworks that encourage complex logic within HTML attributes, CuboMX believes that JavaScript is the proper place for application logic. Components are written in pure JavaScript, keeping your HTML clean and focused on structure.
--   **HTML is for State Binding, Not Logic:** The role of HTML is to declaratively bind elements to your JavaScript state. Directives like `mx-text` and `mx-on` are simple, explicit bridges, not a place to write inline JavaScript programs.
+-   **HTML as the Source of Truth:** CuboMX starts where your server finishes. It treats the initial server-rendered HTML as the definitive source of state, declaratively hydrating your JavaScript objects directly from the DOM. No need to fetch the same data twice.
+-   **JavaScript is for Behavior, Not Structure:** Keep your logic where it belongs—in pure JavaScript modules. CuboMX uses simple directives as bridges to your state, not as a place for inline mini-programs, keeping your HTML clean and focused on structure.
 -   **Global, Predictable State:** All reactive state is managed on a single, flat global `CuboMX` object. This eliminates the complexity of nested scopes and makes it immediately clear where your data lives, creating a predictable and easy-to-debug environment.
--   **SSR-First Hydration:** CuboMX is built with Server-Side Rendering as a primary use case. Its directives are designed to effortlessly "hydrate" the state of your application from the initial HTML rendered by the server, bridging the gap between backend and frontend.
+-   **Enhance, Don't Replace:** CuboMX is designed to enhance existing server-rendered applications. You don't need to build a separate SPA. Add reactivity where you need it, from simple components to dynamic AJAX-driven content swaps.
 
 ## 2. Installation and Initialization
 

@@ -21,6 +21,19 @@ CuboMX.component('counter', {
     increment() { this.value++ },
 });
 
+CuboMX.component('miniApp', {
+  activeTab: 'Dashboard',
+  navigate(url, tabName) {
+    this.activeTab = tabName;
+    CuboMX.request({
+      url: url,
+      pushUrl: true,
+      history: true,
+      strategies: [{ select: '#content', target: '#content' }]
+    });
+  }
+});
+
 CuboMX.component('codeBlock', () => ({
     async init() {
         const pre = this.$el.querySelector('pre');
