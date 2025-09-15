@@ -388,6 +388,14 @@ const CuboMX = (() => {
 
             // Assign the reactive proxy to the component state
             targetObject[propName] = attrsProxy;
+
+            // Add mx-model-like behavior for input elements
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) {
+                el.addEventListener('input', () => {
+                    // Directly set the value on the proxy to ensure reactivity
+                    attrsProxy.value = el.value;
+                });
+            }
         },
     };
 

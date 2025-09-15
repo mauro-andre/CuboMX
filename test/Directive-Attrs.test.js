@@ -93,4 +93,29 @@ describe('CuboMX - mx-attrs Directive', () => {
         CuboMX.myComp.myAttrs.text = 'Texto Alterado';
         expect(el.innerText).toBe('Texto Alterado');
     });
+
+    it('should provide two-way binding for input value, like mx-model', () => {
+        CuboMX.component('myComp', { myAttrs: null });
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <input id="test-el" mx-attrs:my-comp.my-attrs value="Texto inicial">
+            </div>
+        `;
+        const el = document.getElementById('test-el');
+
+        CuboMX.start();
+        const attrs = CuboMX.myComp.myAttrs;
+
+        // 1. Hydration Assertion (DOM -> State)
+        expect(attrs.value).toBe('Texto inicial');
+
+        // 2. Reactivity Assertion (State -> DOM)
+        attrs.value = 'Alterado pelo estado';
+        expect(el.value).toBe('Alterado pelo estado');
+
+        // 3. Reactivity Assertion (DOM -> State)
+        el.value = 'Digitado pelo usuário';
+        el.dispatchEvent(new Event('input'));
+        expect(attrs.value).toBe('Digitado pelo usuário');
+    });
 });
