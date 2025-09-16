@@ -12,10 +12,10 @@ describe('CuboMX - mx-item Directive', () => {
         CuboMX.component('myComp', { profile: null });
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <div mx-attrs="myComp.profile" user-id="123" name="John Doe">
+                <div mx-attrs="$myComp.profile" user-id="123" name="John Doe">
                     <ul>
-                        <li mx-item="myComp.profile.songs" song-id="s1" title="Bohemian Rhapsody">Queen</li>
-                        <li mx-item="myComp.profile.songs" song-id="s2" title="Stairway to Heaven">Led Zeppelin</li>
+                        <li mx-item="$myComp.profile.songs" song-id="s1" title="Bohemian Rhapsody">Queen</li>
+                        <li mx-item="$myComp.profile.songs" song-id="s2" title="Stairway to Heaven">Led Zeppelin</li>
                     </ul>
                 </div>
             </div>
@@ -50,8 +50,8 @@ describe('CuboMX - mx-item Directive', () => {
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <ul>
-                    <li mx-item="myComp.songs" song-id="s1">Song 1</li>
-                    <li mx-item="myComp.songs" song-id="s2">Song 2</li>
+                    <li mx-item="$myComp.songs" song-id="s1">Song 1</li>
+                    <li mx-item="$myComp.songs" song-id="s2">Song 2</li>
                 </ul>
             </div>
         `;
@@ -76,8 +76,8 @@ describe('CuboMX - mx-item Directive', () => {
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <ul>
-                    <li mx-item="myComp.songs" song-id="s1" mx-on:click="myComp.selectSong($item)">Song 1</li>
-                    <li mx-item="myComp.songs" song-id="s2" mx-on:click="myComp.selectSong($item)">Song 2</li>
+                    <li mx-item="$myComp.songs" song-id="s1" mx-on:click="$myComp.selectSong($item)">Song 1</li>
+                    <li mx-item="$myComp.songs" song-id="s2" mx-on:click="$myComp.selectSong($item)">Song 2</li>
                 </ul>
             </div>
         `;

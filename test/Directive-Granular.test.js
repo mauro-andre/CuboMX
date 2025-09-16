@@ -11,7 +11,7 @@ describe("CuboMX - Granular Directives", () => {
         CuboMX.component('login', { email: null });
         document.body.innerHTML = `
             <div mx-data="login">
-                <input id="el" mx-attrs:value="login.email" value="initial@test.com">
+                <input id="el" mx-attrs:value="$login.email" value="initial@test.com">
             </div>
         `;
         const input = document.getElementById('el');
@@ -35,7 +35,7 @@ describe("CuboMX - Granular Directives", () => {
         CuboMX.component('settings', { notifications: null });
         document.body.innerHTML = `
             <div mx-data="settings">
-                <input id="el" type="checkbox" mx-attrs:checked="settings.notifications" checked>
+                <input id="el" type="checkbox" mx-attrs:checked="$settings.notifications" checked>
             </div>
         `;
         const input = document.getElementById('el');
@@ -58,7 +58,7 @@ describe("CuboMX - Granular Directives", () => {
         CuboMX.component('user', { name: 'Initial' });
         document.body.innerHTML = `
             <div mx-data="user">
-                <span id="el" mx-attrs:text="user.name">This should be replaced</span>
+                <span id="el" mx-attrs:text="$user.name">This should be replaced</span>
             </div>
         `;
         const span = document.getElementById('el');
@@ -78,9 +78,9 @@ describe("CuboMX - Granular Directives", () => {
         document.body.innerHTML = `
             <div mx-data="myComp">
                 <div>
-                    <div mx-item:value="myComp.values" value="A"></div>
-                    <div mx-item:value="myComp.values" value="B"></div>
-                    <span mx-item:value="myComp.values">C</span>
+                    <div mx-item:value="$myComp.values" value="A"></div>
+                    <div mx-item:value="$myComp.values" value="B"></div>
+                    <span mx-item:value="$myComp.values">C</span>
                 </div>
             </div>
         `;
@@ -102,7 +102,7 @@ describe("CuboMX - Granular Directives", () => {
         document.body.innerHTML = `
             <section 
                 mx-data="company" 
-                mx-attrs:company-id="company.companyId" 
+                mx-attrs:company-id="$company.companyId" 
                 company-id="a1b1">
             </section>
         `;

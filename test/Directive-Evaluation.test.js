@@ -12,7 +12,7 @@ describe("CuboMX - Directive Evaluation", () => {
 
         document.body.innerHTML = `
             <div mx-data="modal">
-                <div mx-show="modal.isOpen" style="display: block;">Modal Content</div>
+                <div mx-show="$modal.isOpen" style="display: block;">Modal Content</div>
             </div>
         `;
 
@@ -41,7 +41,7 @@ describe("CuboMX - Directive Evaluation", () => {
 
         document.body.innerHTML = `
             <div mx-data="container">
-                <div mx-show="container.isVisible" style="display: flex;">Flex Content</div>
+                <div mx-show="$container.isVisible" style="display: flex;">Flex Content</div>
             </div>
         `;
 
@@ -70,7 +70,7 @@ describe("CuboMX - Directive Evaluation", () => {
         CuboMX.component("buttonComp", { handleClick: clickHandler });
         document.body.innerHTML = `
             <div mx-data="buttonComp">
-                <button mx-on:click="buttonComp.handleClick()"></button>
+                <button mx-on:click="$buttonComp.handleClick()"></button>
             </div>
         `;
         CuboMX.start();
@@ -91,7 +91,7 @@ describe("CuboMX - Directive Evaluation", () => {
         });
         document.body.innerHTML = `
             <div mx-data="buttonComp">
-                <button mx-on:click="buttonComp.handleClick($el, $event)"></button>
+                <button mx-on:click="$buttonComp.handleClick($el, $event)"></button>
             </div>
         `;
         CuboMX.start();
@@ -105,10 +105,11 @@ describe("CuboMX - Directive Evaluation", () => {
     it("should handle the .prevent modifier", () => {
         CuboMX.component("formComp", {});
         document.body.innerHTML = `
-            <form mx-data="formComp" mx-on:submit.prevent="() => {}">
+            <form mx-data="formComp" mx-on:submit.prevent="$formComp.doNothing()">
                 <button type="submit"></button>
             </form>
         `;
+        CuboMX.component('formComp', { doNothing: () => {} });
         CuboMX.start();
         const form = document.querySelector("form");
         const submitEvent = new Event("submit", {

@@ -76,8 +76,8 @@ describe('CuboMX Refactor - DOM Mutation Lifecycle', () => {
         // 2. Dynamically add a new chunk of HTML using mx-attrs.
         const newContent = document.createElement('div');
         newContent.innerHTML = `
-            <span mx-attrs="testStore.spanAttrs">Hello</span>
-            <button mx-on:click="testStore.changeText()"></button>
+            <span mx-attrs="$testStore.spanAttrs">Hello</span>
+            <button mx-on:click="$testStore.changeText()"></button>
         `;
         document.body.appendChild(newContent);
         await vi.runAllTimersAsync();
@@ -104,7 +104,7 @@ describe('CuboMX Refactor - DOM Mutation Lifecycle', () => {
         CuboMX.component('myComp', { myVar: null });
         const parentDiv = document.createElement('div');
         parentDiv.setAttribute('mx-data', 'myComp');
-        parentDiv.innerHTML = `<div id="child" mx-attrs:my-prop="myComp.myVar" my-prop="value1"></div>`;
+        parentDiv.innerHTML = `<div id="child" mx-attrs:my-prop="$myComp.myVar" my-prop="value1"></div>`;
         document.body.appendChild(parentDiv);
 
         CuboMX.start();
@@ -114,7 +114,7 @@ describe('CuboMX Refactor - DOM Mutation Lifecycle', () => {
         expect(CuboMX.myComp.myVar).toBe('value1');
 
         // 3. Replace the child element
-        parentDiv.innerHTML = `<div id="child" mx-attrs:my-prop="myComp.myVar" my-prop="value2"></div>`;
+        parentDiv.innerHTML = `<div id="child" mx-attrs:my-prop="$myComp.myVar" my-prop="value2"></div>`;
         await vi.runAllTimersAsync();
 
         // 4. Final Assertion
