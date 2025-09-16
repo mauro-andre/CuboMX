@@ -168,6 +168,26 @@ const CuboMX = (() => {
         });
         hydratedAttrs.class = classProxy;
 
+        hydratedAttrs.addClass = (className) => {
+            if (!classProxy.includes(className)) {
+                classProxy.push(className);
+            }
+        };
+        hydratedAttrs.removeClass = (className) => {
+            const index = classProxy.indexOf(className);
+            if (index > -1) {
+                classProxy.splice(index, 1);
+            }
+        };
+        hydratedAttrs.toggleClass = (className) => {
+            const index = classProxy.indexOf(className);
+            if (index > -1) {
+                classProxy.splice(index, 1);
+            } else {
+                classProxy.push(className);
+            }
+        };
+
         const attrsProxy = new Proxy(hydratedAttrs, {
             get(target, prop) {
                 if (prop === "$watch") {

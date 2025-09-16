@@ -210,6 +210,28 @@ The created object is fully reactive.
     CuboMX.userProfile.user.class.push('highlight');
     ```
 
+##### Class Manipulation Helpers
+
+For convenience, the hydrated object also comes with helper methods to ergonomically manage CSS classes, which are often simpler than manipulating the `.class` array directly.
+
+-   **`myObject.addClass('class-name')`**: Adds the specified class if it's not already present.
+-   **`myObject.removeClass('class-name')`**: Removes the specified class if it exists.
+-   **`myObject.toggleClass('class-name')`**: Adds the class if it's absent, or removes it if it's present.
+
+**Example:**
+```javascript
+// Given: <div mx-attrs="myComp.myDiv" class="initial"></div>
+// CuboMX.start() has been called.
+
+// Add a class
+CuboMX.myComp.myDiv.addClass('active'); 
+// Element is now: <div ... class="initial active">
+
+// Toggle the class off
+CuboMX.myComp.myDiv.toggleClass('active');
+// Element is now: <div ... class="initial">
+```
+
 #### Two-Way Data Binding
 
 A powerful feature of `mx-attrs` is that when used on form elements like `<input>`, `<textarea>`, or `<select>`, it provides full two-way data binding automatically.
