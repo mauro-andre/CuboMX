@@ -2,27 +2,40 @@
 
 ## 1. Introduction
 
-CuboMX is a reactive micro-framework for JavaScript, built from the ground up to be the best way to add modern, reactive user interfaces to Server-Side Rendered (SSR) applications. Its philosophy is based on enhancing HTML with reactivity through a simple, explicit, and predictable global API.
+CuboMX is a reactive micro-framework for developers who believe in the power of Server-Side Rendered (SSR) applications and the simplicity of HTML. It challenges the complexity of modern SPAs by embracing a simple, powerful idea: **your server should send HTML, not JSON.**
+
+Following a server-centric philosophy, CuboMX is designed to seamlessly "hydrate" your server-rendered HTML into reactive JavaScript components. It's backend-agnostic, allowing you to enhance applications written in any language—PHP, Python, Ruby, Java, or Node.js—with a modern, reactive user experience without a full rewrite.
 
 **Core Principles:**
 
--   **JavaScript is the Home for Logic:** Unlike other frameworks that encourage complex logic within HTML attributes, CuboMX believes that JavaScript is the proper place for application logic. Components are written in pure JavaScript, keeping your HTML clean and focused on structure.
--   **HTML is for State Binding, Not Logic:** The role of HTML is to declaratively bind elements to your JavaScript state. Directives like `mx-text` and `mx-on` are simple, explicit bridges, not a place to write inline JavaScript programs.
--   **Global, Predictable State:** All reactive state is managed on a single, flat global `CuboMX` object. This eliminates the complexity of nested scopes and makes it immediately clear where your data lives, creating a predictable and easy-to-debug environment.
--   **SSR-First Hydration:** CuboMX is built with Server-Side Rendering as a primary use case. Its directives are designed to effortlessly "hydrate" the state of your application from the initial HTML rendered by the server, bridging the gap between backend and frontend.
+-   **HTML as the Source of Truth:** CuboMX starts where your server finishes. It treats the initial server-rendered HTML as the definitive source of state, declaratively hydrating your JavaScript objects directly from the DOM. No need to fetch the same data twice.
+-   **JavaScript is for Behavior, Not Structure:** Keep your logic where it belongs—in pure JavaScript modules. CuboMX uses simple directives as bridges to your state, not as a place for inline mini-programs, keeping your HTML clean and focused on structure.
+-   **Hierarchical & Predictable State:** CuboMX offers a powerful two-tier state management system. All components and stores are globally accessible for easy debugging and cross-component communication, but within a component's template, you have direct, local access to its properties. This provides the perfect balance of encapsulation and global predictability.
+-   **Enhance, Don't Replace:** CuboMX is designed to enhance existing server-rendered applications. You don't need to build a separate SPA. Add reactivity where you need it, from simple components to dynamic AJAX-driven content swaps.
 
 ## 2. Installation and Initialization
 
-To use CuboMX, you register your stores and components, then start the engine.
+### Installation via NPM
 
-**`index.js` (Example):**
+To get started, add CuboMX to your project using npm:
+
+```bash
+npm install cubomx
+```
+
+### Initialization
+
+CuboMX needs to be initialized to scan the page and activate its components. The process is simple: register your components, and then call `CuboMX.start()`.
+
+Let's see a basic example in an `index.js` file:
 
 ```javascript
 import { CuboMX } from "cubomx";
-import { loginControl } from "./components/loginControl";
-import { passwordInput } from "./components/passwordInput";
+import { loginControl } from "./components/loginControl.js";
+import { passwordInput } from "./components/passwordInput.js";
 
-// 1. (Optional) Define and register your global stores
+// 1. (Optional) Register "Stores" for global state.
+// A store is ideal for data shared across the entire application, like the theme.
 const themeStore = {
     mode: "light",
     changeTheme() {
@@ -31,337 +44,467 @@ const themeStore = {
 };
 CuboMX.store("theme", themeStore);
 
-// 2. Register your components
-CuboMX.component("loginControl", loginControl); // Singleton Component
-CuboMX.component("passwordInput", passwordInput); // Factory Component
+// 2. Register your components.
+// They can be simple objects (Singletons) or functions (Factories).
+CuboMX.component("loginControl", loginControl);
+CuboMX.component("passwordInput", passwordInput);
 
-// 3. Start CuboMX to scan the DOM and initialize everything
+// 3. Start CuboMX.
+// It will scan the DOM, find the `mx-data` attributes, and initialize everything.
 CuboMX.start();
 ```
 
-## 3. Components & Stores
+## 3. Components: The Foundation
 
-Components and stores are the heart of CuboMX. They are JavaScript objects that contain the state and logic for your application. After registration, they become available as reactive proxies directly on the global `CuboMX` object.
+In CuboMX, everything revolves around components. They are JavaScript objects that contain the state (data) and behavior (methods) of your interface. Although they are all components in essence, there are three ways to register them, each with a specific purpose.
 
-### 3.1. Stores
+### 3.1. Singletons
 
-Stores are global singletons, perfect for shared state across the entire application, like theme settings or user authentication status.
+A Singleton is a component that will have only **one instance** per page. It is defined as a simple JavaScript object. It is ideal for managing the state of an entire page or a main section that does not repeat.
 
--   **Definition (JS):** A simple object.
+-   **Definition (JS):**
     ```javascript
-    const themeStore = { mode: "light" };
-    CuboMX.store("theme", themeStore);
+    // components/pageController.js
+    export const pageController = {
+        title: "My Page",
+        isLoading: true,
+        loadContent() {
+            // Logic to load data...
+            this.isLoading = false;
+        },
+    };
     ```
--   **Global Access:** The store is globally accessible via `CuboMX.storeName` (e.g., `CuboMX.theme`).
-
-### 3.2. Singletons
-
-These are components that exist only once per page, ideal for page-specific controllers.
-
--   **Definition (JS):** A simple object, registered with `CuboMX.component`.
+-   **Registration (JS):**
     ```javascript
-    const loginControl = { email: "" };
-    CuboMX.component("loginControl", loginControl);
+    import { pageController } from "./components/pageController.js";
+    CuboMX.component("pageController", pageController);
     ```
--   **Usage (HTML):** The `mx-data` attribute links the DOM element to the component, managing its lifecycle.
-    ```html
-    <div mx-data="loginControl">...</div>
-    ```
--   **Global Access:** The single instance is globally accessible via `CuboMX.componentName` (e.g., `CuboMX.loginControl`).
 
-### 3.3. Reusable Components (Factories)
+### 3.2. Factories
 
-Factories are functions that return new object instances, perfect for UI elements that appear multiple times, like form fields or modals.
+A Factory is used for **reusable** components, such as modals, dropdowns, or list items. Instead of an object, you define a **function that returns a new object**. Each time CuboMX encounters the component in the HTML, it calls this function to create a new, independent instance.
 
--   **Definition (JS):** A **function** that returns a new object.
+-   **Definition (JS):**
     ```javascript
-    const passwordInput = () => ({ isVisible: false });
-    CuboMX.component("passwordInput", passwordInput);
+    // components/dropdown.js
+    export const dropdown = () => ({
+        isOpen: false,
+        toggle() {
+            this.isOpen = !this.isOpen;
+        },
+        close() {
+            this.isOpen = false;
+        },
+    });
     ```
--   **Usage (HTML):** Use parentheses `()` in `mx-data` and assign a unique name with `mx-ref`.
-    ```html
-    <div mx-data="passwordInput()" mx-ref="passwordOne">...</div>
-    <div mx-data="passwordInput()" mx-ref="passwordTwo">...</div>
+-   **Registration (JS):**
+    ```javascript
+    import { dropdown } from "./components/dropdown.js";
+    CuboMX.component("dropdown", dropdown);
     ```
--   **Global Access:** Instances are globally accessible via the name provided in `mx-ref` (e.g., `CuboMX.passwordOne`).
 
-## 4. Directives
+### 3.3. Stores
 
-Directives are special HTML attributes that create a bridge between your DOM and your JavaScript state. **All expressions must explicitly reference the global proxies** (e.g., `myStore.property`, `myComponent.property`).
+A Store is semantically similar to a Singleton: it is also a single, global instance. The difference is its purpose. Use Stores to hold **shared global state** that is not directly tied to a specific part of the DOM, such as user information, theme preferences, or authentication status.
+
+-   **Definition (JS):**
+    ```javascript
+    const authStore = {
+        isLoggedIn: false,
+        user: null,
+    };
+    ```
+-   **Registration (JS):**
+    ```javascript
+    CuboMX.store("auth", authStore);
+    ```
+
+## 4. Directives: Connecting HTML and JavaScript
+
+Directives are special attributes in HTML that CuboMX understands. They are the bridge between your DOM and your JavaScript components.
 
 ### `mx-data`
 
-Declares a component and manages its lifecycle (`init` and `destroy` hooks). It **does not** create a scope; all child elements still access state from the global `CuboMX` object.
+This is the most important directive. It declares that a DOM element and its children are controlled by a component, creating a **local scope**.
 
-### `mx-model`
+-   **For Singletons:** Use the component's name.
+    ```html
+    <div mx-data="pageController">
+        <!-- All content here can access the properties of pageController -->
+    </div>
+    ```
+-   **For Factories:** Use the factory's name followed by parentheses `()`. This instructs CuboMX to create a new instance.
+    ```html
+    <div mx-data="dropdown()">...</div>
+    <div mx-data="dropdown()">...</div>
+    ```
 
-Creates a two-way data binding on a form element. It supports standard inputs (`text`, `textarea`, `select`) as well as checkboxes.
+### `mx-ref`
+
+When you have multiple factory instances, how do you differentiate them in JavaScript? With `mx-ref`. This directive gives a **unique and global name** to a factory instance.
 
 ```html
-<!-- Binds the input's value to the 'email' property -->
-<input type="text" mx-model="loginControl.email" />
-
-<!-- Binds the checkbox's checked status to the 'notifications' property -->
-<input type="checkbox" mx-model="settings.notifications" />
+<!-- Two independent dropdowns, each with its own name -->
+<div mx-data="dropdown()" mx-ref="headerMenu">...</div>
+<div mx-data="dropdown()" mx-ref="userMenu">...</div>
 ```
 
-**SSR Hydration:**
-Similar to `mx-text`, `mx-model` can hydrate the initial state from server-rendered attributes. If the bound property is `null` or `undefined`, CuboMX will use the element's `value` (for text inputs) or `checked` status (for checkboxes) to populate the state.
+Now, you can access each instance from anywhere in your JavaScript:
 
-**Example:**
-
-**Server-Rendered HTML:**
-```html
-<div mx-data="userForm">
-    <input type="text" mx-model="userForm.name" value="John Doe" />
-    <input type="checkbox" mx-model="userForm.agreed" checked />
-</div>
-```
-
-**JavaScript:**
 ```javascript
-CuboMX.component("userForm", {
-    name: null,
-    agreed: undefined
-});
-CuboMX.start();
+// Open the header menu
+CuboMX.headerMenu.toggle();
 
-// After start():
-// CuboMX.userForm.name will be "John Doe"
-// CuboMX.userForm.agreed will be true
+// Close the user menu
+CuboMX.userMenu.close();
 ```
 
 ### `mx-show`
 
-Shows or hides an element based on the result of a JavaScript expression.
+This directive shows or hides an element based on a boolean expression. By default, the expression is evaluated in the **local component's scope**.
+
+Let's use our `dropdown` factory:
 
 ```html
-<div mx-show="theme.mode === 'dark'">...</div>
+<div mx-data="dropdown()" mx-ref="headerMenu">
+    <button>Menu</button>
+
+    <!-- `isOpen` refers to the `isOpen` property of the `headerMenu` instance -->
+    <div mx-show="isOpen">
+        <a href="#">Link 1</a>
+        <a href="#">Link 2</a>
+    </div>
+</div>
 ```
 
-### `mx-text`
+In this example, `isOpen` resolves to `CuboMX.headerMenu.isOpen`.
 
-Updates the `innerText` of an element with a value from your state.
+### `mx-on`: Handling User Events
+
+This directive attaches an event listener to an element, allowing you to run code in response to user interactions. You can use any standard browser DOM event, like `click`, `submit`, `keydown`, `mouseenter`, etc. By default, the expression is evaluated in the **local component's scope**.
+
+Let's complete our dropdown example:
 
 ```html
-<span mx-text="loginControl.email"></span>
+<div mx-data="dropdown()" mx-ref="headerMenu">
+    <!-- The `toggle()` method is called on the `headerMenu` instance -->
+    <button mx-on:click="toggle()">Menu</button>
+    
+    <div mx-show="isOpen">
+        ...
+    </div>
+</div>
+```
+Clicking the button will call the `toggle()` method of our `dropdown` component, changing the `isOpen` property and, through reactivity, showing or hiding the `div`.
+
+#### Modifiers
+
+You can chain modifiers to the event name to change its behavior:
+
+-   `.prevent`: Calls `event.preventDefault()` on the triggered event. This is useful for stopping default actions, like a form submission.
+-   `.stop`: Calls `event.stopPropagation()`, preventing the event from bubbling up to parent elements.
+
+```html
+<!-- Prevents the form from doing a full page reload on submission -->
+<form mx-on:submit.prevent="saveData()">
+    ...
+</form>
 ```
 
-**SSR Hydration:**
-For applications using Server-Side Rendering (SSR), `mx-text` has a special behavior. If the bound property in your component is `null` or `undefined` when CuboMX starts, the directive will automatically update your component's state with the initial text content rendered by the server. This provides a simple way to "hydrate" your frontend state from the server-rendered HTML.
+#### Magic Variables
 
-**Example:**
+Inside an `mx-on` expression, you have access to special variables that provide extra context:
 
-**Server-Rendered HTML:**
+-   `$event`: The raw browser `Event` object. Useful for accessing event-specific properties, like `event.key` on a `keydown` event.
+-   `$el`: A reference to the DOM element the listener is attached to.
+-   `$item`: If the element is also hydrated by `mx-attrs` or `mx-item`, `$item` gives you direct access to that reactive object. This is incredibly powerful for lists.
+
+**Example using `$item`:**
+
+Let's imagine a playlist where clicking an item selects it.
+
+```html
+<div mx-data="playlist">
+    <p>Selected: {{ selectedSong ? selectedSong.text : 'None' }}</p>
+    <ul>
+        <!-- On click, we pass the reactive `song` object to the method -->
+        <li mx-item="songs" song-id="s1" mx-on:click="selectSong($item)">
+            Bohemian Rhapsody
+        </li>
+        <li mx-item="songs" song-id="s2" mx-on:click="selectSong($item)">
+            Stairway to Heaven
+        </li>
+    </ul>
+</div>
+```
+
+```javascript
+// JS
+CuboMX.component('playlist', {
+    songs: [],
+    selectedSong: null,
+    selectSong(song) {
+        // `song` is the reactive object for the clicked <li>
+        this.selectedSong = song;
+        console.log(`Selected: ${song.text.trim()}`);
+    }
+});
+```
+In this case, `$item` refers to the specific, reactive song object associated with the clicked `<li>`, making it trivial to manage selections.
+
+## 5. Hydration: HTML as the Source of Truth
+
+One of CuboMX's superpowers is hydration: the ability to read data directly from your server-rendered HTML and transform it into **reactive** JavaScript objects. This means that any change to these objects will update the DOM, and any change in the DOM (in forms) will update the objects.
+
+### `mx-attrs`
+
+Transforms an element and its attributes into a reactive **object**.
+
+Imagine your backend rendered this HTML for a user profile:
 
 ```html
 <div mx-data="userProfile">
-    <h1 mx-text="userProfile.name">John Doe</h1>
+    <div id="user-card" mx-attrs="user" user-id="99" is-active="true" guest>
+        Welcome, John Doe!
+    </div>
 </div>
 ```
 
-**JavaScript:**
+And your JavaScript component:
 
 ```javascript
+// JS
 CuboMX.component("userProfile", {
-    name: null, // or just {}, where name is undefined
+    user: null, // The `user` property starts as null
 });
 CuboMX.start();
-
-// After start(), CuboMX.userProfile.name will be "John Doe"
 ```
 
-### `:` (Attribute Binding)
+After initialization, `CuboMX.userProfile.user` will be magically populated:
 
-Binds an HTML attribute to the result of a JavaScript expression. Because all expressions are evaluated within the global context of `CuboMX`, you can access your stores and components directly (e.g., `user.id`) or explicitly for clarity (e.g., `CuboMX.user.id`).
-
-```html
-<button :disabled="loginControl.isLoading">Save</button>
-
-<!-- Both forms are valid -->
-<a :href="`/users/${user.id}`">Profile</a>
-<a :href="`/users/${CuboMX.user.id}`">Profile (Explicit)</a>
+```javascript
+console.log(CuboMX.userProfile.user);
+// {
+//   userId: 99,
+//   isActive: true,
+//   guest: true,
+//   text: "Welcome, John Doe!",
+//   html: "Welcome, John Doe!",
+//   class: [...],
+//   ...
+// }
 ```
 
-**Special Behavior for `:class`:**
-This binding intelligently adds and removes classes from your expression without affecting other static classes on the element.
+### `mx-item`
+
+Works similarly to `mx-attrs`, but instead of creating an object, it creates an object and pushes it into an **array**. It's perfect for lists.
 
 ```html
-<div
-    class="static-class"
-    :class="theme.mode === 'dark' ? 'bg-dark' : 'bg-light'"
->
-    ...
+<div mx-data="playlist">
+    <ul>
+        <li mx-item="songs" song-id="s1">Bohemian Rhapsody</li>
+        <li mx-item="songs" song-id="s2">Stairway to Heaven</li>
+    </ul>
 </div>
 ```
 
-### `mx-on:`
+```javascript
+// JS
+CuboMX.component("playlist", {
+    songs: [], // The `songs` property is an empty array
+});
+CuboMX.start();
+```
 
-Attaches an event listener to an element.
+After initialization, `CuboMX.playlist.songs` will be an array of two reactive objects.
 
--   **Syntax:** `mx-on:event.modifier="expression"`
--   **Example:** `<button mx-on:click="theme.changeTheme()">Change Theme</button>`
--   **Modifiers:**
-    -   `.prevent`: Calls `event.preventDefault()`.
-    -   `.stop`: Calls `event.stopPropagation()`.
--   **Magic Variables:** Inside an `mx-on` expression, you have access to:
-    -   `$el`: The DOM element the listener is attached to.
-    -   `$event`: The DOM `Event` object.
-    -   `$item`: If the element is an `mx-item` within an `mx-array`, `$item` holds the corresponding data item (primitive or object) for that element. This is incredibly useful for handling clicks on lists.
+### Hydration Rules
 
-    **Example with `$item`:**
+-   **Attributes to Properties:** HTML attributes are converted to properties on the object.
+-   **Case Conversion:** `kebab-case` becomes `camelCase` (`user-id` -> `userId`).
+-   **Value Parsing:** Values are converted to the correct types (`"123"` -> `123`, `"true"` -> `true`). Attributes without a value become `true`.
+-   **Special Properties:** `text` (`textContent`), `html` (`innerHTML`), and `class` (a reactive array of CSS classes) are always created.
+
+### Granular Hydration
+
+Sometimes, you don't need a whole object.
+
+-   **`mx-attrs:prop="property"`:** Binds just one attribute to a property. Great for simple two-way binding.
     ```html
-    <ul mx-array:cart.items>
-        <li mx-item mx-obj:id="1" mx-on:click="cart.selectItem($item)">Item 1</li>
-        <li mx-item mx-obj:id="2" mx-on:click="cart.selectItem($item)">Item 2</li>
-    </ul>
+    <div mx-data="loginForm">
+        <input type="text" mx-attrs:value="email" />
+    </div>
     ```
-    In this case, clicking the first `<li>` would call `cart.selectItem` with the object `{ id: 1 }`.
+-   **`mx-item:prop="array"`:** Creates an array of primitive values (text, attribute value) instead of an array of objects.
+    ```html
+    <div mx-data="product">
+        <ul>
+            <li mx-item:text="tags">New</li>
+            <li mx-item:text="tags">Featured</li>
+        </ul>
+    </div>
+    ```
+    This results in `CuboMX.product.tags` being `['New', 'Featured']`.
 
-### `mx-ref`
+### Two-Way Data Binding
 
-Crucial for factory components, `mx-ref` gives a component instance a unique global name on the `CuboMX` object.
+When `mx-attrs` is used on form elements (`<input>`, `<select>`, etc.), it automatically creates a two-way data binding. User input updates the state, and state changes update the field.
 
 ```html
-<div mx-data="passwordInput()" mx-ref="passwordField">...</div>
+<div mx-data="form">
+    <input type="text" mx-attrs="textInput" value="Initial value" />
+</div>
 ```
 
 ```javascript
-// Access the instance anywhere in your JS
-CuboMX.passwordField.isVisible = true;
+// JS
+CuboMX.component("form", { textInput: null });
+CuboMX.start();
+
+// The state is hydrated from the DOM
+console.log(CuboMX.form.textInput.value); // "Initial value"
+
+// User types in the field -> CuboMX.form.textInput.value is updated.
+// Changing the state -> The field is updated.
+CuboMX.form.textInput.value = "New value";
 ```
 
-## 5. Advanced SSR Hydration Directives
+### Reactivity (State -> DOM)
 
-For deep integration with Server-Side Rendering (SSR), CuboMX offers a powerful set of declarative directives to hydrate complex data structures directly from your HTML, without writing any inline JavaScript.
+Hydrated objects are fully reactive. Changing a property in JavaScript automatically updates the HTML.
 
-This is the primary method for populating your components with data (like database query results) that is rendered on the server.
+```javascript
+const userCard = CuboMX.userProfile.user;
 
-#### `mx-prop:component.property="value"`
+// Changes the `user-id` attribute in the HTML to "100"
+userCard.userId = 100;
 
-This is the simplest way to hydrate a single, primitive value (string, number, boolean) into a component.
+// Changes the element's text
+userCard.text = "Welcome, Mauro!";
 
-- **HTML:** `<div mx-prop:cart.user-id="123"></div>`
-- **JS:** `CuboMX.component('cart', { userId: null });`
-- **Result:** After `CuboMX.start()`, `CuboMX.cart.userId` will be `123`.
+// Adds the "highlight" class to the element
+userCard.class.push("highlight");
+```
 
-#### `mx-obj:component.objectProperty`
+### Class Manipulation Helpers
 
-This directive, combined with `mx-obj:*` attributes on the same element, allows you to build a complete object.
+For convenience, the hydrated object comes with methods to manage classes:
 
-- **HTML:** 
-  ```html
-  <div mx-obj:cart.user 
-       mx-obj:id="456" 
-       mx-obj:display-name="'Mauro'" 
-       class="user-data">
-  </div>
-  ```
-- **JS:** `CuboMX.component('cart', { user: null });`
-- **Result:** `CuboMX.cart.user` will be `{ id: 456, displayName: 'Mauro' }`. Note that the standard `class` attribute is ignored.
+-   `myObject.addClass('class-name')`
+-   `myObject.removeClass('class-name')`
+-   `myObject.toggleClass('class-name')`
 
-#### `mx-array:component.arrayProperty` & `mx-item`
+## 6. Scopes: The Power of Local and the Flexibility of Global
 
-This is the most powerful combination, used to hydrate arrays of primitives or objects.
+So far, all examples have worked within the **local scope**: a directive always interacts with the nearest `mx-data` component. This is the main rule and makes components predictable and encapsulated.
 
-1.  **`mx-array`**: Placed on a parent element, it declares the target array property.
-2.  **`mx-item`**: Placed on child elements, it defines each item in the array.
+But what if you need to access a global Store or another component?
 
-**Example 1: Array of Primitives**
+### The `$` Prefix
 
-If `mx-item` has a value, it's evaluated as an expression.
+To "escape" the local scope and access the **global scope** (the main `CuboMX` object), use the `$` prefix.
 
-- **HTML:**
-  ```html
-  <ul mx-array:product.tags>
-      <li mx-item="'new-arrival'"></li>
-      <li mx-item="'featured'"></li>
-  </ul>
-  ```
-- **JS:** `CuboMX.component('product', { tags: [] });`
-- **Result:** `CuboMX.product.tags` will be `['new-arrival', 'featured']`.
+**Example 1: Accessing a Store**
 
-**Example 2: Array of Objects**
+Let's use the `themeStore` we registered at the beginning.
 
-If `mx-item` has no value, it collects the `mx-obj:*` attributes from its own element to build an object.
+```html
+<body mx-data="pageController">
+    <!-- `$theme.mode` accesses the global store, ignoring `pageController` -->
+    <div mx-show="$theme.mode === 'dark'">You are in dark mode!</div>
 
-- **HTML:**
-  ```html
-  <ul mx-array:cart.items>
-      <li mx-item mx-obj:id="1" mx-obj:name="'Product A'"></li>
-      <li mx-item mx-obj:id="2" mx-obj:name="'Product B'"></li>
-  </ul>
-  ```
-- **JS:** `CuboMX.component('cart', { items: [] });`
-- **Result:** `CuboMX.cart.items` will be `[{ id: 1, name: 'Product A' }, { id: 2, name: 'Product B' }]`.
+    <button mx-on:click="$theme.changeTheme()">Change Theme</button>
+</body>
+```
 
+**Example 2: Accessing another Component**
 
-## 6. Magic Properties
+You can access any Singleton or Factory instance (via `mx-ref`) from anywhere.
 
-Within a component's methods, you have access to a few special `this` properties:
+```html
+<!-- Notification component -->
+<div mx-data="notifier" mx-ref="globalNotifier">
+    <div mx-show="message">{{ message }}</div>
+</div>
 
--   **`this.$el`**: A direct reference to the component's root DOM element (the one with the `mx-data` attribute). This is useful for direct DOM manipulation, especially within the `init()` hook.
--   **`this.$watch('property', callback)`**: Watches a property **on the current component instance** for changes.
+<!-- Another component elsewhere on the page -->
+<div mx-data="contactForm">
+    <!-- This button calls a method on a completely different component! -->
+    <button mx-on:click="$globalNotifier.show('Message sent!')">Send</button>
+</div>
+```
 
-**Example using `this.$el`:**
+## 7. Client-Side Rendering with Templates
+
+While CuboMX prioritizes server-rendered HTML, it provides a template system for when you need to render new elements on the client-side (e.g., notifications, content from an AJAX response).
+
+**Step 1: Define the Template with `mx-template`**
+
+Your backend renders an inert `<template>` tag.
+
+```html
+<template mx-template="error-alert">
+    <div class="alert alert-danger">
+        <strong>{{title}}</strong>
+        <p>{{message}}</p>
+    </div>
+</template>
+```
+
+> [!IMPORTANT]
+> If your template engine (Jinja, Blade, etc.) also uses `{{...}}`, wrap the content in a "raw" block to prevent the server from processing it.
+
+**Step 2: Render with JavaScript**
+
+Use `CuboMX.renderTemplate()` to generate the HTML.
+
+```javascript
+const alertHtml = CuboMX.renderTemplate("error-alert", {
+    title: "Validation Error",
+    message: "Please fill in all fields.",
+});
+```
+
+**Step 3: Add to the DOM**
+
+Use `CuboMX.swapHTML()` to insert the HTML into the page.
+
+```javascript
+CuboMX.swapHTML(alertHtml, [
+    { select: "this", target: "#alert-container:beforeend" },
+]);
+```
+
+## 8. Magic Properties
+
+Within a component's methods, you have access to special properties on `this`:
+
+-   **`this.$el`**: A direct reference to the component's root DOM element (the one with `mx-data`).
+-   **`this.$watch('property', callback)`**: Watches a property **on the current component instance** and reacts to changes.
 
 ```javascript
 const searchField = {
     init() {
-        // Automatically focus the input field when the component is initialized
+        // Automatically focus the input when the component is initialized
         this.$el.querySelector("input").focus();
     },
 };
-CuboMX.component("searchField", searchField);
 ```
 
-```html
-<div mx-data="searchField">
-    <input type="search" placeholder="Search..." />
-</div>
-```
+## 9. Lifecycle Hooks
 
-## 7. Global API
+-   **`init()`**: Executed once when the component/store is initialized.
+-   **`destroy()`**: Executed when the component is removed from the DOM.
+-   **`onDOMUpdate()`**: Executed on all components and stores whenever the DOM is modified by CuboMX.
 
--   **`CuboMX.component(name, definition)`**: Registers a component (Singleton object or Factory function).
+## 10. Global API
+
+-   **`CuboMX.component(name, definition)`**: Registers a component.
 -   **`CuboMX.store(name, object)`**: Registers a global store.
 -   **`CuboMX.start()`**: Starts the framework.
--   **`CuboMX.watch(path, callback)`**: Watches a property on any global store or component. The path is a simple string, e.g., `'passwordField.value'` or `'theme.mode'`.
-    ```javascript
-    CuboMX.watch('passwordField.value', (newValue) => { ... });
-    CuboMX.watch('theme.mode', (newMode) => { ... });
-    ```
+-   **`CuboMX.watch(path, callback)`**: Watches a property on any global store or component (e.g., `'theme.mode'`).
+-   **`CuboMX.render(templateString, data)`**: Renders a template string with data.
+-   **`CuboMX.renderTemplate(templateName, data)`**: Renders a pre-registered template.
 -   **`CuboMX.request(config)`**: Performs an AJAX request.
 -   **`CuboMX.swapHTML(html, strategies, options)`**: Updates the DOM from an HTML string.
--   **`CuboMX.renderTemplate(template, data)`**: A simple template rendering utility.
 -   **`CuboMX.actions(actions, rootElement)`**: Programmatically executes a list of DOM actions.
-
-## 8. Lifecycle Hooks
-
--   **`init()`**: Executed once when the component/store is initialized. Can be `async`.
--   **`destroy()`**: Executed when the component is removed from the DOM.
--   **`onDOMUpdate()`**: Executed on all stores and components every time the DOM is modified by `CuboMX.request()` or `CuboMX.swapHTML()`.
-
-#### Component Communication
-
-Because the `init()` order is not guaranteed, never access one component from another directly inside `init()`. Always use `CuboMX.watch` to react to state changes, which is safer and more robust.
-
-**✅ Safe Example:**
-
-```javascript
-// Component A
-const ComponentA = {
-    valueFromB: "",
-    init() {
-        // Watch for changes on ComponentB and update self
-        CuboMX.watch("componentB.value", (newValue) => {
-            this.valueFromB = newValue;
-        });
-    },
-};
-
-// Component B
-const ComponentB = {
-    value: "initial",
-};
-```

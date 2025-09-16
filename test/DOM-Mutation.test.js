@@ -64,30 +64,60 @@ describe('CuboMX Refactor - DOM Mutation Lifecycle', () => {
     });
 
     it('should bind directives on new elements that are not components themselves', async () => {
-        // 1. Setup a store that already exists when the new HTML is added.
-        CuboMX.store('testStore', { message: 'Hello' });
+        // 1. Setup a store with a null property and a method.
+        CuboMX.store('testStore', { 
+            spanAttrs: null,
+            changeText() {
+                this.spanAttrs.text = 'Clicked';
+            }
+        });
         CuboMX.start();
 
-        // 2. Dynamically add a new chunk of HTML without any mx-data.
+        // 2. Dynamically add a new chunk of HTML using mx-attrs.
         const newContent = document.createElement('div');
         newContent.innerHTML = `
-            <span mx-text="testStore.message"></span>
-            <button mx-on:click="testStore.message = 'Clicked'"></button>
+            <span mx-attrs="$testStore.spanAttrs">Hello</span>
+            <button mx-on:click="$testStore.changeText()"></button>
         `;
         document.body.appendChild(newContent);
         await vi.runAllTimersAsync();
 
         const span = document.querySelector('span');
         const button = document.querySelector('button');
+        const attrs = CuboMX.testStore.spanAttrs;
 
-        // 3. Assert that the new directives were processed and are reactive.
-        expect(span.innerText).toBe('Hello');
+        // 3. Assert that hydration worked and directives are reactive.
+        expect(attrs).toBeDefined();
+        expect(attrs.text).toBe('Hello');
+        expect(span.textContent).toBe('Hello');
 
-        // 4. Simulate a click that changes the store state.
+        // 4. Simulate a click that changes the state.
         button.click();
 
-        // 5. Assert that the change was reflected by mx-text.
-        expect(CuboMX.testStore.message).toBe('Clicked');
+        // 5. Assert that the change was reflected in the DOM.
+        expect(attrs.text).toBe('Clicked');
         expect(span.innerText).toBe('Clicked');
+    });
+
+    it('should re-evaluate directives when child content is replaced', async () => {
+        // 1. Initial Setup
+        CuboMX.component('myComp', { myVar: null });
+        const parentDiv = document.createElement('div');
+        parentDiv.setAttribute('mx-data', 'myComp');
+        parentDiv.innerHTML = `<div id="child" mx-attrs:my-prop="$myComp.myVar" my-prop="value1"></div>`;
+        document.body.appendChild(parentDiv);
+
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        // 2. Initial Assertion
+        expect(CuboMX.myComp.myVar).toBe('value1');
+
+        // 3. Replace the child element
+        parentDiv.innerHTML = `<div id="child" mx-attrs:my-prop="$myComp.myVar" my-prop="value2"></div>`;
+        await vi.runAllTimersAsync();
+
+        // 4. Final Assertion
+        expect(CuboMX.myComp.myVar).toBe('value2');
     });
 });

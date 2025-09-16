@@ -71,4 +71,26 @@ describe('CuboMX - Reactivity', () => {
 
         expect(watcherSpy).not.toHaveBeenCalled();
     });
+
+    it('should trigger global reactivity for other directives when an mx-attrs property changes', () => {
+        CuboMX.component('myComp', { data: null });
+        document.body.innerHTML = `
+            <div mx-data="my-comp">
+                <div mx-attrs="$myComp.data" is-active="true"></div>
+                <span id="indicator" mx-show="$myComp.data.isActive">Visible</span>
+            </div>
+        `;
+        const indicator = document.getElementById('indicator');
+
+        CuboMX.start();
+
+        // Initial state check
+        expect(indicator.style.display).not.toBe('none');
+
+        // Change state via mx-attrs object
+        CuboMX.myComp.data.isActive = false;
+
+        // Assert that mx-show reacted to the change
+        expect(indicator.style.display).toBe('none');
+    });
 });
