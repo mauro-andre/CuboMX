@@ -23,25 +23,25 @@ describe('CuboMX Utilities', () => {
         it('should replace simple placeholders', () => {
             const template = 'Hello, {{ name }}!';
             const data = { name: 'CuboMX' };
-            expect(CuboMX.renderTemplate(template, data)).toBe('Hello, CuboMX!');
+            expect(CuboMX.render(template, data)).toBe('Hello, CuboMX!');
         });
 
         it('should resolve nested object paths', () => {
             const template = 'Welcome, {{ user.profile.firstName }}.';
             const data = { user: { profile: { firstName: 'Mauro' } } };
-            expect(CuboMX.renderTemplate(template, data)).toBe('Welcome, Mauro.');
+            expect(CuboMX.render(template, data)).toBe('Welcome, Mauro.');
         });
 
         it('should handle missing data gracefully', () => {
             const template = 'Value: {{ a.b.c }}.';
             const data = { a: {} };
-            expect(CuboMX.renderTemplate(template, data)).toBe('Value: .');
+            expect(CuboMX.render(template, data)).toBe('Value: .');
         });
 
         it('should remove Jinja-style comments and statements', () => {
             const template = '{# This is a comment #}Hello, {% if user %} {{ user.name }} {% endif %}!';
             const data = { user: { name: 'Andre' } };
-            expect(CuboMX.renderTemplate(template, data)).toBe('Hello,  Andre !');
+            expect(CuboMX.render(template, data)).toBe('Hello,  Andre !');
         });
     });
 

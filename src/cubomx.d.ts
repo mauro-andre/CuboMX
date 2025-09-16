@@ -87,12 +87,20 @@ declare module 'cubomx' {
         }): void;
 
         /**
-         * Renders a template string with data.
-         * @param template The template string.
-         * @param data A data object.
-         * @returns The rendered template.
+         * Renders a template string with data by replacing `{{key}}` placeholders.
+         * @param templateString The template string to process.
+         * @param data A data object where keys match the placeholders.
+         * @returns The rendered HTML string.
          */
-        renderTemplate(template: string, data: object): string;
+        render(templateString: string, data: object): string;
+
+        /**
+         * Renders a pre-registered template found in a `<template mx-template="name">` tag.
+         * @param templateName The name of the template to render.
+         * @param data A data object to populate the template.
+         * @returns The rendered HTML string.
+         */
+        renderTemplate(templateName: string, data: object): string;
 
         /**
          * Programmatically executes a list of DOM actions.

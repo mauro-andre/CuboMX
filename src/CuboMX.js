@@ -9,6 +9,7 @@ const CuboMX = (() => {
     let anonCounter = 0;
     let bindings = [];
     let isInitialLoad = true;
+    let templates = {};
 
     const kebabToCamel = (str) =>
         str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
@@ -115,6 +116,20 @@ const CuboMX = (() => {
             return;
         }
         activeProxies[name] = proxy;
+    };
+
+    const processTemplates = (rootElement) => {
+        const templatesToProcess = [];
+        if (rootElement.matches('template[mx-template]')) {
+            templatesToProcess.push(rootElement);
+        }
+        rootElement.querySelectorAll('template[mx-template]').forEach(t => templatesToProcess.push(t));
+
+        templatesToProcess.forEach(templateEl => {
+            const name = templateEl.getAttribute('mx-template');
+            templates[name] = templateEl.innerHTML;
+            templateEl.remove();
+        });
     };
 
     const extractDataFromElement = (el) => {
@@ -568,6 +583,7 @@ const CuboMX = (() => {
         const domInstances = scanDOM(document.body);
         initQueue = initQueue.concat(domInstances);
 
+        processTemplates(document.body);
         bindDirectives(document.body);
         isInitialLoad = false; // Mark initial load as complete
 
@@ -577,6 +593,7 @@ const CuboMX = (() => {
             for (const mutation of mutations) {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType !== 1) return;
+                    processTemplates(node);
                     const newInstances = scanDOM(node);
                     bindDirectives(node); // Vincula diretivas ANTES de inicializar
                     processInit(newInstances);
@@ -607,6 +624,7 @@ const CuboMX = (() => {
         anonCounter = 0;
         bindings = [];
         isInitialLoad = true; // Reset for tests
+        templates = {};
     };
 
     const publicAPI = {
@@ -647,8 +665,30 @@ const CuboMX = (() => {
         // External utilities from other modules
         request: a,
         swapHTML: b,
-        renderTemplate: c,
         actions: d,
+
+        /**
+         * Renders a template string with data by replacing `{{key}}` placeholders.
+         * @param {string} templateString The template string to process.
+         * @param {object} data A data object where keys match the placeholders.
+         * @returns {string} The rendered HTML string.
+         */
+        render: c, // The actual render engine
+
+        /**
+         * Renders a pre-registered template found in a `<template mx-template="name">` tag.
+         * @param {string} templateName The name of the template to render.
+         * @param {object} data A data object to populate the template.
+         * @returns {string} The rendered HTML string.
+         */
+        renderTemplate(templateName, data) {
+            const templateString = templates[templateName];
+            if (!templateString) {
+                console.error(`[CuboMX] Template '${templateName}' not found.`);
+                return '';
+            }
+            return this.render(templateString, data);
+        },
     };
 
     return new Proxy(publicAPI, {

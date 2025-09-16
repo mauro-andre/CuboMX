@@ -354,7 +354,57 @@ To hydrate an array of primitive values instead of objects, you can specify whic
 ```
 This will result in `CuboMX.product.tags` being `['New', 'Featured']`. `mx-item:value` will prioritize the `value` attribute, falling back to `textContent` if it doesn't exist.
 
-## 6. Magic Properties
+## 6. Client-Side Rendering with Templates
+
+While CuboMX's primary philosophy is to enhance server-rendered HTML, it provides a powerful and flexible template system for cases where you need to render new DOM elements on the client-side, such as displaying notifications, alerts, or content from an AJAX response.
+
+This system is designed to respect the "backend as the source of truth" principle: the HTML structure is still defined by the backend, but stored in an inert `<template>` tag to be used by the client when needed.
+
+### Step 1: Define Templates with `mx-template`
+
+The backend should render `<template>` tags with the `mx-template` attribute. CuboMX will automatically find these templates, store their content, and remove them from the DOM so they are not visible.
+
+```html
+<!-- The backend provides the template for an alert -->
+<template mx-template="error-alert">
+    <div class="alert alert-danger">
+        <strong>{{title}}</strong>
+        <p>{{message}}</p>
+    </div>
+</template>
+```
+
+> [!IMPORTANT]
+> If your backend template engine (like Jinja, Blade, or Twig) also uses `{{...}}`, you must wrap the content of your `<template>` tag in a "raw" or "verbatim" block to prevent the server from processing the placeholders. For example, in Jinja: `{% raw %}...{% endraw %}`.
+
+### Step 2: Render Templates with JavaScript
+
+Use the `CuboMX.renderTemplate()` function to create an HTML string from a registered template and a data object.
+
+```javascript
+// In your component, after a validation fails
+const alertHtml = CuboMX.renderTemplate('error-alert', {
+    title: 'Validation Error',
+    message: 'Please fill in all required fields.'
+});
+```
+
+### Step 3: Add to the DOM with `swapHTML`
+
+Use the powerful `CuboMX.swapHTML()` utility to insert the newly rendered HTML string anywhere in the DOM. The `beforeend` strategy is perfect for adding elements to a container.
+
+```javascript
+// The target container for alerts
+// <div id="alert-container"></div>
+
+CuboMX.swapHTML(alertHtml, [
+    { select: 'this', target: '#alert-container:beforeend' }
+]);
+```
+
+This approach provides a clean way to handle client-side rendering without sacrificing the core philosophy of server-defined structure. It's perfect for UI components like notifications, modals, and for rendering lists of items returned from an API call.
+
+## 7. Magic Properties
 
 Within a component's methods, you have access to a few special `this` properties:
 
@@ -379,7 +429,7 @@ CuboMX.component("searchField", searchField);
 </div>
 ```
 
-## 7. Global API
+## 8. Global API
 
 -   **`CuboMX.component(name, definition)`**: Registers a component (Singleton object or Factory function).
 -   **`CuboMX.store(name, object)`**: Registers a global store.
@@ -389,12 +439,14 @@ CuboMX.component("searchField", searchField);
     CuboMX.watch('passwordField.value', (newValue) => { ... });
     CuboMX.watch('theme.mode', (newMode) => { ... });
     ```
+-   **`CuboMX.render(templateString, data)`**: Renders a raw HTML string with data by replacing `{{key}}` placeholders.
+-   **`CuboMX.renderTemplate(templateName, data)`**: Renders a pre-registered `<template>` by name.
 -   **`CuboMX.request(config)`**: Performs an AJAX request.
 -   **`CuboMX.swapHTML(html, strategies, options)`**: Updates the DOM from an HTML string.
 -   **`CuboMX.renderTemplate(template, data)`**: A simple template rendering utility.
 -   **`CuboMX.actions(actions, rootElement)`**: Programmatically executes a list of DOM actions.
 
-## 8. Lifecycle Hooks
+## 9. Lifecycle Hooks
 
 -   **`init()`**: Executed once when the component/store is initialized. Can be `async`.
 -   **`destroy()`**: Executed when the component is removed from the DOM.
