@@ -120,13 +120,15 @@ const CuboMX = (() => {
 
     const processTemplates = (rootElement) => {
         const templatesToProcess = [];
-        if (rootElement.matches('template[mx-template]')) {
+        if (rootElement.matches("template[mx-template]")) {
             templatesToProcess.push(rootElement);
         }
-        rootElement.querySelectorAll('template[mx-template]').forEach(t => templatesToProcess.push(t));
+        rootElement
+            .querySelectorAll("template[mx-template]")
+            .forEach((t) => templatesToProcess.push(t));
 
-        templatesToProcess.forEach(templateEl => {
-            const name = templateEl.getAttribute('mx-template');
+        templatesToProcess.forEach((templateEl) => {
+            const name = templateEl.getAttribute("mx-template");
             templates[name] = templateEl.innerHTML;
             templateEl.remove();
         });
@@ -685,7 +687,7 @@ const CuboMX = (() => {
             const templateString = templates[templateName];
             if (!templateString) {
                 console.error(`[CuboMX] Template '${templateName}' not found.`);
-                return '';
+                return "";
             }
             return this.render(templateString, data);
         },
