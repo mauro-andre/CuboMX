@@ -252,6 +252,27 @@ CuboMX.component('playlist', {
 ```
 In this case, `$item` refers to the specific, reactive song object associated with the clicked `<li>`, making it trivial to manage selections.
 
+### `mx-link`
+
+Upgrades a standard `<a>` link to use an AJAX request for navigation, preventing a full page reload. This is ideal for creating a fast, SPA-like user experience, inspired by HTMX's `hx-boost`.
+
+When `mx-link` is added to an anchor tag, it automatically:
+1.  Prevents the default navigation on click.
+2.  Calls `CuboMX.request` using the link's `href`.
+3.  Sets `history: true` and `pushUrl: true` to update the browser's address bar and history.
+
+The server should respond with an `X-Swap-Strategies` header to instruct CuboMX on how to update the DOM.
+
+**Example:**
+
+```html
+<!-- This link will fetch /profile via AJAX instead of doing a full page navigation -->
+<a href="/profile" mx-link>My Profile</a>
+
+<!-- The server handling /profile should respond with HTML and a header like: -->
+<!-- X-Swap-Strategies: [{ "select": "#main-content", "target": "#main-content" }] -->
+```
+
 ## 5. Hydration: HTML as the Source of Truth
 
 One of CuboMX's superpowers is hydration: the ability to read data directly from your server-rendered HTML and transform it into **reactive** JavaScript objects. This means that any change to these objects will update the DOM, and any change in the DOM (in forms) will update the objects.
@@ -505,6 +526,100 @@ const searchField = {
 -   **`CuboMX.watch(path, callback)`**: Watches a property on any global store or component (e.g., `'theme.mode'`).
 -   **`CuboMX.render(templateString, data)`**: Renders a template string with data.
 -   **`CuboMX.renderTemplate(templateName, data)`**: Renders a pre-registered template.
--   **`CuboMX.request(config)`**: Performs an AJAX request.
--   **`CuboMX.swapHTML(html, strategies, options)`**: Updates the DOM from an HTML string.
--   **`CuboMX.actions(actions, rootElement)`**: Programmatically executes a list of DOM actions.
+
+### CuboMX.request(config)
+
+This is the core function for making AJAX requests and orchestrating DOM updates. It's highly configurable and can be controlled by server-sent headers.
+
+**Example:** Imagine a button that loads more products onto a page.
+
+```javascript
+// In a component method
+loadMoreProducts() {
+    CuboMX.request({
+        url: '/api/products?page=2',
+        // The server will respond with strategies to append the new products
+        loadingSelectors: ['#load-more-btn'] // Show a loading indicator on the button
+    });
+}
+```
+
+**Config Object Parameters:**
+
+-   `url` (string, required): The URL to request.
+-   `method` (string): The HTTP method. Defaults to `GET`.
+-   `body` (Object | FormData): The request body. For `GET` requests, it will be converted to URL parameters.
+-   `headers` (Object): Custom request headers.
+-   `strategies` (Array): An array of swap strategy objects. If provided, these take priority over server-sent strategies.
+-   `actions` (Array): An array of action objects to be executed after the request. These take priority over server-sent actions.
+-   `loadingSelectors` (Array): An array of CSS selectors that will have the `x-request` class applied during the request.
+-   `history` (boolean): If `true`, the navigation will be added to the browser's history. Defaults to `false`.
+-   `pushUrl` (boolean): A fallback to update the browser URL to the request's final URL if the server does not provide an `X-Push-Url` header. Defaults to `false`.
+
+**Server-Driven Behavior:**
+
+-   `X-Swap-Strategies`: A header containing a JSON string of swap strategies. `CuboMX.request` will use these if no local `strategies` are provided.
+-   `X-Cubo-Actions`: A header with a JSON string of actions to be executed after the swap.
+-   `X-Push-Url`: A header specifying the URL to push to the browser's address bar.
+-   `X-Redirect`: A header that will cause a full page redirect to the specified URL.
+
+### CuboMX.swapHTML(html, strategies, options)
+
+A powerful utility to swap parts of the DOM from a given HTML string, without making a request. It's the engine used internally by `CuboMX.request`.
+
+**Example:** This is useful for when you already have the HTML content and just need to place it in the DOM, for example, after rendering a client-side template.
+
+```javascript
+// First, render a template
+const notificationHtml = CuboMX.renderTemplate('error-alert', { message: 'Invalid input' });
+
+// Now, use swapHTML to insert it into the page
+CuboMX.swapHTML(notificationHtml, [
+    {
+        select: 'this', // 'this' refers to the root of the provided html string
+        target: '#notification-area:beforeend' // Append it to the notification area
+    }
+]);
+```
+
+**Swap Strategies:**
+
+A strategy is an object with a `select` and a `target` key:
+`{ select: '#source-element', target: '#destination-element:mode' }`
+
+**Swap Modes:**
+
+The `target` selector can be augmented with a swap mode. The default is `outerHTML`.
+
+-   `innerHTML`: Replaces the inner content of the target element.
+-   `outerHTML`: Replaces the entire target element.
+-   `beforebegin`: Inserts the content before the target element.
+-   `afterbegin`: Inserts the content as the first child of the target element.
+-   `beforeend`: Inserts the content as the last child of the target element.
+-   `afterend`: Inserts the content after the target element.
+
+### CuboMX.actions(actions)
+
+Programmatically executes a list of imperative actions on the DOM. This is useful for small DOM manipulations that don't require a full content swap, often in response to a server event or a component method.
+
+**Example:** Show a success state on a button after a save operation.
+
+```javascript
+showSuccess() {
+    CuboMX.actions([
+        { action: 'addClass', selector: '#save-btn', class: 'is-success' },
+        { action: 'setAttribute', selector: '#save-btn', attribute: 'disabled', value: '' },
+        { action: 'setTextContent', selector: '#save-btn', text: 'Saved!' },
+        { action: 'dispatchEvent', selector: 'window', event: 'show-confetti' }
+    ]);
+}
+```
+
+**Available Actions:**
+
+-   `{ action: 'addClass', selector: '#el', class: 'new-class' }`
+-   `{ action: 'removeClass', selector: '#el', class: 'old-class' }`
+-   `{ action: 'setAttribute', selector: 'input', attribute: 'disabled', value: '' }`
+-   `{ action: 'removeElement', selector: '.temp' }`
+-   `{ action: 'setTextContent', selector: 'h1', text: 'New Title' }`
+-   `{ action: 'dispatchEvent', selector: 'button', event: 'custom-event', detail: { ... } }`

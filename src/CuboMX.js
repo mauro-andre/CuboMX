@@ -302,6 +302,20 @@ const CuboMX = (() => {
     };
 
     const directiveHandlers = {
+        "mx-link": (el) => {
+            if (el.tagName !== 'A' || !el.getAttribute('href')) {
+                return;
+            }
+            el.addEventListener('click', (event) => {
+                event.preventDefault();
+                const url = el.getAttribute('href');
+                a({ // `a` is the imported `request` function
+                    url: url,
+                    pushUrl: true,
+                    history: true
+                });
+            });
+        },
         "mx-show": (el, expression) => {
             const originalDisplay =
                 el.style.display === "none" ? "" : el.style.display;
@@ -429,6 +443,8 @@ const CuboMX = (() => {
                 directiveHandlers["mx-item"](el, el.getAttribute("mx-item"));
             if (el.hasAttribute("mx-show"))
                 directiveHandlers["mx-show"](el, el.getAttribute("mx-show"));
+            if (el.hasAttribute("mx-link"))
+                directiveHandlers["mx-link"](el);
 
             for (const attr of [...el.attributes]) {
                 if (attr.name.startsWith("mx-attrs:"))
