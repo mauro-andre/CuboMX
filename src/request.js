@@ -1,3 +1,5 @@
+import morphdom from "morphdom";
+
 /**
  * This module provides two main functions for dynamic DOM manipulation,
  * inspired by HTMX, but with full control via JavaScript.
@@ -170,73 +172,102 @@ const replaceElements = (targetElement, sourceElement, selectors) => {
  * Applies DOM swaps based on strategies and the source HTML.
  */
 const applySwaps = (strategies, htmlContent, rootElement = document) => {
-    const parser = new DOMParser();
-    const sourceDoc = parser.parseFromString(htmlContent, "text/html");
+    // Priority 1: Explicit strategies always win.
+    if (strategies && strategies.length > 0) {
+        const parser = new DOMParser();
+        const sourceDoc = parser.parseFromString(htmlContent, "text/html");
+        for (const strategy of strategies) {
+            const { selector: sourceSelector, mode: sourceMode } =
+                parseSelector(strategy.select, "outerHTML");
 
-    for (const strategy of strategies) {
-        const { selector: sourceSelector, mode: sourceMode } = parseSelector(
-            strategy.select,
-            "outerHTML"
-        );
+            let targetElement = strategy.target;
+            if (typeof strategy.target === "string") {
+                const { selector: targetSelector } = parseSelector(
+                    strategy.target,
+                    "outerHTML"
+                );
+                targetElement = rootElement.querySelector(targetSelector);
+            }
 
-        let targetElement = strategy.target;
-        if (typeof strategy.target === "string") {
-            const { selector: targetSelector } = parseSelector(
+            const { mode: targetMode } = parseSelector(
                 strategy.target,
                 "outerHTML"
             );
-            targetElement = rootElement.querySelector(targetSelector);
-        }
+            const sourceElement = sourceDoc.querySelector(sourceSelector);
 
-        const { mode: targetMode } = parseSelector(
-            strategy.target,
-            "outerHTML"
-        );
-        const sourceElement = sourceDoc.querySelector(sourceSelector);
+            if (!sourceElement || !targetElement) continue;
 
-        if (!sourceElement || !targetElement) continue;
+            if (strategy.sync) {
+                syncAttributes(targetElement, sourceElement);
+                const targetChildren = Array.from(
+                    targetElement.querySelectorAll("*")
+                );
+                const sourceChildren = Array.from(
+                    sourceElement.querySelectorAll("*")
+                );
+                if (targetChildren.length === sourceChildren.length) {
+                    targetChildren.forEach((child, i) => {
+                        syncAttributes(child, sourceChildren[i]);
+                    });
+                }
+            }
 
-        if (strategy.sync) {
-            syncAttributes(targetElement, sourceElement);
-            const targetChildren = Array.from(
-                targetElement.querySelectorAll("*")
-            );
-            const sourceChildren = Array.from(
-                sourceElement.querySelectorAll("*")
-            );
-            if (targetChildren.length === sourceChildren.length) {
-                targetChildren.forEach((child, i) => {
-                    syncAttributes(child, sourceChildren[i]);
-                });
+            if (strategy.replaceElements) {
+                replaceElements(
+                    targetElement,
+                    sourceElement,
+                    strategy.replaceElements
+                );
+            }
+
+            if (!strategy.sync && !strategy.replaceElements) {
+                const contentToSwap =
+                    sourceMode === "innerHTML"
+                        ? sourceElement.innerHTML
+                        : sourceElement.outerHTML;
+                switch (targetMode) {
+                    case "innerHTML":
+                        targetElement.innerHTML = contentToSwap;
+                        break;
+                    case "outerHTML":
+                        targetElement.outerHTML = contentToSwap;
+                        break;
+                    default:
+                        targetElement.insertAdjacentHTML(
+                            targetMode,
+                            contentToSwap
+                        );
+                        break;
+                }
             }
         }
+        return;
+    }
 
-        if (strategy.replaceElements) {
-            replaceElements(
-                targetElement,
-                sourceElement,
-                strategy.replaceElements
-            );
-        }
+    // If no strategies, attempt smart swap.
+    const parser = new DOMParser();
+    const sourceDoc = parser.parseFromString(htmlContent, "text/html");
+    const sourceRoot = sourceDoc.body.firstElementChild;
 
-        if (!strategy.sync && !strategy.replaceElements) {
-            const contentToSwap =
-                sourceMode === "innerHTML"
-                    ? sourceElement.innerHTML
-                    : sourceElement.outerHTML;
-            switch (targetMode) {
-                case "innerHTML":
-                    targetElement.innerHTML = contentToSwap;
-                    break;
-                case "outerHTML":
-                    targetElement.outerHTML = contentToSwap;
-                    break;
-                default:
-                    targetElement.insertAdjacentHTML(targetMode, contentToSwap);
-                    break;
-            }
+    // Priority 2: Partial swap if the response has a single root element with an ID.
+    if (sourceRoot && sourceRoot.id && sourceDoc.body.childElementCount === 1) {
+        const targetElement = rootElement.querySelector(`#${sourceRoot.id}`);
+        if (targetElement) {
+            morphdom(targetElement, sourceRoot);
+            return;
         }
     }
+
+    // Priority 3: Full body swap if the response looks like a full document.
+    if (htmlContent.toLowerCase().includes("<html")) {
+        morphdom(rootElement.documentElement, sourceDoc.documentElement);
+        return;
+    }
+
+    // Fallback: If no strategies and no identifiable target, do nothing and warn.
+    console.warn(
+        "[CuboMX] Smart swap failed: No explicit strategies were found, and the response could not be automatically placed because it is not a full document or a partial with a root ID. The HTML was ignored."
+    );
 };
 
 /**
@@ -389,8 +420,10 @@ const request = async ({
             }
         }
 
-        if (finalStrategies) {
-            const htmlContent = await response.text();
+        const htmlContent = await response.text();
+
+        // If we have strategies OR we have HTML content (for a potential smart swap)
+        if (finalStrategies || htmlContent) {
             const finalUrl = response.url;
             const pushUrlFromHeader = response.headers.get("X-Push-Url");
             const targetUrl = pushUrlFromHeader || (pushUrl ? finalUrl : null);
@@ -401,7 +434,7 @@ const request = async ({
                 actions: finalActions,
             });
         } else if (finalActions) {
-            // Process actions even if there is no HTML swap
+            // This only runs if there are no strategies and no HTML, but there are actions.
             processActions(finalActions, rootElement);
         }
 

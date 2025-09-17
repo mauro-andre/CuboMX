@@ -261,7 +261,7 @@ When `mx-link` is added to an anchor tag, it automatically:
 2.  Calls `CuboMX.request` using the link's `href`.
 3.  Sets `history: true` and `pushUrl: true` to update the browser's address bar and history.
 
-The server should respond with an `X-Swap-Strategies` header to instruct CuboMX on how to update the DOM.
+The server should respond with an `X-Swap-Strategies` header to instruct CuboMX on how to update the DOM. If this header is not found, CuboMX will attempt a **"smart swap"** by automatically comparing the received HTML with the current DOM (see `CuboMX.swapHTML` for details).
 
 **Example:**
 
@@ -550,7 +550,7 @@ loadMoreProducts() {
 -   `method` (string): The HTTP method. Defaults to `GET`.
 -   `body` (Object | FormData): The request body. For `GET` requests, it will be converted to URL parameters.
 -   `headers` (Object): Custom request headers.
--   `strategies` (Array): An array of swap strategy objects. If provided, these take priority over server-sent strategies.
+-   `strategies` (Array): An array of swap strategy objects. If provided, these take priority over server-sent strategies. If omitted and the server provides no `X-Swap-Strategies` header, a **smart swap** will be attempted (see `CuboMX.swapHTML` for details).
 -   `actions` (Array): An array of action objects to be executed after the request. These take priority over server-sent actions.
 -   `loadingSelectors` (Array): An array of CSS selectors that will have the `x-request` class applied during the request.
 -   `history` (boolean): If `true`, the navigation will be added to the browser's history. Defaults to `false`.
@@ -597,6 +597,23 @@ The `target` selector can be augmented with a swap mode. The default is `outerHT
 -   `afterbegin`: Inserts the content as the first child of the target element.
 -   `beforeend`: Inserts the content as the last child of the target element.
 -   `afterend`: Inserts the content after the target element.
+
+#### Smart Swaps (DOM Morphing)
+
+If you call `CuboMX.swapHTML` with `null` strategies, or call `CuboMX.request` without receiving any strategies, CuboMX activates the **smart swap** mode. This powerful feature uses DOM morphing to intelligently update the current page with minimal changes, preserving important states like focus and input values. It follows a clear hierarchy:
+
+1.  **Priority 1: Explicit Strategies**
+    -   If strategies are provided, they are always executed. Smart swap is skipped.
+
+2.  **Priority 2: Smart Swap by ID**
+    -   If no strategies are given and the `html` content is a snippet with a single root element that has an `id`, CuboMX will find the element with the same `id` in the current DOM and intelligently merge the changes.
+    -   **Example:** If the server responds with `<div id="user-profile"><p>New Name</p></div>`, CuboMX will update the existing `<div id="user-profile">...</div>` on your page.
+
+3.  **Priority 3: Smart Swap of Body**
+    -   If the response appears to be a full HTML document (contains an `<html>` tag), CuboMX will merge the new `<body>` into the current page's `<body>`.
+
+4.  **Fallback: Warning**
+    -   If none of the above conditions are met (e.g., the response is a partial snippet without a root ID), no swap will occur, and a warning will be logged to the console.
 
 ### CuboMX.actions(actions)
 
