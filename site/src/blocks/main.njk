@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>CuboMX</title>
+        <script type="module" src="@/js/main.js"></script>
+        <link rel="stylesheet" href="@/scss/main.scss">
+    </head>
+    <body class="body">
+        {% include "partials/header.njk" %}
+        <section class="body-container">
+            <div class="content">
+                <section class="sidebar-section">
+                    {% include "partials/sidebar.njk" %}
+                </section>
+                <section class="main-content-section">
+                    {% block main %}{% endblock %}
+                </section>
+            </div>
+        </section>
+    </body>
+</html>

@@ -362,6 +362,8 @@ const CuboMX = (() => {
                     const propToSet =
                         directiveProp === "text"
                             ? "textContent"
+                            : directiveProp === "html"
+                            ? "innerHTML"
                             : directiveProp;
                     if (el[propToSet] !== value) {
                         el[propToSet] =
