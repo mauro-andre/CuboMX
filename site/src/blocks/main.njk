@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>CuboMX</title>
+        <script type="module" src="@/js/main.js"></script>
+        <link rel="stylesheet" href="@/scss/main.scss">
+    </head>
+    <body class="body">
+        <section class="header">
+            <div class="content header-content">
+                <span class="logo">Cubo<span>MX</span></span>
+                <div class="header-icons">
+                    <div class="svg-action-icon">
+                        {% include "svg/magnifier-outline.svg" %}
+                    </div>
+                    <div class="svg-action-icon" mx-on:click="$themeHandler.changeTheme($el)">
+                        {% include "svg/moon-outline.svg" %}
+                    </div>
+                    <a class="svg-action-icon" href="https://github.com/mauro-andre/CuboMX" target="_blank">
+                        {% include "svg/github-bold.svg" %}
+                    </a>
+                </div>
+            </div>
+        </section>
+        <section class="body-container">
+            <div class="content">
+                <section class="sidebar-section">
+                    {% include "partials/sidebar.njk" %}
+                </section>
+                <section class="main-content-section">
+                    {% block main %}{% endblock %}
+                </section>
+            </div>
+        </section>
+    </body>
+</html>

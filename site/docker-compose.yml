@@ -1,0 +1,18 @@
+services:
+  minio-cubomx:
+      image: minio/minio
+      container_name: minio-cubomx
+      ports:
+        - "9000:9000"
+        - "9001:9001"
+      environment:
+        MINIO_ACCESS_KEY: minioadmin
+        MINIO_SECRET_KEY: minioadmin
+      command: server /data --console-address ":9001"
+      networks:
+        - dev-network
+
+networks:
+  dev-network:
+    name: dev-network
+    driver: bridge

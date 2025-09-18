@@ -1,0 +1,27 @@
+{
+    "name": "cubomx-site",
+    "version": "1.0.0",
+    "description": "",
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "preview": "vite preview --host",
+        "watch": "vite build --watch",
+        "serve": "live-server dist",
+        "dev": "concurrently \"npm:watch\" \"npm:serve\""
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "concurrently": "^9.2.1",
+        "fs-extra": "^11.3.2",
+        "glob": "^11.0.3",
+        "live-server": "^1.2.2",
+        "nunjucks": "^3.2.4",
+        "sass-embedded": "^1.92.1",
+        "vite": "^7.1.5"
+    },
+    "dependencies": {
+        "cubomx": "^1.2.3"
+    }
+}

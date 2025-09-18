@@ -1,0 +1,48 @@
+@use "sass:list";
+@use "sass:map";
+
+// (dark, light)
+$vars: (
+    primary-color: (
+        #00a99d,
+        #00a99d,
+    ),
+    text-color: (
+        #ffffff,
+        #0f172b,
+    ),
+    text-soft-color: (
+        #90a1b9,
+        #62748e,
+    ),
+    body-bg-color: (
+        // #020618,
+        #080d19,
+        #ffffff,
+    ),
+    hover-bg-color: (
+        // #020618,
+        #0f182e,
+        #d9d9d9,
+    ),
+    header-bg-color: (
+        #040812,
+        #ffffff,
+    ),
+    header-border-color: (
+        #1d293d,
+        #e2e8f0,
+    ),
+);
+
+:root {
+    @each $name, $vals in $vars {
+        --#{$name}: #{list.nth($vals, 1)};
+    }
+}
+
+.light:root {
+    @each $name, $vals in $vars {
+        --#{$name}: #{list.nth($vals, 2)};
+    }
+}
