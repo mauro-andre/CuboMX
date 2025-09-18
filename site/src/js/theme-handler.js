@@ -7,13 +7,13 @@ const themeHandler = {
     content: null,
 
     init() {
-        this.sunIcon = CuboMX.renderTemplate("sunOutlineIcon");
-        this.moonIcon = CuboMX.renderTemplate("moonOutlineIcon");
         this.theme = localStorage.getItem("theme");
         if (!this.theme) {
             this.theme = "dark";
             localStorage.setItem("theme", this.theme);
         }
+        this.sunIcon = CuboMX.renderTemplate("sunOutlineIcon");
+        this.moonIcon = CuboMX.renderTemplate("moonOutlineIcon");
         this._setTheme();
     },
 
@@ -37,7 +37,7 @@ const themeHandler = {
     },
 
     _setIcon() {
-        this.content.html = this.theme == "dark" ? this.moonIcon : this.sunIcon;
+        this.content = this.theme == "dark" ? this.moonIcon : this.sunIcon;
     },
 };
 

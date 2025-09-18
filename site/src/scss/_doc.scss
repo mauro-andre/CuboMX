@@ -20,6 +20,7 @@
     width: 95%;
     max-width: 88rem;
     display: flex;
+    gap: 1rem;
     // background-color: aquamarine;
 }
 
@@ -51,5 +52,74 @@
     cursor: pointer;
     &:hover {
         background-color: var(--hover-bg-color);
+    }
+}
+
+.sidebar-section {
+    width: 20%;
+    min-width: 12rem;
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    &-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        color: var(--text-soft-color);
+        font-size: 0.875rem;
+        &:hover {
+            background-color: var(--hover-bg-color);
+            color: var(--text-color);
+        }
+        &.active {
+            color: var(--primary-color);
+        }
+    }
+    &-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.15rem;
+    }
+}
+
+.main-content-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    h1 {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    & strong {
+        font-weight: 800;
+    }
+    .text-bloc {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        & p {
+            line-height: 1.5;
+        }
+    }
+    .list-bloc {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        list-style-type: disc;
+        margin-left: 1rem;
+        & li::marker {
+            color: var(--text-soft-color);
+        }
     }
 }

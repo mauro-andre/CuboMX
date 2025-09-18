@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>CuboMX</title>
+        <title>{{title}}</title>
         <script type="module" src="@/js/main.js"></script>
         <link rel="stylesheet" href="@/scss/main.scss">
     </head>
@@ -11,10 +11,8 @@
         {% include "partials/header.njk" %}
         <section class="body-container">
             <div class="content">
-                <section class="sidebar-section">
-                    {% include "partials/sidebar.njk" %}
-                </section>
-                <section class="main-content-section">
+                {% include "partials/sidebar.njk" %}
+                <section id="main-content" class="main-content-section" mx-attrs:title="$nav.currentPage" title="{{title}}">
                     {% block main %}{% endblock %}
                 </section>
             </div>
