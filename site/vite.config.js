@@ -12,10 +12,10 @@ const nunjucksBuildConfig = {
     templatesDir: resolve(__dirname, "src"),
     outputDir: resolve(__dirname, "public"),
     entryPoints: [
-        { template: "pages/index.njk", output: "index.html" },
-        { template: "pages/docs/index.njk", output: "docs/index.html" },
+        { template: "pages/home.njk", output: "index.html" },
+        { template: "pages/docs.njk", output: "docs/index.html" },
         {
-            template: "pages/docs/get-started/index.njk",
+            template: "pages/get-started.njk",
             output: "docs/get-started/index.html",
         },
     ],
