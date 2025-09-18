@@ -114,4 +114,23 @@ describe("CuboMX - Granular Directives", () => {
         // Also assert the final state is correct
         expect(CuboMX.company.companyId).toBe('a1b1');
     });
+
+    it('should bind a single `html` property with mx-attrs:html', () => {
+        CuboMX.component('user', { content: '<span>Initial</span>' });
+        document.body.innerHTML = `
+            <div mx-data="user">
+                <div id="el" mx-attrs:html="$user.content">This should be replaced</div>
+            </div>
+        `;
+        const div = document.getElementById('el');
+
+        CuboMX.start();
+
+        // 1. Reactivity (State -> DOM)
+        expect(div.innerHTML).toBe('<span>Initial</span>');
+
+        // 2. Further reactivity
+        CuboMX.user.content = '<strong>Changed</strong>';
+        expect(div.innerHTML).toBe('<strong>Changed</strong>');
+    });
 });

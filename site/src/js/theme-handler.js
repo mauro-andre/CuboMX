@@ -2,8 +2,13 @@ import { CuboMX } from "cubomx";
 
 const themeHandler = {
     theme: null,
+    sunIcon: null,
+    moonIcon: null,
+    content: null,
 
     init() {
+        this.sunIcon = CuboMX.renderTemplate("sunOutlineIcon");
+        this.moonIcon = CuboMX.renderTemplate("moonOutlineIcon");
         this.theme = localStorage.getItem("theme");
         if (!this.theme) {
             this.theme = "dark";
@@ -14,13 +19,13 @@ const themeHandler = {
 
     changeTheme(el) {
         const theme = this.theme == "dark" ? "light" : "dark";
-        console.log(theme);
         CuboMX.actions([
             { action: "removeClass", selector: "html", class: this.theme },
             { action: "addClass", selector: "html", class: theme },
         ]);
         this.theme = theme;
         localStorage.setItem("theme", this.theme);
+        this._setIcon();
     },
 
     _setTheme() {
@@ -28,17 +33,12 @@ const themeHandler = {
         CuboMX.actions([
             { action: "addClass", selector: "html", class: this.theme },
         ]);
+        this._setIcon();
     },
 
-    // _getSystemTheme() {
-    //     return window.matchMedia("(prefers-color-scheme: dark)").matches
-    //         ? "dark"
-    //         : "light";
-    // },
-
-    // _loadThemeFromLocalStorage() {
-    //     const theme = localStorage.getItem("theme");
-    // },
+    _setIcon() {
+        this.content.html = this.theme == "dark" ? this.moonIcon : this.sunIcon;
+    },
 };
 
 export { themeHandler };

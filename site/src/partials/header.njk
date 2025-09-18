@@ -1,0 +1,23 @@
+<section class="header">
+    <div class="content header-content">
+        <span class="logo">Cubo<span>MX</span></span>
+        <div class="header-icons">
+            <div class="svg-action-icon">
+                {% include "svg/magnifier-outline.svg" %}
+            </div>
+            <div id="theme-icon" class="svg-action-icon" mx-attrs="$themeHandler.content" mx-on:click="$themeHandler.changeTheme($el)">
+                {% include "svg/moon-outline.svg" %}
+            </div>
+            <a class="svg-action-icon" href="https://github.com/mauro-andre/CuboMX" target="_blank">
+                {% include "svg/github-bold.svg" %}
+            </a>
+        </div>
+    </div>
+</section>
+
+<template mx-template="moonOutlineIcon">
+    {% include "svg/moon-outline.svg" %}
+</template>
+<template mx-template="sunOutlineIcon">
+    {% include "svg/sun-outline.svg" %}
+</template>
