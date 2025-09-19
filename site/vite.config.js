@@ -14,7 +14,7 @@ const pages = [
         title: "Home",
     },
     {
-        template: "pages/docs.njk",
+        template: "pages/introduction.njk",
         path: "/docs",
         title: "Introduction",
         onSidebar: true,

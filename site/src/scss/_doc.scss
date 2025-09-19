@@ -58,6 +58,7 @@
 .sidebar-section {
     width: 20%;
     min-width: 12rem;
+    flex-shrink: 0;
 }
 
 .nav {
@@ -104,15 +105,15 @@
     & strong {
         font-weight: 800;
     }
-    .text-bloc {
+    .text-block {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
         & p {
-            line-height: 1.5;
+            line-height: 1.75;
         }
     }
-    .list-bloc {
+    .list-block {
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
@@ -121,5 +122,31 @@
         & li::marker {
             color: var(--text-soft-color);
         }
+    }
+}
+
+.js-icon {
+    color: #efd81d;
+}
+
+.code-block {
+    background-color: var(--code-block-bg-color);
+    border-radius: 1rem;
+    border: 1px solid var(--code-block-border-color);
+    & header {
+        border-bottom: 1px solid var(--code-block-border-color);
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+    }
+    &-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.25rem;
+    }
+    & code {
+        font-family: "Roboto Mono", monospace;
+        font-size: 0.875rem;
     }
 }
