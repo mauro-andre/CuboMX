@@ -217,40 +217,42 @@ Inside an `mx-on` expression, you have access to special variables that provide 
 
 -   `$event`: The raw browser `Event` object. Useful for accessing event-specific properties, like `event.key` on a `keydown` event.
 -   `$el`: A reference to the DOM element the listener is attached to.
--   `$item`: If the element is also hydrated by `mx-bind` or `mx-item`, `$item` gives you direct access to that reactive object. This is incredibly powerful for lists.
+-   `$item`: When an event is triggered on an element *inside* an `mx-item` scope, this variable provides direct access to the complete, composite object for that item. This makes handling events in lists incredibly simple. If used outside an `mx-item` scope, `$item` will be `undefined`.
 
 **Example using `$item`:**
 
-Let's imagine a playlist where clicking an item selects it.
+Let's use our shopping cart example. We can add a button to log the specific item's data to the console.
 
+**HTML:**
 ```html
-<div mx-data="playlist">
-    <p>Selected: {{ selectedSong ? selectedSong.text : 'None' }}</p>
-    <ul>
-        <!-- On click, we pass the reactive `song` object to the method -->
-        <li mx-item="songs" song-id="s1" mx-on:click="selectSong($item)">
-            Bohemian Rhapsody
-        </li>
-        <li mx-item="songs" song-id="s2" mx-on:click="selectSong($item)">
-            Stairway to Heaven
-        </li>
-    </ul>
+<div mx-data="cart">
+    <table>
+        <tbody>
+            <tr mx-item="items" ::data-sku="sku" data-sku="MOUSE-G403">
+                <td ::text="description">A very cool gaming mouse</td>
+                <td>
+                    <!-- This button is inside the mx-item scope -->
+                    <button mx-on:click="logItem($item)">Log Item Data</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </div>
 ```
 
+**JavaScript:**
 ```javascript
-// JS
-CuboMX.component('playlist', {
-    songs: [],
-    selectedSong: null,
-    selectSong(song) {
-        // `song` is the reactive object for the clicked <li>
-        this.selectedSong = song;
-        console.log(`Selected: ${song.text.trim()}`);
+CuboMX.component("cart", {
+    items: [],
+    logItem(item) {
+        // `item` is the full composite object for the row that was clicked.
+        // It will be: { sku: "MOUSE-G403", description: "A very cool gaming mouse" }
+        console.log(item);
     }
 });
+CuboMX.start();
 ```
-In this case, `$item` refers to the specific, reactive song object associated with the clicked `<li>`, making it trivial to manage selections.
+In this case, clicking the button gives you the fully assembled, reactive object for that specific row, making it easy to perform actions like "delete item," "edit item," or "view details."
 
 ### `mx-link`
 

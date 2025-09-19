@@ -113,4 +113,40 @@ describe("CuboMX - Composite Item Hydration (`mx-item` v2)", () => {
         expect(spec.stock).toBe(500);
         expect(spec.available).toBe(true);
     });
+
+    it("should expose the composite item object as $item in mx-on events", () => {
+        const itemSpy = vi.fn();
+        CuboMX.component("cart", { 
+            items: [],
+            selectItem(item) {
+                itemSpy(item);
+            }
+        });
+
+        document.body.innerHTML = `
+            <div mx-data="cart">
+                <table>
+                    <tr mx-item="items" ::data-id="id" data-id="prod-xyz">
+                        <td ::text="name">Coolest Gadget</td>
+                        <td>
+                            <button mx-on:click="selectItem($item)">Select</button>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        document.querySelector('button').click();
+
+        expect(itemSpy).toHaveBeenCalledTimes(1);
+
+        // Assert it was called with the complete, populated object
+        const expectedItem = {
+            id: "prod-xyz",
+            name: "Coolest Gadget"
+        };
+        expect(itemSpy).toHaveBeenCalledWith(expect.objectContaining(expectedItem));
+    });
 });

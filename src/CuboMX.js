@@ -103,7 +103,9 @@ const CuboMX = (() => {
 
     const evaluateEventExpression = (expression, el, event) => {
         const localScope = findComponentProxyFor(el) || {};
-        const itemData = el.__cubo_item_data__;
+        
+        const parentItemEl = el.closest("[mx-item]");
+        const itemData = parentItemEl ? parentItemEl.__cubo_item_object__ : undefined;
 
         if (expression.startsWith("$")) {
             const globalExpression = expression.substring(1);
