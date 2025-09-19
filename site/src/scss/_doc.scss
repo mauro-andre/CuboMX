@@ -200,4 +200,39 @@
             flex: 1;
         }
     }
+    &-product-img {
+        background-color: var(--example-block-bg-color);
+        border-radius: 1rem;
+        padding: 0.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 5rem;
+        height: 5rem;
+        & > img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    }
+    &-quantity {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        & button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            background-color: var(--code-block-bg-color);
+            cursor: pointer;
+            &:hover {
+                background-color: var(--hover-bg-color);
+            }
+        }
+    }
 }

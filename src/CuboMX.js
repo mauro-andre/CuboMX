@@ -400,40 +400,43 @@ const CuboMX = (() => {
         },
         "mx-item": (el, expression) => {
             const { context, key } = getContextForExpression(expression, el);
-            if (context[key] === undefined || context[key] === null)
+            if (context[key] === undefined || context[key] === null) {
                 context[key] = [];
-            if (!Array.isArray(context[key]))
+            }
+            if (!Array.isArray(context[key])) {
                 return console.error(
                     `[CuboMX] mx-item target '${expression}' is not an array.`
                 );
-
-            const basePath = expression.startsWith("$")
-                ? expression.substring(1)
-                : `${findComponentProxyFor(el)?.name || ""}.${expression}`;
-            const fullPath = `${basePath}[${context[key].length}]`;
-            const itemObject = hydrateElementToObject(el, fullPath);
-            el.__cubo_item_data__ = itemObject;
+            }
+            const itemObject = {};
             context[key].push(itemObject);
+            el.__cubo_item_object__ = itemObject; // Attach the object reference to the element
         },
         "mx-item:": (el, attr) => {
+            const parentItemEl = el.closest("[mx-item]");
+            if (!parentItemEl || !parentItemEl.__cubo_item_object__) return;
+
+            const itemObject = parentItemEl.__cubo_item_object__;
             const propToBind = attr.name.substring(8);
-            const expression = attr.value;
-            if (!["value", "text", "html"].includes(propToBind)) return;
-
-            let valueToPush;
-            if (propToBind === "text") valueToPush = el.textContent;
-            else if (propToBind === "html") valueToPush = el.innerHTML;
-            else if (propToBind === "value")
-                valueToPush = el.hasAttribute("value")
-                    ? el.getAttribute("value")
-                    : el.textContent;
-
-            const { context, key } = getContextForExpression(expression, el);
-            if (context[key] === null || context[key] === undefined)
-                context[key] = [];
-            if (!Array.isArray(context[key])) return;
-            context[key].push(parseValue(valueToPush, el));
+            const propertyName = attr.value;
+            populateItemObject(el, itemObject, propToBind, propertyName);
         },
+    };
+
+    const populateItemObject = (el, itemObject, propToBind, propertyName) => {
+        let valueToPush;
+        if (propToBind === "text") {
+            valueToPush = el.textContent;
+        } else if (propToBind === "html") {
+            valueToPush = el.innerHTML;
+        } else if (propToBind === "value") {
+            valueToPush = el.hasAttribute("value")
+                ? el.getAttribute("value")
+                : el.textContent;
+        } else {
+            valueToPush = el.getAttribute(propToBind);
+        }
+        itemObject[propertyName] = parseValue(valueToPush, el);
     };
 
     const bindDirectives = (rootElement) => {
@@ -455,8 +458,11 @@ const CuboMX = (() => {
                     directiveHandlers["mx-item:"](el, attr);
                 else if (attr.name.startsWith("mx-on:"))
                     directiveHandlers["mx-on:"](el, attr);
-                else if (attr.name.startsWith(":"))
+                else if (attr.name.startsWith("::")) { // Check for :: first
+                    directiveHandlers["mx-item:"](el, { name: `mx-item:${attr.name.substring(2)}`, value: attr.value });
+                } else if (attr.name.startsWith(":")) { // Check for : second
                     directiveHandlers["mx-bind:"](el, { name: `mx-bind:${attr.name.substring(1)}`, value: attr.value });
+                }
             }
         }
     };

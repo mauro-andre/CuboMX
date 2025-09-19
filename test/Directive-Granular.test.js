@@ -73,22 +73,7 @@ describe("CuboMX - Granular Directives", () => {
         expect(span.textContent).toBe("Changed");
     });
 
-    it("should create an array of primitives with mx-item:value", () => {
-        CuboMX.component("myComp", { values: [] });
-        document.body.innerHTML = `
-            <div mx-data="myComp">
-                <div>
-                    <div mx-item:value="$myComp.values" value="A"></div>
-                    <div mx-item:value="$myComp.values" value="B"></div>
-                    <span mx-item:value="$myComp.values">C</span>
-                </div>
-            </div>
-        `;
-
-        CuboMX.start();
-
-        expect(CuboMX.myComp.values).toEqual(["A", "B", "C"]);
-    });
+    
 
     it("should hydrate a generic attribute before init() is called", () => {
         let hydratedId = null;

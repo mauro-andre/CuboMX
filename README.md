@@ -316,28 +316,88 @@ console.log(CuboMX.userProfile.user);
 // }
 ```
 
-### `mx-item`
+### Composite Hydration: Building Objects from Multiple Elements
 
-Works similarly to `mx-bind`, but instead of creating an object, it creates an object and pushes it into an **array**. It's perfect for lists.
+While `mx-bind` is perfect for hydrating a single element into an object, real-world HTML is often more complex. The data for a single conceptual "item" (like a product in a cart) can be spread across multiple elements in a list.
 
+CuboMX solves this with a powerful composite hydration system using `mx-item` and its property-collecting counterpart, `mx-item:prop`.
+
+#### How It Works: `mx-item` and `mx-item:prop`
+
+The directives work together with distinct roles:
+
+1.  **`mx-item="targetArray"` (The Scope Definer):**
+    -   When placed on an element (e.g., a `<tr>`), `mx-item` defines the scope for a single item in a list.
+    -   It creates an empty JavaScript object `{}` and pushes it into the specified `targetArray`.
+    -   This element acts as the parent container for the properties of that new object.
+
+2.  **`mx-item:SOURCE="propertyName"` (The Property Collector):**
+    -   When placed on any element *inside* an `mx-item` scope, `mx-item:prop` collects a piece of data and adds it as a property to the item's object.
+    -   It automatically finds its parent `mx-item` scope to know which object to populate.
+    -   `SOURCE`: Can be `text`, `html`, `value`, or any attribute on the element (e.g., `data-id`).
+    -   `propertyName`: The key to be created on the item's object.
+
+#### Shorthand with `::`
+
+CuboMX provides a convenient shorthand for `mx-item:prop`:
+
+-   `::SOURCE="propertyName"` is the exact equivalent of `mx-item:SOURCE="propertyName"`.
+
+This creates a clear visual distinction:
+-   `:` is for binding attributes (`mx-bind:`).
+-   `::` is for populating item properties (`mx-item:`).
+
+#### Example: The Shopping Cart
+
+Let's see how to hydrate a shopping cart where each product's data is spread across several `<td>` elements.
+
+**HTML:**
 ```html
-<div mx-data="playlist">
-    <ul>
-        <li mx-item="songs" song-id="s1">Bohemian Rhapsody</li>
-        <li mx-item="songs" song-id="s2">Stairway to Heaven</li>
-    </ul>
+<div mx-data="cart">
+    <table>
+        <tbody>
+            <!-- 1. `mx-item` on `<tr>` creates an empty object in the `items` array. -->
+            <tr mx-item="items" ::data-sku="sku" data-sku="MOUSE-G403">
+                
+                <!-- 2. `::` directives find the parent `mx-item` and populate its object. -->
+                <td ::text="description">A very cool gaming mouse</td>
+                <td>
+                    <div class="quantity-selector">
+                        <button>-</button>
+                        <span ::text="quantity">2</span>
+                        <button>+</button>
+                    </div>
+                </td>
+                <td ::text="price">$119.00</td>
+
+            </tr>
+        </tbody>
+    </table>
 </div>
 ```
 
+**JavaScript:**
 ```javascript
-// JS
-CuboMX.component("playlist", {
-    songs: [], // The `songs` property is an empty array
+CuboMX.component("cart", {
+    items: [] // The array to be populated
 });
 CuboMX.start();
 ```
 
-After initialization, `CuboMX.playlist.songs` will be an array of two reactive objects.
+**Resulting State:**
+
+After hydration, `CuboMX.cart.items` will be:
+```javascript
+[
+    {
+        sku: "MOUSE-G403",
+        description: "A very cool gaming mouse",
+        quantity: 2,
+        price: "$119.00"
+    }
+]
+```
+This powerful pattern allows you to keep your HTML semantic and structured logically, while still achieving full, reactive hydration of complex objects and arrays.
 
 ### Hydration Rules
 
@@ -361,25 +421,6 @@ Sometimes, you don't need a whole object.
 > **Shorthand and Ambiguity Warning**
 >
 > The `:` shorthand is an alias **exclusively** for `mx-bind:`. Its purpose is to bind HTML attributes. **Do not** use it as a shorthand for `mx-item:prop`, as this will lead to unexpected behavior.
->
-> ```html
-> <!-- DO: To populate an array of strings, use the full directive -->
-> <li mx-item:text="tags">Featured</li>
->
-> <!-- DON'T: This will NOT populate the array. It will try to bind the "text" attribute. -->
-> <li :text="tags">Featured</li>
-> ```
-
--   **`mx-item:prop="array"`:** Creates an array of primitive values (text, attribute value) instead of an array of objects.
-    ```html
-    <div mx-data="product">
-        <ul>
-            <li mx-item:text="tags">New</li>
-            <li mx-item:text="tags">Featured</li>
-        </ul>
-    </div>
-    ```
-    This results in `CuboMX.product.tags` being `['New', 'Featured']`.
 
 ### Two-Way Data Binding
 
