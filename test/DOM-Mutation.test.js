@@ -95,7 +95,7 @@ describe("CuboMX Refactor - DOM Mutation Lifecycle", () => {
 
         // 5. Assert that the change was reflected in the DOM.
         expect(attrs.text).toBe("Clicked");
-        expect(span.innerText).toBe("Clicked");
+        expect(span.textContent).toBe("Clicked");
     });
 
     it("should re-evaluate directives when child content is replaced", async () => {

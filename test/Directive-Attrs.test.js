@@ -45,7 +45,7 @@ describe("CuboMX - mx-bind Directive", () => {
 
         // Text
         attrs.text = "Novo texto";
-        expect(el.innerText).toBe("Novo texto");
+        expect(el.textContent).toBe("Novo texto");
 
         // HTML
         attrs.html = "<strong>Negrito</strong>";
@@ -91,7 +91,7 @@ describe("CuboMX - mx-bind Directive", () => {
 
         // 2. Reactivity Assertion
         CuboMX.myComp.myAttrs.text = "Texto Alterado";
-        expect(el.innerText).toBe("Texto Alterado");
+        expect(el.textContent).toBe("Texto Alterado");
     });
 
     it("should provide two-way binding for input value, like mx-model", () => {

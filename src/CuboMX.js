@@ -18,14 +18,15 @@ const CuboMX = (() => {
         str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
 
     const parseValue = (value, el) => {
-        const lowerValue = value.toLowerCase();
+        if (value === null || value === undefined) return value;
+        const lowerValue = String(value).toLowerCase();
         if (lowerValue === "true") return true;
         if (lowerValue === "false") return false;
         if (lowerValue === "null" || lowerValue === "none") return null;
         if (value === "undefined") return undefined;
 
         const num = Number(value);
-        if (!isNaN(num) && value.trim() !== "") return num;
+        if (!isNaN(num) && String(value).trim() !== "") return num;
 
         if (
             (value.startsWith("{") && value.endsWith("}")) ||
@@ -103,9 +104,11 @@ const CuboMX = (() => {
 
     const evaluateEventExpression = (expression, el, event) => {
         const localScope = findComponentProxyFor(el) || {};
-        
+
         const parentItemEl = el.closest("[mx-item]");
-        const itemData = parentItemEl ? parentItemEl.__cubo_item_object__ : undefined;
+        const itemData = parentItemEl
+            ? parentItemEl.__cubo_item_object__
+            : undefined;
 
         if (expression.startsWith("$")) {
             const globalExpression = expression.substring(1);
@@ -222,8 +225,7 @@ const CuboMX = (() => {
         return data;
     };
 
-    const hydrateElementToObject = (el, basePath) => {
-        const hydratedAttrs = extractDataFromElement(el);
+    const createClassProxy = (el) => {
         const classArray = Array.from(el.classList);
         const MUTATION_METHODS = [
             "push",
@@ -251,70 +253,105 @@ const CuboMX = (() => {
                 return typeof value === "function" ? value.bind(target) : value;
             },
         });
-        hydratedAttrs.class = classProxy;
 
-        hydratedAttrs.addClass = (className) => {
-            if (!classProxy.includes(className)) classProxy.push(className);
-        };
-        hydratedAttrs.removeClass = (className) => {
-            const index = classProxy.indexOf(className);
-            if (index > -1) classProxy.splice(index, 1);
-        };
-        hydratedAttrs.toggleClass = (className) => {
-            const index = classProxy.indexOf(className);
-            if (index > -1) classProxy.splice(index, 1);
-            else classProxy.push(className);
+        const helpers = {
+            class: classProxy,
+            addClass: (className) => {
+                if (!classProxy.includes(className)) classProxy.push(className);
+            },
+            removeClass: (className) => {
+                const index = classProxy.indexOf(className);
+                if (index > -1) classProxy.splice(index, 1);
+            },
+            toggleClass: (className) => {
+                const index = classProxy.indexOf(className);
+                if (index > -1) classProxy.splice(index, 1);
+                else classProxy.push(className);
+            },
         };
 
-        const attrsProxy = new Proxy(hydratedAttrs, {
+        return helpers;
+    };
+
+    const getDOMValue = (el, propName) => {
+        if (propName === "checked") return el.checked;
+        if (propName === "value") return el.value;
+        if (propName === "text") return el.textContent;
+        if (propName === "html") return el.innerHTML;
+
+        const attrValue = el.getAttribute(propName);
+        if (attrValue === "" && el.hasAttribute(propName)) return true;
+
+        return parseValue(attrValue, el);
+    };
+
+    const setDOMValue = (el, propName, value) => {
+        if (propName === "text") el.textContent = value;
+        else if (propName === "html") el.innerHTML = value;
+        else if (propName === "checked") el.checked = !!value;
+        else if (propName === "value") el.value = value;
+        else if (propName === "class" && Array.isArray(value))
+            el.className = value.join(" ");
+        else if (typeof value === "boolean") {
+            if (value) el.setAttribute(propName, "");
+            else el.removeAttribute(propName);
+        } else {
+            el.setAttribute(propName, value);
+        }
+    };
+
+    const enhanceObjectWithElementProxy = (obj, el, basePath) => {
+        const classHelpers = createClassProxy(el);
+        Object.assign(obj, classHelpers);
+
+        return new Proxy(obj, {
             get(target, prop) {
-                if (prop === "$watch")
+                if (prop === "$watch") {
                     return (propToWatch, callback) =>
                         watch(`${basePath}.${propToWatch}`, callback);
-                return Reflect.get(target, prop);
+                }
+                if (prop in target) return Reflect.get(target, prop);
+
+                return getDOMValue(el, camelToKebab(prop));
             },
             set(target, prop, value) {
-                const oldValue = target[prop];
+                const oldValue = getDOMValue(el, camelToKebab(prop));
                 const success = Reflect.set(target, prop, value);
 
-                if (success && oldValue !== value) {
+                if (oldValue !== value) {
                     const propertyPath = `${basePath}.${prop}`;
-                    if (watchers[propertyPath])
+                    if (watchers[propertyPath]) {
                         watchers[propertyPath].forEach((cb) =>
                             cb(value, oldValue)
                         );
+                    }
                     bindings.forEach((b) => b.evaluate());
                 }
 
-                if (prop === "text") el.innerText = value;
-                else if (prop === "html") el.innerHTML = value;
-                else if (prop === "class" && Array.isArray(value))
-                    el.className = value.join(" ");
-                else if (typeof value === "boolean") {
-                    if (value) el.setAttribute(camelToKebab(prop), "");
-                    else el.removeAttribute(camelToKebab(prop));
-                } else el.setAttribute(camelToKebab(prop), value);
-
-                if (prop in el) el[prop] = value;
+                setDOMValue(el, camelToKebab(prop), value);
                 return success;
             },
         });
+    };
 
-        return attrsProxy;
+    const hydrateElementToObject = (el, basePath) => {
+        const hydratedAttrs = extractDataFromElement(el);
+        return enhanceObjectWithElementProxy(hydratedAttrs, el, basePath);
     };
 
     const directiveHandlers = {
         "mx-link": (el) => {
-            if (el.tagName !== 'A' || !el.getAttribute('href')) {
+            if (el.tagName !== "A" || !el.getAttribute("href")) {
                 return;
             }
-            el.addEventListener('click', (event) => {
+            el.addEventListener("click", (event) => {
                 event.preventDefault();
-                const url = el.getAttribute('href');
-                a({ // `a` is the imported `request` function
+                const url = el.getAttribute("href");
+                a({
+                    // `a` is the imported `request` function
                     url: url,
                     pushUrl: true,
-                    history: true
+                    history: true,
                 });
             });
         },
@@ -347,29 +384,26 @@ const CuboMX = (() => {
             const expression = attr.value;
             const { context, key } = getContextForExpression(expression, el);
 
-            // Hydrate from DOM only if the state is uninitialized on initial load.
             if (
                 isInitialLoad &&
                 (context[key] === null || context[key] === undefined)
             ) {
-                context[key] = extractDataFromElement(el)[directiveProp];
+                context[key] = getDOMValue(el, camelToKebab(directiveProp));
             } else if (!isInitialLoad) {
-                context[key] = extractDataFromElement(el)[directiveProp];
+                context[key] = getDOMValue(el, camelToKebab(directiveProp));
             }
 
             const binding = {
                 el,
                 evaluate: () => {
                     const value = evaluate(expression, el);
-                    const propToSet =
-                        directiveProp === "text"
-                            ? "textContent"
-                            : directiveProp === "html"
-                            ? "innerHTML"
-                            : directiveProp;
-                    if (el[propToSet] !== value) {
-                        el[propToSet] =
-                            value ?? (directiveProp === "checked" ? false : "");
+                    const propToSet = camelToKebab(directiveProp);
+                    if (getDOMValue(el, propToSet) !== value) {
+                        setDOMValue(
+                            el,
+                            propToSet,
+                            value ?? (directiveProp === "checked" ? false : "")
+                        );
                     }
                 },
             };
@@ -378,7 +412,7 @@ const CuboMX = (() => {
 
             const eventName = directiveProp === "checked" ? "change" : "input";
             el.addEventListener(eventName, () => {
-                context[key] = el[directiveProp];
+                context[key] = getDOMValue(el, camelToKebab(directiveProp));
             });
         },
         "mx-bind": (el, expression) => {
@@ -410,9 +444,14 @@ const CuboMX = (() => {
                     `[CuboMX] mx-item target '${expression}' is not an array.`
                 );
             }
-            const itemObject = {};
+            const basePath = expression.startsWith("$")
+                ? expression.substring(1)
+                : `${findComponentProxyFor(el)?.name || ""}.${expression}`;
+            const fullPath = `${basePath}[${context[key].length}]`;
+
+            const itemObject = enhanceObjectWithElementProxy({}, el, fullPath);
             context[key].push(itemObject);
-            el.__cubo_item_object__ = itemObject; // Attach the object reference to the element
+            el.__cubo_item_object__ = itemObject;
         },
         "mx-item:": (el, attr) => {
             const parentItemEl = el.closest("[mx-item]");
@@ -426,19 +465,28 @@ const CuboMX = (() => {
     };
 
     const populateItemObject = (el, itemObject, propToBind, propertyName) => {
-        let valueToPush;
-        if (propToBind === "text") {
-            valueToPush = el.textContent;
-        } else if (propToBind === "html") {
-            valueToPush = el.innerHTML;
-        } else if (propToBind === "value") {
-            valueToPush = el.hasAttribute("value")
-                ? el.getAttribute("value")
-                : el.textContent;
-        } else {
-            valueToPush = el.getAttribute(propToBind);
+        if (propToBind === "class") {
+            itemObject[propertyName] = createClassProxy(el).class;
+            return;
         }
-        itemObject[propertyName] = parseValue(valueToPush, el);
+
+        Object.defineProperty(itemObject, propertyName, {
+            get() {
+                return getDOMValue(el, propToBind);
+            },
+            set(value) {
+                setDOMValue(el, propToBind, value);
+            },
+            enumerable: true,
+            configurable: true,
+        });
+
+        if (propToBind === "value" || propToBind === "checked") {
+            const eventName = propToBind === "checked" ? "change" : "input";
+            el.addEventListener(eventName, () => {
+                itemObject[propertyName] = getDOMValue(el, propToBind);
+            });
+        }
     };
 
     const bindDirectives = (rootElement) => {
@@ -450,8 +498,7 @@ const CuboMX = (() => {
                 directiveHandlers["mx-item"](el, el.getAttribute("mx-item"));
             if (el.hasAttribute("mx-show"))
                 directiveHandlers["mx-show"](el, el.getAttribute("mx-show"));
-            if (el.hasAttribute("mx-link"))
-                directiveHandlers["mx-link"](el);
+            if (el.hasAttribute("mx-link")) directiveHandlers["mx-link"](el);
 
             for (const attr of [...el.attributes]) {
                 if (attr.name.startsWith("mx-bind:"))
@@ -460,10 +507,18 @@ const CuboMX = (() => {
                     directiveHandlers["mx-item:"](el, attr);
                 else if (attr.name.startsWith("mx-on:"))
                     directiveHandlers["mx-on:"](el, attr);
-                else if (attr.name.startsWith("::")) { // Check for :: first
-                    directiveHandlers["mx-item:"](el, { name: `mx-item:${attr.name.substring(2)}`, value: attr.value });
-                } else if (attr.name.startsWith(":")) { // Check for : second
-                    directiveHandlers["mx-bind:"](el, { name: `mx-bind:${attr.name.substring(1)}`, value: attr.value });
+                else if (attr.name.startsWith("::")) {
+                    // Check for :: first
+                    directiveHandlers["mx-item:"](el, {
+                        name: `mx-item:${attr.name.substring(2)}`,
+                        value: attr.value,
+                    });
+                } else if (attr.name.startsWith(":")) {
+                    // Check for : second
+                    directiveHandlers["mx-bind:"](el, {
+                        name: `mx-bind:${attr.name.substring(1)}`,
+                        value: attr.value,
+                    });
                 }
             }
         }
