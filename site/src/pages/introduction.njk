@@ -12,6 +12,57 @@
     <div class="text-block">
         <p>Before diving deep, let's see a simple example. Imagine you want a basic counter. With CuboMX, your HTML is the star.</p>
     </div>
+    {# EXEMPLE BLOCK #}
+    <div class="example-block">
+        <header>
+            <div class="example-block-icon">
+                {% include "svg/window-action-bold.svg" %}
+            </div>
+        </header>
+        <div class="example-block-body" mx-data="cart">
+            <div class="example-cart-app">
+                <h1>Cart</h1>
+                <div>
+                    <table>
+                        <tr>
+                            <td>
+                                <img mx-attrs:src="mouseImgUrl" alt="mouse">
+                            </td>
+                            <td>Product description</td>
+                            <td>- 2 +</td>
+                            <td>$ 119.00</td>
+                            <td>$ 238.00</td>
+                        </tr>
+                        <tr>
+                            <td>photo</td>
+                            <td>Product description</td>
+                            <td>- 2 +</td>
+                            <td>$ 119.00</td>
+                            <td>$ 238.00</td>
+                        </tr>
+                    </table>
+                    <div>resumo</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {# EXEMPLE BLOCK #}
+    {# CODE BLOCK #}
+    <div class="code-block" mx-data="codeBlock()">
+        <header>
+            <div class="code-block-icon html-icon">
+                {% include "svg/html5-bold.svg" %}
+            </div>
+        </header>
+        <pre>
+    <code mx-attrs="attrs" lang="html">
+    <div>
+        <h1>Título</h1>
+    </div>
+    </code>
+    </pre>
+    </div>
+    {# CODE BLOCK #}
     {# CODE BLOCK #}
     <div class="code-block" mx-data="codeBlock()">
         <header>
@@ -20,7 +71,7 @@
             </div>
         </header>
         <pre>
-    <code mx-attrs:html="code">
+    <code mx-attrs="attrs" lang="javascript">
     import { CuboMX } from "cubomx";
     import { themeHandler } from "./theme-handler";
     import { nav } from "./nav";

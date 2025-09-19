@@ -128,25 +128,76 @@
 .js-icon {
     color: #efd81d;
 }
+.html-icon {
+    color: #dd4b25;
+}
+
+.block {
+    border-radius: 1rem;
+    & header {
+        display: flex;
+        display: flex;
+        align-items: center;
+        padding: 0 1rem;
+        height: 3.25rem;
+    }
+}
+
+.example-block {
+    @extend .block;
+    background-color: var(--example-block-bg-color);
+    border: 1px solid var(--example-block-border-color);
+    & header {
+        border-bottom: 1px solid var(--example-block-border-color);
+    }
+    &-icon {
+        width: 3rem;
+    }
+    &-body {
+        padding: 1.5rem
+    }
+}
 
 .code-block {
+    @extend .block;
     background-color: var(--code-block-bg-color);
-    border-radius: 1rem;
     border: 1px solid var(--code-block-border-color);
     & header {
         border-bottom: 1px solid var(--code-block-border-color);
-        display: flex;
-        align-items: center;
-        padding: 1rem;
     }
     &-icon {
         display: flex;
         align-items: center;
         justify-content: center;
         width: 1.25rem;
+        height: 1.25rem;
     }
-    & code {
-        font-family: "Roboto Mono", monospace;
+    & pre {
+        & * {
+            font-size: 0.875rem;
+            font-family: "Roboto Mono", monospace;
+        }
+    }
+}
+
+.example-cart-app {
+    background-color: var(--body-bg-color);
+    border-radius: 1rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: var(--example-card-shadow);
+    & * {
         font-size: 0.875rem;
+    }
+    & h1 {
+        font-size: 1.25rem;
+    }
+    & > div {
+        display: flex;
+        & table {
+            flex: 1;
+        }
     }
 }

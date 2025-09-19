@@ -48,12 +48,12 @@ describe("CuboMX - Universal Scoped Evaluation", () => {
         expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    // Test 4: Local state definition with mx-attrs
-    it("should hydrate an object to the local scope with mx-attrs", () => {
+    // Test 4: Local state definition with mx-bind
+    it("should hydrate an object to the local scope with mx-bind", () => {
         CuboMX.component("myComp", () => ({ localData: null }));
         document.body.innerHTML = `
             <div mx-data="myComp()" mx-ref="c1">
-                <div mx-attrs="localData" data-id="123"></div>
+                <div mx-bind="localData" data-id="123"></div>
             </div>
         `;
         CuboMX.start();
@@ -61,13 +61,13 @@ describe("CuboMX - Universal Scoped Evaluation", () => {
         expect(CuboMX.c1.localData.dataId).toBe(123);
     });
 
-    // Test 5: Global state definition with mx-attrs and `$`
-    it("should hydrate an object to the global scope with mx-attrs and $", () => {
+    // Test 5: Global state definition with mx-bind and `$`
+    it("should hydrate an object to the global scope with mx-bind and $", () => {
         CuboMX.store("myStore", { globalData: null });
         CuboMX.component("myComp", () => ({}));
         document.body.innerHTML = `
             <div mx-data="myComp()" mx-ref="c1">
-                <div mx-attrs="$myStore.globalData" data-id="456"></div>
+                <div mx-bind="$myStore.globalData" data-id="456"></div>
             </div>
         `;
         CuboMX.start();
