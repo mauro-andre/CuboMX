@@ -1,0 +1,9 @@
+<svg width="200" height="200" viewBox="0 0 6 6" fill="none" version="1.1" id="svg1" sodipodi:docname="info-bold.svg"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+
+   <path fill-rule="evenodd" clip-rule="evenodd"
+      d="M 6,3 C 6,4.65684 4.65684,6 3,6 1.343145,6 0,4.65684 0,3 0,1.343145 1.343145,0 3,0 4.65684,0 6,1.343145 6,3 Z M 3,4.725 C 3.12426,4.725 3.225,4.62426 3.225,4.5 V 2.7 C 3.225,2.57574 3.12426,2.475 3,2.475 2.87574,2.475 2.775,2.57574 2.775,2.7 V 4.5 C 2.775,4.62426 2.87574,4.725 3,4.725 Z M 3,1.5 C 3.16569,1.5 3.3,1.634316 3.3,1.8 3.3,1.965684 3.16569,2.1 3,2.1 2.83431,2.1 2.7,1.965684 2.7,1.8 2.7,1.634316 2.83431,1.5 3,1.5 Z"
+      fill="#1C274C" id="path1" />
+</svg>

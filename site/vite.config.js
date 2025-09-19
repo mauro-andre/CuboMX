@@ -1,72 +1,100 @@
-import { resolve, dirname } from "path";
+import { resolve, dirname, join } from "path";
 import { defineConfig } from "vite";
 import nunjucks from "nunjucks";
 import fs from "fs-extra";
-import { globSync } from "glob"; // <--- IMPORT ADDED
+import { globSync } from "glob";
 import { fileURLToPath } from "url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-// --- Custom Build Configuration ---
+const pages = [
+    {
+        template: "pages/home.njk",
+        path: "/",
+        title: "Home",
+    },
+    {
+        template: "pages/introduction.njk",
+        path: "/docs",
+        title: "Introduction",
+        onSidebar: true,
+        svgIcon: "svg/info-outline.svg",
+    },
+    {
+        template: "pages/installation.njk",
+        path: "/docs/installation",
+        title: "Installation",
+        onSidebar: true,
+        svgIcon: "svg/server-square-outline.svg",
+    },
+    {
+        template: "pages/components.njk",
+        path: "/docs/components",
+        title: "Components",
+        onSidebar: true,
+        svgIcon: "svg/widget-2-outline.svg",
+    },
+];
+
 const nunjucksBuildConfig = {
     templatesDir: resolve(__dirname, "src"),
     outputDir: resolve(__dirname, "public"),
-    entryPoints: [
-        { template: "pages/home.njk", output: "index.html" },
-        { template: "pages/docs.njk", output: "docs/index.html" },
-        {
-            template: "pages/get-started.njk",
-            output: "docs/get-started/index.html",
-        },
-    ],
+    entryPoints: pages,
 };
 
-// --- Custom Vite Plugin ---
 const nunjucksPreRender = (config) => {
-    const nunjucksEnv = nunjucks.configure(config.templatesDir);
+    const nunjucksEnv = nunjucks.configure(config.templatesDir, {
+        noCache: true,
+    });
 
     function renderAll() {
-        console.log("Pre-rendering Nunjucks templates...");
+        console.log("[nunjucks] Pre-rendering templates...");
         try {
             fs.emptyDirSync(config.outputDir);
             for (const entry of config.entryPoints) {
-                const templatePath = resolve(
-                    config.templatesDir,
-                    entry.template
-                );
-                const outputPath = resolve(config.outputDir, entry.output);
-                const html = nunjucksEnv.render(entry.template, {});
+                let output = entry.path.startsWith("/")
+                    ? entry.path.slice(1)
+                    : entry.path;
+                output = join(output, "index.html");
+                const outputPath = resolve(config.outputDir, output);
+                const html = nunjucksEnv.render(entry.template, {
+                    pages: pages,
+                    title: entry.title,
+                });
                 fs.ensureDirSync(dirname(outputPath));
                 fs.writeFileSync(outputPath, html);
             }
-            console.log("...pre-rendering complete.");
+            console.log("[nunjucks] Pre-rendering complete.");
         } catch (e) {
-            console.error("Error rendering Nunjucks templates:", e);
+            console.error("[nunjucks] Error rendering templates:", e);
         }
     }
+
     return {
         name: "nunjucks-pre-renderer",
         buildStart() {
+            // render inicial
             renderAll();
-            // garante que o rollup veja os njk no modo build --watch
+
+            // adiciona todos os .njk ao watcher do Rollup (importante pro --watch)
             const files = globSync(resolve(config.templatesDir, "**/*.njk"));
             for (const f of files) {
-                this.addWatchFile(f);
-            }
-        },
-        handleHotUpdate({ file, server }) {
-            if (file.endsWith(".njk")) {
-                console.log("Template change detected, re-rendering...");
-                renderAll();
-                if (server) {
-                    server.ws.send({ type: "full-reload", path: "*" });
+                try {
+                    this.addWatchFile(f);
+                } catch (err) {
+                    // em alguns ambientes addWatchFile pode falhar; só loga
+                    console.warn(
+                        "[nunjucks] addWatchFile falhou para:",
+                        f,
+                        err
+                    );
                 }
             }
+            console.log(`[nunjucks] watching ${files.length} template(s).`);
         },
     };
 };
 
-// --- Final Vite Config ---
 export default defineConfig({
     root: nunjucksBuildConfig.outputDir,
     plugins: [nunjucksPreRender(nunjucksBuildConfig)],
@@ -82,7 +110,6 @@ export default defineConfig({
             include: "src/**",
         },
         rollupOptions: {
-            // Use globSync to find all generated HTML files as input
             input: globSync(
                 resolve(nunjucksBuildConfig.outputDir, "**/*.html")
             ),

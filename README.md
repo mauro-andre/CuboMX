@@ -217,7 +217,7 @@ Inside an `mx-on` expression, you have access to special variables that provide 
 
 -   `$event`: The raw browser `Event` object. Useful for accessing event-specific properties, like `event.key` on a `keydown` event.
 -   `$el`: A reference to the DOM element the listener is attached to.
--   `$item`: If the element is also hydrated by `mx-attrs` or `mx-item`, `$item` gives you direct access to that reactive object. This is incredibly powerful for lists.
+-   `$item`: If the element is also hydrated by `mx-bind` or `mx-item`, `$item` gives you direct access to that reactive object. This is incredibly powerful for lists.
 
 **Example using `$item`:**
 
@@ -277,7 +277,7 @@ The server should respond with an `X-Swap-Strategies` header to instruct CuboMX 
 
 One of CuboMX's superpowers is hydration: the ability to read data directly from your server-rendered HTML and transform it into **reactive** JavaScript objects. This means that any change to these objects will update the DOM, and any change in the DOM (in forms) will update the objects.
 
-### `mx-attrs`
+### `mx-bind`
 
 Transforms an element and its attributes into a reactive **object**.
 
@@ -285,7 +285,7 @@ Imagine your backend rendered this HTML for a user profile:
 
 ```html
 <div mx-data="userProfile">
-    <div id="user-card" mx-attrs="user" user-id="99" is-active="true" guest>
+    <div id="user-card" mx-bind="user" user-id="99" is-active="true" guest>
         Welcome, John Doe!
     </div>
 </div>
@@ -318,7 +318,7 @@ console.log(CuboMX.userProfile.user);
 
 ### `mx-item`
 
-Works similarly to `mx-attrs`, but instead of creating an object, it creates an object and pushes it into an **array**. It's perfect for lists.
+Works similarly to `mx-bind`, but instead of creating an object, it creates an object and pushes it into an **array**. It's perfect for lists.
 
 ```html
 <div mx-data="playlist">
@@ -350,12 +350,26 @@ After initialization, `CuboMX.playlist.songs` will be an array of two reactive o
 
 Sometimes, you don't need a whole object.
 
--   **`mx-attrs:prop="property"`:** Binds just one attribute to a property. Great for simple two-way binding.
+-   **`mx-bind:prop="property"` (shorthand `:prop="property"`):** Binds just one attribute to a property. Great for simple two-way binding.
     ```html
     <div mx-data="loginForm">
-        <input type="text" mx-attrs:value="email" />
+        <!-- Both of these are equivalent -->
+        <input type="text" mx-bind:value="email" />
+        <input type="text" :value="email" />
     </div>
     ```
+> **Shorthand and Ambiguity Warning**
+>
+> The `:` shorthand is an alias **exclusively** for `mx-bind:`. Its purpose is to bind HTML attributes. **Do not** use it as a shorthand for `mx-item:prop`, as this will lead to unexpected behavior.
+>
+> ```html
+> <!-- DO: To populate an array of strings, use the full directive -->
+> <li mx-item:text="tags">Featured</li>
+>
+> <!-- DON'T: This will NOT populate the array. It will try to bind the "text" attribute. -->
+> <li :text="tags">Featured</li>
+> ```
+
 -   **`mx-item:prop="array"`:** Creates an array of primitive values (text, attribute value) instead of an array of objects.
     ```html
     <div mx-data="product">
@@ -369,11 +383,11 @@ Sometimes, you don't need a whole object.
 
 ### Two-Way Data Binding
 
-When `mx-attrs` is used on form elements (`<input>`, `<select>`, etc.), it automatically creates a two-way data binding. User input updates the state, and state changes update the field.
+When `mx-bind` is used on form elements (`<input>`, `<select>`, etc.), it automatically creates a two-way data binding. User input updates the state, and state changes update the field.
 
 ```html
 <div mx-data="form">
-    <input type="text" mx-attrs="textInput" value="Initial value" />
+    <input type="text" mx-bind="textInput" value="Initial value" />
 </div>
 ```
 

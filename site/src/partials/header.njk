@@ -5,7 +5,7 @@
             <div class="svg-action-icon">
                 {% include "svg/magnifier-outline.svg" %}
             </div>
-            <div id="theme-icon" class="svg-action-icon" mx-attrs="$themeHandler.content" mx-on:click="$themeHandler.changeTheme($el)">
+            <div id="theme-icon" class="svg-action-icon" mx-attrs:html="$themeHandler.content" mx-on:click="$themeHandler.changeTheme($el)">
                 {% include "svg/moon-outline.svg" %}
             </div>
             <a class="svg-action-icon" href="https://github.com/mauro-andre/CuboMX" target="_blank">

@@ -340,8 +340,8 @@ const CuboMX = (() => {
                 evaluateEventExpression(expression, el, event);
             });
         },
-        "mx-attrs:": (el, attr) => {
-            const directiveProp = kebabToCamel(attr.name.substring(9));
+        "mx-bind:": (el, attr) => {
+            const directiveProp = kebabToCamel(attr.name.substring(8));
             const expression = attr.value;
             const { context, key } = getContextForExpression(expression, el);
 
@@ -379,7 +379,7 @@ const CuboMX = (() => {
                 context[key] = el[directiveProp];
             });
         },
-        "mx-attrs": (el, expression) => {
+        "mx-bind": (el, expression) => {
             const { context, key } = getContextForExpression(expression, el);
             const basePath = expression.startsWith("$")
                 ? expression.substring(1)
@@ -439,8 +439,8 @@ const CuboMX = (() => {
     const bindDirectives = (rootElement) => {
         const elements = [rootElement, ...rootElement.querySelectorAll("*")];
         for (const el of elements) {
-            if (el.hasAttribute("mx-attrs"))
-                directiveHandlers["mx-attrs"](el, el.getAttribute("mx-attrs"));
+            if (el.hasAttribute("mx-bind"))
+                directiveHandlers["mx-bind"](el, el.getAttribute("mx-bind"));
             if (el.hasAttribute("mx-item"))
                 directiveHandlers["mx-item"](el, el.getAttribute("mx-item"));
             if (el.hasAttribute("mx-show"))
@@ -449,12 +449,14 @@ const CuboMX = (() => {
                 directiveHandlers["mx-link"](el);
 
             for (const attr of [...el.attributes]) {
-                if (attr.name.startsWith("mx-attrs:"))
-                    directiveHandlers["mx-attrs:"](el, attr);
+                if (attr.name.startsWith("mx-bind:"))
+                    directiveHandlers["mx-bind:"](el, attr);
                 else if (attr.name.startsWith("mx-item:"))
                     directiveHandlers["mx-item:"](el, attr);
                 else if (attr.name.startsWith("mx-on:"))
                     directiveHandlers["mx-on:"](el, attr);
+                else if (attr.name.startsWith(":"))
+                    directiveHandlers["mx-bind:"](el, { name: `mx-bind:${attr.name.substring(1)}`, value: attr.value });
             }
         }
     };

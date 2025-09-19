@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CuboMX } from "../src/CuboMX.js";
 
-describe("CuboMX - mx-attrs Directive", () => {
+describe("CuboMX - mx-bind Directive", () => {
     beforeEach(() => {
         document.body.innerHTML = "";
         CuboMX.reset();
@@ -13,7 +13,7 @@ describe("CuboMX - mx-attrs Directive", () => {
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <a id="test-el"
-                   mx-attrs="myAttrs"
+                   mx-bind="myAttrs"
                    href="/um/path"
                    class="text-class active"
                    data-id="123"><span>Um texto</span></a>
@@ -78,7 +78,7 @@ describe("CuboMX - mx-attrs Directive", () => {
 
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <div id="test-el" mx-attrs="$myComp.myAttrs">Texto Inicial</div>
+                <div id="test-el" mx-bind="$myComp.myAttrs">Texto Inicial</div>
             </div>
         `;
         const el = document.getElementById("test-el");
@@ -98,7 +98,7 @@ describe("CuboMX - mx-attrs Directive", () => {
         CuboMX.component("myComp", { myAttrs: null });
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <input id="test-el" mx-attrs="$myComp.myAttrs" value="Texto inicial">
+                <input id="test-el" mx-bind="$myComp.myAttrs" value="Texto inicial">
             </div>
         `;
         const el = document.getElementById("test-el");
@@ -124,7 +124,7 @@ describe("CuboMX - mx-attrs Directive", () => {
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <div id="test-el"
-                     mx-attrs="$myComp.myAttrs"
+                     mx-bind="$myComp.myAttrs"
                      count="123"
                      is-active="true"
                      has-error="false"
@@ -149,7 +149,7 @@ describe("CuboMX - mx-attrs Directive", () => {
         document.body.innerHTML = `
             <div mx-data="my-comp">
                 <button id="test-el"
-                        mx-attrs="$myComp.myAttrs"
+                        mx-bind="$myComp.myAttrs"
                         disabled
                         is-active="true">
                     Click me
@@ -180,7 +180,7 @@ describe("CuboMX - mx-attrs Directive", () => {
             <div mx-data="my-comp">
                 <input type="checkbox"
                        id="test-el"
-                       mx-attrs="$myComp.myAttrs"
+                       mx-bind="$myComp.myAttrs"
                        checked>
             </div>
         `;
@@ -216,7 +216,7 @@ describe("CuboMX - mx-attrs Directive", () => {
 
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <div mx-attrs="$myComp.myAttrs">Texto Inicial</div>
+                <div mx-bind="$myComp.myAttrs">Texto Inicial</div>
             </div>
         `;
 
@@ -242,7 +242,7 @@ describe("CuboMX - mx-attrs Directive", () => {
 
         document.body.innerHTML = `
             <div mx-data="my-comp">
-                <a mx-attrs="$myComp.myAttrs" href="/path/inicial">Link</a>
+                <a mx-bind="$myComp.myAttrs" href="/path/inicial">Link</a>
             </div>
         `;
 
@@ -260,7 +260,7 @@ describe("CuboMX - mx-attrs Directive", () => {
         CuboMX.component("myComp", { myAttrs: null });
         document.body.innerHTML = `
             <div mx-data="myComp">
-                <div id="test-el" mx-attrs="$myComp.myAttrs" class="initial-class"></div>
+                <div id="test-el" mx-bind="$myComp.myAttrs" class="initial-class"></div>
             </div>
         `;
         const el = document.getElementById("test-el");

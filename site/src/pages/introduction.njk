@@ -1,0 +1,90 @@
+{% extends "blocks/main.njk" %}
+
+{% block main %}
+    <h1>Introduction</h1>
+    <div class="text-block">
+        <p>CuboMX is a reactive micro-framework for developers who believe in the power of Server-Side Rendered (SSR) applications and the simplicity of HTML. It challenges the complexity of modern SPAs by embracing a simple, powerful idea: <strong>your server should send HTML, not JSON.</strong>
+        </p>
+        <p>Following a server-centric philosophy, CuboMX is designed to seamlessly "hydrate" your server-rendered HTML into reactive JavaScript components. It's backend-agnostic, allowing you to enhance applications written in any language - PHP, Python, Ruby, Java, or Node.js - with a modern, reactive user experience without a full rewrite.</p>
+    </div>
+
+    <h2>A First Look</h2>
+    <div class="text-block">
+        <p>Before diving deep, let's see a simple example. Imagine you want a basic counter. With CuboMX, your HTML is the star.</p>
+    </div>
+    {# EXEMPLE BLOCK #}
+    <div class="example-block">
+        <header>
+            <div class="example-block-icon">
+                {% include "svg/window-action-bold.svg" %}
+            </div>
+        </header>
+        <div class="example-block-body" mx-data="cart">
+            <div class="example-cart-app">
+                <h1>Cart</h1>
+                <div>
+                    <table>
+                        <tr>
+                            <td>
+                                <img mx-attrs:src="mouseImgUrl" alt="mouse">
+                            </td>
+                            <td>Product description</td>
+                            <td>- 2 +</td>
+                            <td>$ 119.00</td>
+                            <td>$ 238.00</td>
+                        </tr>
+                        <tr>
+                            <td>photo</td>
+                            <td>Product description</td>
+                            <td>- 2 +</td>
+                            <td>$ 119.00</td>
+                            <td>$ 238.00</td>
+                        </tr>
+                    </table>
+                    <div>resumo</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {# EXEMPLE BLOCK #}
+    {# CODE BLOCK #}
+    <div class="code-block" mx-data="codeBlock()">
+        <header>
+            <div class="code-block-icon html-icon">
+                {% include "svg/html5-bold.svg" %}
+            </div>
+        </header>
+        <pre>
+    <code mx-attrs="attrs" lang="html">
+    <div>
+        <h1>Título</h1>
+    </div>
+    </code>
+    </pre>
+    </div>
+    {# CODE BLOCK #}
+    {# CODE BLOCK #}
+    <div class="code-block" mx-data="codeBlock()">
+        <header>
+            <div class="code-block-icon js-icon">
+                {% include "svg/js-bold.svg" %}
+            </div>
+        </header>
+        <pre>
+    <code mx-attrs="attrs" lang="javascript">
+    import { CuboMX } from "cubomx";
+    import { themeHandler } from "./theme-handler";
+    import { nav } from "./nav";
+    import { codeBlock } from "./code";
+
+    CuboMX.store("themeHandler", themeHandler);
+    CuboMX.component("nav", nav);
+    CuboMX.component("codeBlock", codeBlock);
+
+    CuboMX.start();
+    </code>
+    </pre>
+    </div>
+    {# CODE BLOCK #}
+
+{% endblock %}
