@@ -1,7 +1,10 @@
-import mouseImage from "@/img/mouse.png";
-import keyboardImage from "@/img/keyboard.png";
 
-export const cart = {
-    mouseImgUrl: mouseImage,
-    keyboardImgUrl: keyboardImage,
+const cart = {
+    items: [],
+
+    addUn(item) {
+        console.log(item.qty)
+    }
 };
+
+export { cart };

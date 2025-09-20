@@ -36,6 +36,26 @@ const pages = [
     },
 ];
 
+const cartApp = {
+    total: 96,
+    items: [
+        {
+            description: "A very cool gaming mouse",
+            qty: 2,
+            price: 19,
+            total: 38,
+            img: "/img/mouse.png"
+        },
+        {
+            description: "A very wonderful gaming keyboard",
+            qty: 2,
+            price: 29,
+            total: 58,
+            img: "/img/keyboard.png"
+        },
+    ],
+};
+
 const nunjucksBuildConfig = {
     templatesDir: resolve(__dirname, "src"),
     outputDir: resolve(__dirname, "public"),
@@ -60,6 +80,7 @@ const nunjucksPreRender = (config) => {
                 const html = nunjucksEnv.render(entry.template, {
                     pages: pages,
                     title: entry.title,
+                    cartApp: cartApp,
                 });
                 fs.ensureDirSync(dirname(outputPath));
                 fs.writeFileSync(outputPath, html);
@@ -91,6 +112,17 @@ const nunjucksPreRender = (config) => {
                 }
             }
             console.log(`[nunjucks] watching ${files.length} template(s).`);
+        },
+        writeBundle() {
+            // Copia a pasta de imagens APÓS o build
+            const imageSrc = resolve(__dirname, "src/img");
+            const imageDest = resolve(__dirname, "dist/img");
+            try {
+                fs.copySync(imageSrc, imageDest, { overwrite: true });
+                console.log("[assets] Images copied to dist/img.");
+            } catch (e) {
+                console.error("[assets] Error copying images:", e);
+            }
         },
     };
 };
