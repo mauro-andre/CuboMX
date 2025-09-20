@@ -30,7 +30,7 @@ describe("Shopping Cart Integration Test", () => {
 
     beforeEach(() => {
         document.body.innerHTML = `
-            <div mx-data="cart">
+            <div mx-data="cart()" mx-ref="cart">
                 <table>
                     <thead>
                         <tr>
