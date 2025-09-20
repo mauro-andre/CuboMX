@@ -154,7 +154,7 @@
         width: 3rem;
     }
     &-body {
-        padding: 1.5rem
+        padding: 1.5rem;
     }
 }
 
@@ -196,8 +196,17 @@
     }
     & > div {
         display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
         & table {
             flex: 1;
+        }
+        & footer,
+        & footer > * {
+            font-size: 1.25rem;
+            font-weight: 600;
+            align-self: flex-end;
+            padding: 0.25rem 0.75rem;
         }
     }
     &-product-img {

@@ -166,42 +166,45 @@
                 <h1>Cart</h1>
                 <div>
                     <table>
-                        <tr>
-                            <td>
-                                <div class="example-cart-app-product-img">
-                                    <img :src="mouseImgUrl" alt="mouse">
-                                </div>
-                            </td>
-                            <td>A very cool gaming mouse</td>
-                            <td>
-                                <div class="example-cart-app-quantity">
-                                    <button>-</button>
-                                    <span>2</span>
-                                    <button>+</button>
-                                </div>
-                            </td>
-                            <td>$ 119.00</td>
-                            <td>$ 238.00</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="example-cart-app-product-img">
-                                    <img :src="keyboardImgUrl" alt="mouse">
-                                </div>
-                            </td>
-                            <td>A very wonderful gaming keyboard</td>
-                            <td>
-                                <div class="example-cart-app-quantity">
-                                    <button>-</button>
-                                    <span>2</span>
-                                    <button>+</button>
-                                </div>
-                            </td>
-                            <td>$ 119.00</td>
-                            <td>$ 238.00</td>
-                        </tr>
+                        
+                            <tr mx-item="items">
+                                <td>
+                                    <div class="example-cart-app-product-img">
+                                        <img src="/img/mouse.png" alt="mouse">
+                                    </div>
+                                </td>
+                                <td ::text="description">A very cool gaming mouse</td>
+                                <td>
+                                    <div class="example-cart-app-quantity">
+                                        <button>-</button>
+                                        <span ::text="qty">2</span>
+                                        <button mx-on:click="addUn($item)">+</button>
+                                    </div>
+                                </td>
+                                <td>$ <span ::text="price">19</span></td>
+                                <td>$ <span ::text="total">38</span></td>
+                            </tr>
+                        
+                            <tr mx-item="items">
+                                <td>
+                                    <div class="example-cart-app-product-img">
+                                        <img src="/img/keyboard.png" alt="mouse">
+                                    </div>
+                                </td>
+                                <td ::text="description">A very wonderful gaming keyboard</td>
+                                <td>
+                                    <div class="example-cart-app-quantity">
+                                        <button>-</button>
+                                        <span ::text="qty">2</span>
+                                        <button mx-on:click="addUn($item)">+</button>
+                                    </div>
+                                </td>
+                                <td>$ <span ::text="price">29</span></td>
+                                <td>$ <span ::text="total">58</span></td>
+                            </tr>
+                        
                     </table>
-                    <div>resumo</div>
+                    <footer>TOTAL: $ <span>96</span></footer>
                 </div>
             </div>
         </div>

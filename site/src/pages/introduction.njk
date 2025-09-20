@@ -24,42 +24,27 @@
                 <h1>Cart</h1>
                 <div>
                     <table>
-                        <tr>
-                            <td>
-                                <div class="example-cart-app-product-img">
-                                    <img :src="mouseImgUrl" alt="mouse">
-                                </div>
-                            </td>
-                            <td>A very cool gaming mouse</td>
-                            <td>
-                                <div class="example-cart-app-quantity">
-                                    <button>-</button>
-                                    <span>2</span>
-                                    <button>+</button>
-                                </div>
-                            </td>
-                            <td>$ 119.00</td>
-                            <td>$ 238.00</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="example-cart-app-product-img">
-                                    <img :src="keyboardImgUrl" alt="mouse">
-                                </div>
-                            </td>
-                            <td>A very wonderful gaming keyboard</td>
-                            <td>
-                                <div class="example-cart-app-quantity">
-                                    <button>-</button>
-                                    <span>2</span>
-                                    <button>+</button>
-                                </div>
-                            </td>
-                            <td>$ 119.00</td>
-                            <td>$ 238.00</td>
-                        </tr>
+                        {% for item in cartApp.items %}
+                            <tr mx-item="items">
+                                <td>
+                                    <div class="example-cart-app-product-img">
+                                        <img src="{{item.img}}" alt="mouse">
+                                    </div>
+                                </td>
+                                <td ::text="description">{{item.description}}</td>
+                                <td>
+                                    <div class="example-cart-app-quantity">
+                                        <button>-</button>
+                                        <span ::text="qty">{{item.qty}}</span>
+                                        <button mx-on:click="addUn($item)">+</button>
+                                    </div>
+                                </td>
+                                <td>$ <span ::text="price">{{item.price}}</span></td>
+                                <td>$ <span ::text="total">{{item.total}}</span></td>
+                            </tr>
+                        {% endfor %}
                     </table>
-                    <div>resumo</div>
+                    <footer>TOTAL: $ <span>{{cartApp.total}}</span></footer>
                 </div>
             </div>
         </div>
@@ -106,15 +91,3 @@
     {# CODE BLOCK #}
 
 {% endblock %}
-
-<div mx-data="meuComp()" mx-ref="comp1">
-    <table>
-        <tr mx-item="cartItems" ::product-id="productId" product-id="1a2b3c"> {# ou mx-item="$comp1.cartItems" #}
-            <td>...</td>
-            <td>A very cool gaming mouse</td>
-            <td>---</td>
-            <td ::text="price">$ 119.00</td>
-            <td ::text="total">$ 238.00</td>
-        </tr>
-    </table>
-</div>
