@@ -639,7 +639,22 @@ const CuboMX = (() => {
                 newInstances.push(proxy);
             } else {
                 if (activeProxies[componentName]) return;
-                const proxy = createProxy({ ...definition }, componentName, el);
+
+                const instance = {};
+                for (const key in definition) {
+                    if (Object.hasOwnProperty.call(definition, key)) {
+                        const value = definition[key];
+                        if (Array.isArray(value)) {
+                            instance[key] = [];
+                        } else if (typeof value === 'object' && value !== null && !Array.isArray(value) && value.constructor === Object) {
+                            instance[key] = {};
+                        } else {
+                            instance[key] = value;
+                        }
+                    }
+                }
+
+                const proxy = createProxy(instance, componentName, el);
                 addActiveProxy(componentName, proxy);
                 newInstances.push(proxy);
             }

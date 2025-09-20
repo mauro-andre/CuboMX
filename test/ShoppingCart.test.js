@@ -29,6 +29,7 @@ describe("Shopping Cart Integration Test", () => {
     });
 
     beforeEach(() => {
+        vi.useFakeTimers();
         document.body.innerHTML = `
             <div mx-data="cart()" mx-ref="cart">
                 <table>
@@ -113,5 +114,35 @@ describe("Shopping Cart Integration Test", () => {
         expect(item1Qty.textContent).toBe('3');
         expect(item1Total.textContent).toBe('$57.00');
         expect(grandTotal.textContent).toBe('$115.00');
+    });
+
+    it('should be destroyed on DOM removal and re-initialized on DOM insertion', async () => {
+        const cartHtml = document.body.innerHTML;
+        CuboMX.start({ locale: 'en-US', currency: 'USD' });
+
+        // 1. Initial state check
+        expect(CuboMX.cart).toBeDefined();
+        expect(CuboMX.cart.items).toHaveLength(2);
+
+        // 2. Remove the component from the DOM
+        const cartElement = document.querySelector('[mx-ref="cart"]');
+        cartElement.remove();
+
+        // Wait for MutationObserver to process the removal
+        await vi.runAllTimersAsync();
+
+        // 3. Assert that the component instance was destroyed
+        expect(CuboMX.cart).toBeUndefined();
+
+        // 4. Re-add the component to the DOM
+        document.body.innerHTML = cartHtml;
+
+        // Wait for MutationObserver to process the addition
+        await vi.runAllTimersAsync();
+
+        // 5. Assert that the component was re-initialized
+        expect(CuboMX.cart).toBeDefined();
+        expect(CuboMX.cart.items).toHaveLength(2);
+        expect(CuboMX.cart.total).toBe(96); // Also check if values are correct
     });
 });

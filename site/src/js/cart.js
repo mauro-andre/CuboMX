@@ -2,6 +2,16 @@ const cart = {
     items: [],
     total: null,
 
+    init() {
+        console.log("Iniciei")
+        console.log(this.items);
+        console.log(this.total);
+    },
+
+    destroy() {
+      console.log("Fui destruido")  
+    },
+
     addUn(item) {
         item.qty += 1;
         this.calcTotal(item);
