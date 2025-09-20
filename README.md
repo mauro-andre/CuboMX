@@ -424,6 +424,75 @@ Sometimes, you don't need a whole object.
 >
 > The `:` shorthand is an alias **exclusively** for `mx-bind:`. Its purpose is to bind HTML attributes. **Do not** use it as a shorthand for `mx-item:prop`, as this will lead to unexpected behavior.
 
+### Parsers: Transforming Data on the Fly
+
+Parsers allow you to transform data as it moves between the DOM and your component's state. This is incredibly useful for handling numbers, dates, currency, or any other format that needs conversion.
+
+A parser is applied by adding its name to a binding directive, following the syntax `:[source]:[parserName]="property"` or `::[source]:[parserName]="property"`.
+
+#### Built-in Parsers
+
+CuboMX comes with two powerful parsers out of the box:
+
+-   **:number**: Converts formatted strings into numbers. It's smart enough to handle thousand separators.
+    ```html
+    <div mx-data="calculator" ::data-value:number="value" data-value="1,234.56"></div>
+    ```
+    After hydration, `CuboMX.calculator.value` will be the number `1234.56`.
+
+-   **:currency**: Parses and formats currency strings based on locale. It automatically creates a two-way transformation.
+    ```html
+    <div mx-data="cart" ::text:currency="price">$1,999.99</div>
+    ```
+    The state `CuboMX.cart.price` will be `1999.99`. If you update the state (`CuboMX.cart.price = 2500`), the element's text will be automatically reformatted to `"$2,500.00"`.
+    -   **Configuration**: The currency format can be set globally via `CuboMX.start({ locale: 'pt-BR', currency: 'BRL' })` or overridden locally on the element with `data-locale="..."` and `data-currency="..."` attributes.
+
+#### Creating a Custom Parser
+
+You can easily create your own parsers. A parser is a simple JavaScript object with two methods: `parse` and `format`.
+
+-   `parse(value, el, config)`: Receives the string `value` from the DOM and must return the processed value to be stored in the state. It also receives the element `el` and the global `config` object for context.
+-   `format(value, el, config)`: Receives the `value` from the state and must return the string to be displayed in the DOM.
+
+Here is an example of a `lowercase` parser:
+
+```javascript
+// parsers/lowercaseParser.js
+const lowercaseParser = {
+    parse(value) {
+        return typeof value === 'string' ? value.toLowerCase() : value;
+    },
+    format(value) {
+        return typeof value === 'string' ? value.toLowerCase() : value;
+    }
+};
+```
+
+#### Registering a Custom Parser
+
+To make your parser available, use the `CuboMX.addParser()` method **before** calling `CuboMX.start()`.
+
+```javascript
+import { CuboMX } from "cubomx";
+import { lowercaseParser } from "./parsers/lowercaseParser.js";
+
+// Register the custom parser
+CuboMX.addParser('lowercase', lowercaseParser);
+
+// Register components, etc.
+// ...
+
+CuboMX.start();
+```
+
+Now you can use it in your HTML:
+
+```html
+<div mx-data="myComp">
+    <span ::text:lowercase="myText">THIS WILL BECOME LOWERCASE</span>
+</div>
+```
+
 ### Two-Way Data Binding
 
 When `mx-bind` is used on form elements (`<input>`, `<select>`, etc.), it automatically creates a two-way data binding. User input updates the state, and state changes update the field.
@@ -579,6 +648,7 @@ const searchField = {
 
 -   **`CuboMX.component(name, definition)`**: Registers a component.
 -   **`CuboMX.store(name, object)`**: Registers a global store.
+-   **`CuboMX.addParser(name, parserObject)`**: Registers a custom parser.
 -   **`CuboMX.start()`**: Starts the framework.
 -   **`CuboMX.watch(path, callback)`**: Watches a property on any global store or component (e.g., `'theme.mode'`).
 -   **`CuboMX.render(templateString, data)`**: Renders a template string with data.
