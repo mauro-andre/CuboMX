@@ -23,6 +23,6 @@
         "vite": "^7.1.5"
     },
     "dependencies": {
-        "cubomx": "^1.2.8"
+        "cubomx": "^1.2.9"
     }
 }

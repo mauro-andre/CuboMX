@@ -176,13 +176,13 @@
                                 <td ::text="description">A very cool gaming mouse</td>
                                 <td>
                                     <div class="example-cart-app-quantity">
-                                        <button>-</button>
+                                        <button mx-on:click="subUn($item)">-</button>
                                         <span ::text="qty">2</span>
                                         <button mx-on:click="addUn($item)">+</button>
                                     </div>
                                 </td>
-                                <td>$ <span ::text="price">19</span></td>
-                                <td>$ <span ::text="total">38</span></td>
+                                <td ::text:currency="price">$ 19</td>
+                                <td ::text:currency="total">$ 38</td>
                             </tr>
                         
                             <tr mx-item="items">
@@ -194,17 +194,17 @@
                                 <td ::text="description">A very wonderful gaming keyboard</td>
                                 <td>
                                     <div class="example-cart-app-quantity">
-                                        <button>-</button>
+                                        <button mx-on:click="subUn($item)">-</button>
                                         <span ::text="qty">2</span>
                                         <button mx-on:click="addUn($item)">+</button>
                                     </div>
                                 </td>
-                                <td>$ <span ::text="price">29</span></td>
-                                <td>$ <span ::text="total">58</span></td>
+                                <td ::text:currency="price">$ 29</td>
+                                <td ::text:currency="total">$ 58</td>
                             </tr>
                         
                     </table>
-                    <footer>TOTAL: $ <span>96</span></footer>
+                    <footer>TOTAL: <span :text:currency="total">$ 96</span></footer>
                 </div>
             </div>
         </div>

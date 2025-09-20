@@ -34,17 +34,17 @@
                                 <td ::text="description">{{item.description}}</td>
                                 <td>
                                     <div class="example-cart-app-quantity">
-                                        <button>-</button>
+                                        <button mx-on:click="subUn($item)">-</button>
                                         <span ::text="qty">{{item.qty}}</span>
                                         <button mx-on:click="addUn($item)">+</button>
                                     </div>
                                 </td>
-                                <td>$ <span ::text="price">{{item.price}}</span></td>
-                                <td>$ <span ::text="total">{{item.total}}</span></td>
+                                <td ::text:currency="price">$ {{item.price}}</td>
+                                <td ::text:currency="total">$ {{item.total}}</td>
                             </tr>
                         {% endfor %}
                     </table>
-                    <footer>TOTAL: $ <span>{{cartApp.total}}</span></footer>
+                    <footer>TOTAL: <span :text:currency="total">$ {{cartApp.total}}</span></footer>
                 </div>
             </div>
         </div>
