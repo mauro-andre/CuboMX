@@ -688,6 +688,14 @@ const CuboMX = (() => {
         bindings = bindings.filter((b) => !allRemovedChildren.includes(b.el));
     };
 
+    /**
+     * Scans the DOM, initializes all registered stores and components,
+     * and starts listening for DOM mutations. This function should be called
+     * once the entire application is ready.
+     * @param {object} [userConfig={}] - Optional configuration object.
+     * @param {string} [userConfig.locale='en-US'] - The default locale for formatting, e.g., 'en-US', 'pt-BR'.
+     * @param {string} [userConfig.currency='USD'] - The default currency code for formatting, e.g., 'USD', 'BRL'.
+     */
     const start = (userConfig = {}) => {
         config = userConfig;
         let initQueue = [];
@@ -754,6 +762,12 @@ const CuboMX = (() => {
         registeredParsers = {};
     };
 
+    /**
+     * Registers a custom parser to transform data during hydration and reactivity.
+     * A parser must be an object with `parse` and `format` methods.
+     * @param {string} name - The name of the parser, used in directives (e.g., `::text:my-parser`).
+     * @param {{parse: function, format: function}} parser - The parser object.
+     */
     const addParser = (name, parser) => {
         if (
             !parser ||

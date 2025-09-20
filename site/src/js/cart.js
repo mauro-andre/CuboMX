@@ -2,16 +2,6 @@ const cart = {
     items: [],
     total: null,
 
-    init() {
-        console.log("Iniciei")
-        console.log(this.items);
-        console.log(this.total);
-    },
-
-    destroy() {
-      console.log("Fui destruido")  
-    },
-
     addUn(item) {
         item.qty += 1;
         this.calcTotal(item);
@@ -29,7 +19,6 @@ const cart = {
         this.total = this.items.reduce((accumulator, currentItem) => {
             return accumulator + currentItem.total;
         }, 0);
-        console.log(this.total);
     },
 };
 

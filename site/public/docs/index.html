@@ -168,109 +168,58 @@
                     <table>
                         
                             <tr mx-item="items">
-                                <td>
+                                <td class="col-img">
                                     <div class="example-cart-app-product-img">
                                         <img src="/img/mouse.png" alt="mouse">
                                     </div>
                                 </td>
-                                <td ::text="description">A very cool gaming mouse</td>
-                                <td>
+                                <td class="col-desc" ::text="description">A very cool gaming mouse</td>
+                                <td class="col">
                                     <div class="example-cart-app-quantity">
                                         <button mx-on:click="subUn($item)">-</button>
                                         <span ::text="qty">2</span>
                                         <button mx-on:click="addUn($item)">+</button>
                                     </div>
                                 </td>
-                                <td ::text:currency="price">$ 19</td>
-                                <td ::text:currency="total">$ 38</td>
+                                <td class="col" ::text:currency="price">$ 19</td>
+                                <td class="col" ::text:currency="total">$ 38</td>
                             </tr>
                         
                             <tr mx-item="items">
-                                <td>
+                                <td class="col-img">
                                     <div class="example-cart-app-product-img">
                                         <img src="/img/keyboard.png" alt="mouse">
                                     </div>
                                 </td>
-                                <td ::text="description">A very wonderful gaming keyboard</td>
-                                <td>
+                                <td class="col-desc" ::text="description">A very wonderful gaming keyboard</td>
+                                <td class="col">
                                     <div class="example-cart-app-quantity">
                                         <button mx-on:click="subUn($item)">-</button>
                                         <span ::text="qty">2</span>
                                         <button mx-on:click="addUn($item)">+</button>
                                     </div>
                                 </td>
-                                <td ::text:currency="price">$ 29</td>
-                                <td ::text:currency="total">$ 58</td>
+                                <td class="col" ::text:currency="price">$ 29</td>
+                                <td class="col" ::text:currency="total">$ 58</td>
                             </tr>
                         
                     </table>
-                    <footer>TOTAL: <span :text:currency="total">$ 96</span></footer>
+                    <footer>
+                        <div>
+                            <p>TOTAL:</p>
+                            <div :text:currency="total">$ 96</div>
+                        </div>
+                    </footer>
                 </div>
             </div>
         </div>
     </div>
     
-    
-    <div class="code-block" mx-data="codeBlock()">
-        <header>
-            <div class="code-block-icon html-icon">
-                <svg version="1.1" width="141.69331" height="200" viewBox="0 0 90.683721 128" enable-background="new 0 0 512 512"
-   xml:space="preserve" id="svg1" sodipodi:docname="html5-bold.svg" inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-   <path display="inline"
-      d="m 8.437011,0 h 5.769291 v 5.700156 h 5.277579 V 0 H 25.25367 V 17.26103 H 19.484382 V 11.480718 H 14.206803 V 17.26103 H 8.437512 V 0 Z M 32.84027,5.724203 H 27.76158 V 0 H 43.691264 V 5.724203 H 38.61006 V 17.26103 H 32.84077 V 5.724203 Z M 46.219204,0 h 6.01678 L 55.935974,6.06512 59.632954,0 h 6.01753 v 17.26103 h -5.74574 V 8.705788 l -3.96902,6.13701 h -0.099 l -3.97172,-6.13701 v 8.555242 h -5.6458 V 0 Z m 22.30315,0 h 5.77079 v 11.555865 h 8.11363 V 17.26103 H 68.522354 Z M 0,25.15548 8.252651,117.71988 45.286134,128 82.422304,117.7051 90.683724,25.15523 H 0 Z m 73.469284,21.966489 -0.51676,5.755514 -0.22694,2.551994 h -0.0373 -27.34626 -0.0396 -16.020354 l 1.03753,11.6245 h 14.982824 0.0396 23.29058 3.05948 l -0.27704,3.048967 -2.66772,29.888496 -0.17083,1.91675 -23.23447,6.43985 v 0.002 l -0.0521,0.0148 -23.255262,-6.45613 -1.590863,-17.82514 h 5.252781 6.14377 l 0.80833,9.05422 12.643254,3.41469 0.0105,-0.003 v -0.001 l 12.66253,-3.41669 1.31683,-14.724066 h -13.93978 -0.0396 -25.365647 L 17.146556,47.121969 16.874774,44.07676 h 28.42764 0.0396 28.39907 z"
-      id="path1">
-
-   </path>
-
-</svg>
-            </div>
-        </header>
-        <pre>
-    <code mx-bind="attrs" lang="html">
-    <div>
-        <h1>Título</h1>
+    <div class="text-block">
+        <p>And that's it. This fully interactive shopping cart is powered by CuboMX.</p>
+        <p>There's no complex frontend framework, no virtual DOM, and no data was fetched via JSON. It's just the initial server-rendered HTML, "hydrated" by a simple JavaScript component that holds the business logic. This is the core philosophy of CuboMX: <strong>HTML-first, enhanced with JavaScript.</strong></p>
+        <p>Curious about the code? The rest of this documentation will guide you through all the directives and concepts used to build examples like this one.</p>
     </div>
-    </code>
-    </pre>
-    </div>
-    
-    
-    <div class="code-block" mx-data="codeBlock()">
-        <header>
-            <div class="code-block-icon js-icon">
-                <svg fill="#000000" version="1.1" width="200.00011" height="200.00002" viewBox="0 0 128.00007 128.00001"
-   enable-background="new 0 0 512 512" xml:space="preserve" id="svg1" sodipodi:docname="js-bold.svg"
-   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-   <path display="inline" fill-rule="evenodd" clip-rule="evenodd"
-      d="m 0.12735088,0 c -0.14277883,0.0207906 -0.13225828,0.19287667 -0.12198822,0.36521322 0,42.49999778 0,84.99348278 0,127.49247678 42.42384934,0.28431 85.36871534,0.0406 127.99470734,0.12174 0,-42.660562 0,-85.319119 0,-127.97943 C 85.377334,0 42.750339,0 0.12735088,0 Z M 64.975242,113.13769 c -2.961284,2.98559 -7.63441,4.74377 -13.383387,4.74377 -9.429164,0 -14.664388,-4.59397 -18.006164,-10.94913 3.216782,-2.05401 6.504202,-4.03839 9.855247,-5.96039 1.366668,3.82296 5.983184,8.12086 11.192607,5.47494 3.302199,-1.67803 2.920955,-6.76571 2.920955,-12.287498 0,-11.465641 0,-24.692722 0,-35.036422 -0.01052,-0.172336 -0.02079,-0.344422 0.120735,-0.365213 3.934434,0 7.868617,0 11.802049,0 0,9.214996 0,19.638852 0,29.439742 0,10.670338 0.762489,19.635091 -4.502042,24.940201 z m 52.803868,-10.58316 c -0.66981,9.99051 -8.82799,15.29562 -19.831227,15.32693 -10.786565,0.0311 -17.690547,-4.76255 -21.90102,-12.16551 3.027162,-2.08332 6.45711,-3.76159 9.612522,-5.71666 2.524931,3.94796 6.897721,7.74262 13.383386,7.17701 4.040639,-0.35218 8.731049,-3.64587 6.083129,-8.637365 -1.28426,-2.419725 -4.38757,-3.648876 -7.178017,-4.865752 -8.855293,-3.863545 -19.244582,-7.407216 -18.250892,-21.289576 0.3324,-4.637557 2.46782,-7.896672 5.232469,-10.218957 2.833283,-2.379647 6.627943,-3.974511 11.68006,-4.135826 9.17517,-0.293824 14.2085,3.787396 17.6417,9.489532 -2.9217,2.227099 -6.14049,4.160124 -9.36854,6.082127 -1.05932,-3.255107 -6.173059,-6.427051 -10.463438,-4.50104 -1.95106,0.874959 -3.704234,3.446982 -2.676226,6.568828 0.91679,2.784188 4.656343,4.308164 7.664718,5.59693 9.105786,3.897612 19.281906,7.706801 18.371376,21.289329 z"
-      id="path1">
-
-   </path>
-
-</svg>
-            </div>
-        </header>
-        <pre>
-    <code mx-bind="attrs" lang="javascript">
-    import { CuboMX } from "cubomx";
-    import { themeHandler } from "./theme-handler";
-    import { nav } from "./nav";
-    import { codeBlock } from "./code";
-
-    CuboMX.store("themeHandler", themeHandler);
-    CuboMX.component("nav", nav);
-    CuboMX.component("codeBlock", codeBlock);
-
-    CuboMX.start();
-    </code>
-    </pre>
-    </div>
-    
 
 
                 </section>
