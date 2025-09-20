@@ -2,7 +2,7 @@
     <nav class="nav" mx-data="nav">
         {% for page in pages %}
             {% if page.onSidebar %}
-                <a mx-item="links" class="nav-item" href="{{page.path}}" title="{{page.title}}" mx-on:click.prevent="goToPage($item)">
+                <a mx-item="links" class="nav-item" href="{{page.path}}" ::title="title" title="{{page.title}}" mx-on:click.prevent="goToPage($item)">
                     <div class="nav-icon">
                         {% include page.svgIcon %}
                     </div>

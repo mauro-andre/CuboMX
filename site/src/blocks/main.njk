@@ -12,7 +12,7 @@
         <section class="body-container">
             <div class="content">
                 {% include "partials/sidebar.njk" %}
-                <section id="main-content" class="main-content-section" mx-attrs:title="$nav.currentPage" title="{{title}}">
+                <section id="main-content" class="main-content-section" :title="$nav.currentPage" title="{{title}}">
                     {% block main %}{% endblock %}
                 </section>
             </div>

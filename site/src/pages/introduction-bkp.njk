@@ -55,10 +55,94 @@
         </div>
     </div>
     {# EXEMPLE BLOCK #}
-    <div class="text-block">
-        <p>And that's it. This fully interactive shopping cart is powered by CuboMX.</p>
-        <p>There's no complex frontend framework, no virtual DOM, and no data was fetched via JSON. It's just the initial server-rendered HTML, "hydrated" by a simple JavaScript component that holds the business logic. This is the core philosophy of CuboMX: <strong>HTML-first, enhanced with JavaScript.</strong></p>
-        <p>Curious about the code? The rest of this documentation will guide you through all the directives and concepts used to build examples like this one.</p>
+    {# CODE BLOCK #}
+    <div class="code-block" mx-data="codeBlock()">
+        <header>
+            <div class="code-block-icon html-icon">
+                {% include "svg/html5-bold.svg" %}
+            </div>
+        </header>
+        <pre>
+    <code mx-bind="attrs" lang="html">
+    {% raw %}
+    <div mx-data="shoppingCart">
+        <div>
+            <h1>Cart</h1>
+            <div>
+                <table>
+                    <tbody>
+                        <!-- {% item in items %}  TEMPLATE ENGINE FOR LOOP -->
+                        <tr mx-item="items">
+                            <td>
+                                <div class="example-cart-app-product-img">
+                                    <img src="{{item.img}}" alt="mouse">
+                                </div>
+                            </td>
+                            <td ::text="description">{{item.description}}</td>
+                            <td>
+                                <div>
+                                    <button mx-on:click="subUn($item)">-</button>
+                                    <span ::text="qty">{{item.qty}}</span>
+                                    <button mx-on:click="addUn($item)">+</button>
+                                </div>
+                            </td>
+                            <td ::text:currency="price">{{item.price}}</td>
+                            <td ::text:currency="total">{{item.total}}</td>
+                        </tr>
+                        <!-- ENDFOR -->
+                    </tbody>
+                </table>
+                <footer>
+                    <div>
+                        <p>TOTAL:</p>
+                        <div :text:currency="total">{{cartApp.total}}</div>
+                    </div>
+                </footer>
+            </div>
+        </div>
     </div>
+    {% endraw %}
+    </code>
+    </pre>
+    </div>
+    {# CODE BLOCK #}
+    {# CODE BLOCK #}
+    <div class="code-block" mx-data="codeBlock()">
+        <header>
+            <div class="code-block-icon js-icon">
+                {% include "svg/js-bold.svg" %}
+            </div>
+        </header>
+        <pre>
+    <code mx-bind="attrs" lang="javascript">
+    const shoppingCart = {
+        items: [],
+        total: null,
+
+        addUn(item) {
+            item.qty += 1;
+            this.calcTotal(item);
+        },
+
+        subUn(item) {
+            if (item.qty > 0) {
+                item.qty -= 1;
+                this.calcTotal(item);
+            }
+        },
+
+        calcTotal(item) {
+            item.total = item.qty * item.price;
+            this.total = this.items.reduce((accumulator, currentItem) => {
+                return accumulator + currentItem.total;
+            }, 0);
+        },
+    };
+
+    export { shoppingCart };
+    </code>
+    </pre>
+    </div>
+    {# CODE BLOCK #}
 
 {% endblock %}

@@ -8,5 +8,5 @@ CuboMX.store("themeHandler", themeHandler);
 CuboMX.component("nav", nav);
 CuboMX.component("codeBlock", codeBlock);
 CuboMX.component("cart", cart);
+CuboMX.start()
 
-CuboMX.start();

@@ -14,6 +14,7 @@ const CuboMX = (() => {
     let templates = {};
     let config = {};
     let registeredParsers = {};
+    let observer = null;
 
     const kebabToCamel = (str) =>
         str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
@@ -57,7 +58,7 @@ const CuboMX = (() => {
     };
 
     const evaluate = (expression, el) => {
-        const localScope = findComponentProxyFor(el) || {};
+        const localScope = findComponentProxyFor(el);
 
         if (expression.startsWith("$")) {
             const globalExpression = expression.substring(1);
@@ -71,9 +72,11 @@ const CuboMX = (() => {
                     e
                 );
             }
+            return;
         }
 
-        const context = { ...activeProxies, ...localScope };
+        const context = Object.assign(Object.create(activeProxies), localScope);
+
         try {
             return new Function(`with(this) { return ${expression} }`).call(
                 context
@@ -172,7 +175,7 @@ const CuboMX = (() => {
                 }
                 return success;
             },
-            get(target, property) {
+            get(target, property, receiver) {
                 if (property === "$watch") {
                     return (propToWatch, callback) => {
                         const path = `${name}.${propToWatch}`;
@@ -182,7 +185,14 @@ const CuboMX = (() => {
                 if (property === "$el") {
                     return el;
                 }
-                return Reflect.get(target, property);
+
+                const value = Reflect.get(target, property, receiver);
+
+                if (typeof value === "function") {
+                    return value.bind(receiver);
+                }
+
+                return value;
             },
         };
         return new Proxy(obj, handler);
@@ -402,23 +412,36 @@ const CuboMX = (() => {
                 isInitialLoad &&
                 (context[key] === null || context[key] === undefined)
             ) {
-                context[key] = getDOMValue(el, camelToKebab(directiveProp), parserName);
+                context[key] = getDOMValue(
+                    el,
+                    camelToKebab(directiveProp),
+                    parserName
+                );
             } else if (!isInitialLoad) {
-                context[key] = getDOMValue(el, camelToKebab(directiveProp), parserName);
+                context[key] = getDOMValue(
+                    el,
+                    camelToKebab(directiveProp),
+                    parserName
+                );
             }
 
             const binding = {
                 el,
-                evaluate: () => {
+                initialRun: true,
+                evaluate: function () {
                     const value = evaluate(expression, el);
                     const propToSet = camelToKebab(directiveProp);
-                    if (getDOMValue(el, propToSet, parserName) !== value) {
+                    if (
+                        this.initialRun ||
+                        getDOMValue(el, propToSet, parserName) !== value
+                    ) {
                         setDOMValue(
                             el,
                             propToSet,
                             value ?? (directiveProp === "checked" ? false : ""),
                             parserName
                         );
+                        this.initialRun = false;
                     }
                 },
             };
@@ -427,7 +450,11 @@ const CuboMX = (() => {
 
             const eventName = directiveProp === "checked" ? "change" : "input";
             el.addEventListener(eventName, () => {
-                context[key] = getDOMValue(el, camelToKebab(directiveProp), parserName);
+                context[key] = getDOMValue(
+                    el,
+                    camelToKebab(directiveProp),
+                    parserName
+                );
             });
         },
         "mx-bind": (el, expression) => {
@@ -486,11 +513,23 @@ const CuboMX = (() => {
             const itemObject = parentItemEl.__cubo_item_object__;
             const [propToBind, parserName] = attr.name.substring(8).split(":");
             const propertyName = attr.value;
-            populateItemObject(el, itemObject, propToBind, propertyName, parserName);
+            populateItemObject(
+                el,
+                itemObject,
+                propToBind,
+                propertyName,
+                parserName
+            );
         },
     };
 
-    const populateItemObject = (el, itemObject, propToBind, propertyName, parserName) => {
+    const populateItemObject = (
+        el,
+        itemObject,
+        propToBind,
+        propertyName,
+        parserName
+    ) => {
         if (propToBind === "class") {
             itemObject[propertyName] = createClassProxy(el).class;
             return;
@@ -507,10 +546,21 @@ const CuboMX = (() => {
             configurable: true,
         });
 
+        // When a parser is present, we need to force an initial format pass.
+        // Reading the value triggers the 'parse' and writing it back triggers the 'format'.
+        if (parserName && registeredParsers[parserName]) {
+            const initialValue = itemObject[propertyName];
+            itemObject[propertyName] = initialValue;
+        }
+
         if (propToBind === "value" || propToBind === "checked") {
             const eventName = propToBind === "checked" ? "change" : "input";
             el.addEventListener(eventName, () => {
-                itemObject[propertyName] = getDOMValue(el, propToBind, parserName);
+                itemObject[propertyName] = getDOMValue(
+                    el,
+                    propToBind,
+                    parserName
+                );
             });
         }
     };
@@ -589,7 +639,22 @@ const CuboMX = (() => {
                 newInstances.push(proxy);
             } else {
                 if (activeProxies[componentName]) return;
-                const proxy = createProxy({ ...definition }, componentName, el);
+
+                const instance = {};
+                for (const key in definition) {
+                    if (Object.hasOwnProperty.call(definition, key)) {
+                        const value = definition[key];
+                        if (Array.isArray(value)) {
+                            instance[key] = [];
+                        } else if (typeof value === 'object' && value !== null && !Array.isArray(value) && value.constructor === Object) {
+                            instance[key] = {};
+                        } else {
+                            instance[key] = value;
+                        }
+                    }
+                }
+
+                const proxy = createProxy(instance, componentName, el);
                 addActiveProxy(componentName, proxy);
                 newInstances.push(proxy);
             }
@@ -623,6 +688,14 @@ const CuboMX = (() => {
         bindings = bindings.filter((b) => !allRemovedChildren.includes(b.el));
     };
 
+    /**
+     * Scans the DOM, initializes all registered stores and components,
+     * and starts listening for DOM mutations. This function should be called
+     * once the entire application is ready.
+     * @param {object} [userConfig={}] - Optional configuration object.
+     * @param {string} [userConfig.locale='en-US'] - The default locale for formatting, e.g., 'en-US', 'pt-BR'.
+     * @param {string} [userConfig.currency='USD'] - The default currency code for formatting, e.g., 'USD', 'BRL'.
+     */
     const start = (userConfig = {}) => {
         config = userConfig;
         let initQueue = [];
@@ -645,7 +718,7 @@ const CuboMX = (() => {
 
         processInit(initQueue);
 
-        const observer = new MutationObserver((mutations) => {
+        observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType !== 1) return;
@@ -673,6 +746,10 @@ const CuboMX = (() => {
     };
 
     const reset = () => {
+        if (observer) {
+            observer.disconnect();
+            observer = null;
+        }
         registeredComponents = {};
         registeredStores = {};
         watchers = {};
@@ -685,9 +762,21 @@ const CuboMX = (() => {
         registeredParsers = {};
     };
 
+    /**
+     * Registers a custom parser to transform data during hydration and reactivity.
+     * A parser must be an object with `parse` and `format` methods.
+     * @param {string} name - The name of the parser, used in directives (e.g., `::text:my-parser`).
+     * @param {{parse: function, format: function}} parser - The parser object.
+     */
     const addParser = (name, parser) => {
-        if (!parser || typeof parser.parse !== 'function' || typeof parser.format !== 'function') {
-            console.error(`[CuboMX] Parser '${name}' must be an object with 'parse' and 'format' methods.`);
+        if (
+            !parser ||
+            typeof parser.parse !== "function" ||
+            typeof parser.format !== "function"
+        ) {
+            console.error(
+                `[CuboMX] Parser '${name}' must be an object with 'parse' and 'format' methods.`
+            );
             return;
         }
         registeredParsers[name] = parser;
