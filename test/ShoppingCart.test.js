@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CuboMX } from "../src/CuboMX.js";
 
 describe("Shopping Cart Integration Test", () => {
-    const cartComponent = {
+    const getCartComponent = () => ({
         items: [],
         total: null,
 
@@ -26,7 +26,7 @@ describe("Shopping Cart Integration Test", () => {
                 return accumulator + (currentItem.total || 0);
             }, 0);
         },
-    };
+    });
 
     beforeEach(() => {
         document.body.innerHTML = `
@@ -41,22 +41,22 @@ describe("Shopping Cart Integration Test", () => {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr id="item1">
+                        <tr id="item1" mx-item="items">
                             <td ::text="description">Gaming Mouse</td>
                             <td>
-                                <button class="sub">-</button>
+                                <button class="sub" mx-on:click="subUn($item)">-</button>
                                 <span ::text="qty">2</span>
-                                <button class="add">+</button>
+                                <button class="add" mx-on:click="addUn($item)">+</button>
                             </td>
                             <td class="price" ::text:currency="price">$ 19</td>
                             <td class="total" ::text:currency="total">$ 38</td>
                         </tr>
-                        <tr id="item2">
+                        <tr id="item2" mx-item="items">
                             <td ::text="description">Gaming Keyboard</td>
                             <td>
-                                <button class="sub">-</button>
+                                <button class="sub" mx-on:click="subUn($item)">-</button>
                                 <span ::text="qty">2</span>
-                                <button class="add">+</button>
+                                <button class="add" mx-on:click="addUn($item)">+</button>
                             </td>
                             <td class="price" ::text:currency="price">$ 29</td>
                             <td class="total" ::text:currency="total">$ 58</td>
@@ -67,7 +67,7 @@ describe("Shopping Cart Integration Test", () => {
             </div>
         `;
         CuboMX.reset();
-        CuboMX.component("cart", cartComponent);
+        CuboMX.component("cart", getCartComponent);
     });
 
     it('should immediately re-format currency values on hydration', () => {
@@ -103,9 +103,6 @@ describe("Shopping Cart Integration Test", () => {
         expect(grandTotal.textContent).toBe('$96.00');
 
         // --- Act ---
-        // Monkey-patch the component methods to add the event listeners
-        const item1Proxy = CuboMX.cart.items[0];
-        item1AddBtn.addEventListener('click', () => CuboMX.cart.addUn(item1Proxy));
         item1AddBtn.click();
 
         // --- Assert ---

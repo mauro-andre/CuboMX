@@ -409,16 +409,21 @@ const CuboMX = (() => {
 
             const binding = {
                 el,
-                evaluate: () => {
+                initialRun: true,
+                evaluate: function () {
                     const value = evaluate(expression, el);
                     const propToSet = camelToKebab(directiveProp);
-                    if (getDOMValue(el, propToSet, parserName) !== value) {
+                    if (
+                        this.initialRun ||
+                        getDOMValue(el, propToSet, parserName) !== value
+                    ) {
                         setDOMValue(
                             el,
                             propToSet,
                             value ?? (directiveProp === "checked" ? false : ""),
                             parserName
                         );
+                        this.initialRun = false;
                     }
                 },
             };
@@ -506,6 +511,13 @@ const CuboMX = (() => {
             enumerable: true,
             configurable: true,
         });
+
+        // When a parser is present, we need to force an initial format pass.
+        // Reading the value triggers the 'parse' and writing it back triggers the 'format'.
+        if (parserName && registeredParsers[parserName]) {
+            const initialValue = itemObject[propertyName];
+            itemObject[propertyName] = initialValue;
+        }
 
         if (propToBind === "value" || propToBind === "checked") {
             const eventName = propToBind === "checked" ? "change" : "input";
