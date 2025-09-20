@@ -175,7 +175,7 @@ const CuboMX = (() => {
                 }
                 return success;
             },
-            get(target, property) {
+            get(target, property, receiver) {
                 if (property === "$watch") {
                     return (propToWatch, callback) => {
                         const path = `${name}.${propToWatch}`;
@@ -185,7 +185,14 @@ const CuboMX = (() => {
                 if (property === "$el") {
                     return el;
                 }
-                return Reflect.get(target, property);
+
+                const value = Reflect.get(target, property, receiver);
+
+                if (typeof value === "function") {
+                    return value.bind(receiver);
+                }
+
+                return value;
             },
         };
         return new Proxy(obj, handler);
