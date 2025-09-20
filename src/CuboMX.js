@@ -14,6 +14,7 @@ const CuboMX = (() => {
     let templates = {};
     let config = {};
     let registeredParsers = {};
+    let observer = null;
 
     const kebabToCamel = (str) =>
         str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
@@ -74,9 +75,6 @@ const CuboMX = (() => {
             return;
         }
 
-        // Create a context object that inherits from the global scope (activeProxies).
-        // Then, assign properties from the local scope to the new context.
-        // This ensures local properties shadow global ones during evaluation.
         const context = Object.assign(Object.create(activeProxies), localScope);
 
         try {
@@ -690,7 +688,7 @@ const CuboMX = (() => {
 
         processInit(initQueue);
 
-        const observer = new MutationObserver((mutations) => {
+        observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType !== 1) return;
@@ -718,6 +716,10 @@ const CuboMX = (() => {
     };
 
     const reset = () => {
+        if (observer) {
+            observer.disconnect();
+            observer = null;
+        }
         registeredComponents = {};
         registeredStores = {};
         watchers = {};
