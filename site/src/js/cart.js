@@ -3,7 +3,10 @@ const cart = {
     total: null,
 
     init() {
-        console.log(this.total)
+        this.total = this.items.reduce((accumulator, currentItem) => {
+            return accumulator + currentItem.total;
+        }, 0);
+        console.log(this.total);
     },
 
     addUn(item) {
@@ -23,7 +26,7 @@ const cart = {
         this.total = this.items.reduce((accumulator, currentItem) => {
             return accumulator + currentItem.total;
         }, 0);
-        console.log(this.total)
+        console.log(this.total);
     },
 };
 

@@ -57,7 +57,7 @@ const CuboMX = (() => {
     };
 
     const evaluate = (expression, el) => {
-        const localScope = findComponentProxyFor(el) || {};
+        const localScope = findComponentProxyFor(el);
 
         if (expression.startsWith("$")) {
             const globalExpression = expression.substring(1);
@@ -71,9 +71,14 @@ const CuboMX = (() => {
                     e
                 );
             }
+            return;
         }
 
-        const context = { ...activeProxies, ...localScope };
+        // Create a context object that inherits from the global scope (activeProxies).
+        // Then, assign properties from the local scope to the new context.
+        // This ensures local properties shadow global ones during evaluation.
+        const context = Object.assign(Object.create(activeProxies), localScope);
+
         try {
             return new Function(`with(this) { return ${expression} }`).call(
                 context
@@ -402,9 +407,17 @@ const CuboMX = (() => {
                 isInitialLoad &&
                 (context[key] === null || context[key] === undefined)
             ) {
-                context[key] = getDOMValue(el, camelToKebab(directiveProp), parserName);
+                context[key] = getDOMValue(
+                    el,
+                    camelToKebab(directiveProp),
+                    parserName
+                );
             } else if (!isInitialLoad) {
-                context[key] = getDOMValue(el, camelToKebab(directiveProp), parserName);
+                context[key] = getDOMValue(
+                    el,
+                    camelToKebab(directiveProp),
+                    parserName
+                );
             }
 
             const binding = {
@@ -432,7 +445,11 @@ const CuboMX = (() => {
 
             const eventName = directiveProp === "checked" ? "change" : "input";
             el.addEventListener(eventName, () => {
-                context[key] = getDOMValue(el, camelToKebab(directiveProp), parserName);
+                context[key] = getDOMValue(
+                    el,
+                    camelToKebab(directiveProp),
+                    parserName
+                );
             });
         },
         "mx-bind": (el, expression) => {
@@ -491,11 +508,23 @@ const CuboMX = (() => {
             const itemObject = parentItemEl.__cubo_item_object__;
             const [propToBind, parserName] = attr.name.substring(8).split(":");
             const propertyName = attr.value;
-            populateItemObject(el, itemObject, propToBind, propertyName, parserName);
+            populateItemObject(
+                el,
+                itemObject,
+                propToBind,
+                propertyName,
+                parserName
+            );
         },
     };
 
-    const populateItemObject = (el, itemObject, propToBind, propertyName, parserName) => {
+    const populateItemObject = (
+        el,
+        itemObject,
+        propToBind,
+        propertyName,
+        parserName
+    ) => {
         if (propToBind === "class") {
             itemObject[propertyName] = createClassProxy(el).class;
             return;
@@ -522,7 +551,11 @@ const CuboMX = (() => {
         if (propToBind === "value" || propToBind === "checked") {
             const eventName = propToBind === "checked" ? "change" : "input";
             el.addEventListener(eventName, () => {
-                itemObject[propertyName] = getDOMValue(el, propToBind, parserName);
+                itemObject[propertyName] = getDOMValue(
+                    el,
+                    propToBind,
+                    parserName
+                );
             });
         }
     };
@@ -698,8 +731,14 @@ const CuboMX = (() => {
     };
 
     const addParser = (name, parser) => {
-        if (!parser || typeof parser.parse !== 'function' || typeof parser.format !== 'function') {
-            console.error(`[CuboMX] Parser '${name}' must be an object with 'parse' and 'format' methods.`);
+        if (
+            !parser ||
+            typeof parser.parse !== "function" ||
+            typeof parser.format !== "function"
+        ) {
+            console.error(
+                `[CuboMX] Parser '${name}' must be an object with 'parse' and 'format' methods.`
+            );
             return;
         }
         registeredParsers[name] = parser;
