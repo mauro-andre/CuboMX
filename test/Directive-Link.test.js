@@ -7,6 +7,7 @@ vi.mock('../src/request.js', () => ({
     request: vi.fn(() => Promise.resolve({ ok: true })),
     swapHTML: vi.fn(),
     processActions: vi.fn(),
+    stream: vi.fn(),
 }));
 
 describe('CuboMX - mx-link Directive', () => {

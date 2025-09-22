@@ -82,6 +82,40 @@ describe('CuboMX Utilities', () => {
 
             expect(window.history.pushState).toHaveBeenCalledWith({ swaps: [] }, "", "/new-page");
         });
+
+        describe('Shorthand Strategy', () => {
+            it('should infer select from target when select is missing (outerHTML)', () => {
+                // Arrange: target in DOM, source in HTML string
+                document.body.innerHTML = '<div id="content">Original Content</div>';
+                const sourceHtml = '<div><h1 id="content">New Content</h1></div>';
+                
+                // Act: Use strategy with only a target
+                const strategies = [{ target: '#content' }];
+                CuboMX.swapHTML(sourceHtml, strategies);
+
+                // Assert: The original #content div should be replaced by the h1
+                const newEl = document.querySelector('#content');
+                expect(newEl).not.toBeNull();
+                expect(newEl.tagName).toBe('H1');
+                expect(newEl.textContent).toBe('New Content');
+            });
+
+            it('should infer select from target when a swap mode is present (innerHTML)', () => {
+                // Arrange: target in DOM, source in HTML string
+                document.body.innerHTML = '<div id="content">Original Content</div>';
+                const sourceHtml = '<div><div id="content"><strong>New HTML</strong></div></div>';
+
+                // Act: Use strategy with only a target and a swap mode
+                const strategies = [{ target: '#content:innerHTML' }];
+                CuboMX.swapHTML(sourceHtml, strategies);
+
+                // Assert: The innerHTML of the original div should be updated
+                const newEl = document.querySelector('#content');
+                expect(newEl).not.toBeNull();
+                expect(newEl.tagName).toBe('DIV'); // The element itself is unchanged
+                expect(newEl.innerHTML).toBe('<strong>New HTML</strong>');
+            });
+        });
     });
 
     // --- Tests for actions (processActions) ---

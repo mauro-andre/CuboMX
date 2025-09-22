@@ -263,6 +263,37 @@ When `mx-link` is added to an anchor tag, it automatically:
 2.  Calls `CuboMX.request` using the link's `href`.
 3.  Sets `history: true` and `pushUrl: true` to update the browser's address bar and history.
 
+By default, `mx-link` expects the server to control the DOM update by sending an `X-Swap-Strategies` header or by sending a response that is compatible with the **"smart swap"** mechanism. However, you can also control the swap behavior directly from the HTML.
+
+#### Client-Side Swapping with `mx-target`
+
+For greater frontend control, you can add the `mx-target` attribute to your link. This allows you to specify exactly where the content from the AJAX response should be placed, without needing to change the backend.
+
+-   `mx-target`: A CSS selector for the element on the current page that should be updated.
+-   `mx-select` (Optional): A CSS selector for the element to extract from the server's HTML response. If omitted, it defaults to the same selector as `mx-target`.
+
+**Example:** Let's refactor a sidebar navigation to be fully declarative.
+
+```html
+<!-- The main layout of your page -->
+<aside>
+    <nav>
+        <!-- This link will fetch /profile, find the #main-content element in the response,
+             and swap it into the #main-content element on the current page. -->
+        <a href="/profile" mx-link mx-target="#main-content">Profile</a>
+
+        <!-- This link does the same for the settings page. -->
+        <a href="/settings" mx-link mx-target="#main-content">Settings</a>
+    </nav>
+</aside>
+
+<main id="main-content">
+    <!-- Initial content goes here -->
+    <h1>Welcome</h1>
+</main>
+```
+This approach eliminates the need for custom JavaScript functions or backend headers for simple content swaps, making your code cleaner and more declarative.
+
 The server should respond with an `X-Swap-Strategies` header to instruct CuboMX on how to update the DOM. If this header is not found, CuboMX will attempt a **"smart swap"** by automatically comparing the received HTML with the current DOM (see `CuboMX.swapHTML` for details).
 
 **Example:**
@@ -690,6 +721,70 @@ loadMoreProducts() {
 -   `X-Push-Url`: A header specifying the URL to push to the browser's address bar.
 -   `X-Redirect`: A header that will cause a full page redirect to the specified URL.
 
+### CuboMX.stream(config)
+
+Establishes a persistent connection to the server using [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events), allowing for real-time, one-way communication from the server to the client. This is ideal for live notifications, chat messages, or any feature that requires automatic updates without constant polling.
+
+The function returns the underlying `EventSource` instance, allowing you to manually close the connection (e.g., in a component's `destroy` hook) by calling `.close()`.
+
+`CuboMX.stream` can operate in two modes:
+
+#### 1. Client-Decide Mode
+
+You provide an array of `listeners` that define how to handle different named events sent by the server. This gives the client full control over the DOM updates.
+
+**JS:**
+```javascript
+// In a component's init() method
+const stream = CuboMX.stream({
+    url: '/sse-endpoint',
+    listeners: [
+        {
+            event: 'new-message',
+            strategies: [{ target: '#chat-window:beforeend' }]
+        },
+        {
+            event: 'user-count-update',
+            strategies: [{ select: 'this', target: '#user-count:innerHTML' }]
+        }
+    ]
+});
+
+// It's good practice to close the connection when the component is destroyed
+// this.stream = stream; // Save the instance
+// destroy() { this.stream.close(); }
+```
+
+**Server-Side (Example):**
+The server just needs to send data preceded by `event: <event-name>\ndata: <html-string>\n\n`.
+
+```
+event: new-message
+data: <li>User 1: Hello!</li>
+
+event: user-count-update
+data: <span>125</span>
+```
+
+#### 2. Server-Commands Mode
+
+If you don't provide a `listeners` array, CuboMX will listen for default `message` events. In this mode, the server is expected to send a JSON payload containing the full instructions for the DOM update.
+
+**JS:**
+```javascript
+// No listeners defined, server is in control
+CuboMX.stream({ url: '/sse-endpoint-json' });
+```
+
+**Server-Side (Example):**
+The server sends a single JSON object with the HTML and the strategies/actions.
+
+```
+data: {"html": "<div class=\"toast\">New follower!</div>", "strategies": [{ "target": "#toast-container:afterbegin" }]}
+
+data: {"actions": [{ "action": "setTextContent", "selector": "#status", "text": "Connected" }]}
+```
+
 ### CuboMX.swapHTML(html, strategies, options)
 
 A powerful utility to swap parts of the DOM from a given HTML string, without making a request. It's the engine used internally by `CuboMX.request`.
@@ -713,6 +808,33 @@ CuboMX.swapHTML(notificationHtml, [
 
 A strategy is an object with a `select` and a `target` key:
 `{ select: '#source-element', target: '#destination-element:mode' }`
+
+-   **`select`**: A CSS selector that identifies the content to be extracted from the server's HTML response. You can also use the special value `'this'` to refer to the entire root of the incoming HTML fragment. This is particularly useful for responses that don't have a single root element or when you want to swap the entire fragment.
+-   **`target`**: A CSS selector for the element on the current page that should be updated.
+
+> #### Shorthand Strategy
+>
+> To make strategies more concise, you can omit the `select` property. CuboMX will automatically infer its value based on the `target`:
+>
+> 1.  **For Replacement Swaps:** If the `target`'s swap mode is `innerHTML`, `outerHTML`, or is not specified (defaulting to `outerHTML`), the `select` property will be inferred to be the same as the `target`.
+>
+>     ```javascript
+>     // This strategy:
+>     { target: '#content:innerHTML' }
+>
+>     // ...is equivalent to:
+>     { select: '#content:innerHTML', target: '#content:innerHTML' }
+>     ```
+>
+> 2.  **For Insertion Swaps:** If the `target`'s swap mode is for insertion (`beforeend`, `afterbegin`, `beforebegin`, or `afterend`), the `select` property will be automatically inferred as `'this'`. This allows you to easily append or prepend entire fragments received from the server.
+>
+>     ```javascript
+>     // This strategy:
+>     { target: '#notifications:beforeend' }
+>
+>     // ...is equivalent to:
+>     { select: 'this', target: '#notifications:beforeend' }
+>     ```
 
 **Swap Modes:**
 

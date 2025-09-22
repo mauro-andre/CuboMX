@@ -1,4 +1,4 @@
-import { request as a, swapHTML as b, processActions as d } from "./request.js";
+import { request as a, swapHTML as b, processActions as d, stream as e } from "./request.js";
 import { renderTemplate as c } from "./template.js";
 import { numberParser } from "./parsers/number.js";
 import { currencyParser } from "./parsers/currency.js";
@@ -370,12 +370,19 @@ const CuboMX = (() => {
             el.addEventListener("click", (event) => {
                 event.preventDefault();
                 const url = el.getAttribute("href");
-                a({
-                    // `a` is the imported `request` function
+                const requestConfig = {
                     url: url,
                     pushUrl: true,
                     history: true,
-                });
+                };
+
+                const target = el.getAttribute("mx-target");
+                if (target) {
+                    const select = el.getAttribute("mx-select") || target;
+                    requestConfig.strategies = [{ select, target }];
+                }
+
+                a(requestConfig); // `a` is the imported `request` function
             });
         },
         "mx-show": (el, expression) => {
@@ -670,7 +677,8 @@ const CuboMX = (() => {
             : [...removedNode.querySelectorAll("[mx-data]")];
 
         elementsWithData.forEach((el) => {
-            const componentName = el.getAttribute("mx-data").replace("()", "");
+            const rawName = el.getAttribute("mx-data").replace("()", "");
+            const componentName = kebabToCamel(rawName);
             const refName = el.getAttribute("mx-ref") || componentName;
             const proxy = activeProxies[refName];
 
@@ -783,8 +791,8 @@ const CuboMX = (() => {
     };
 
     const publicAPI = {
-        store: (name, obj) => (registeredStores[name] = obj),
-        component: (name, def) => (registeredComponents[name] = def),
+        store: (name, obj) => (registeredStores[kebabToCamel(name)] = obj),
+        component: (name, def) => (registeredComponents[kebabToCamel(name)] = def),
         addParser,
         watch,
         start,
@@ -801,6 +809,7 @@ const CuboMX = (() => {
             }
             return this.render(templateString, data);
         },
+        stream: e,
     };
 
     return new Proxy(publicAPI, {
