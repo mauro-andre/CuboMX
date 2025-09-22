@@ -177,54 +177,45 @@ const applySwaps = (strategies, htmlContent, rootElement = document) => {
         const parser = new DOMParser();
         const sourceDoc = parser.parseFromString(htmlContent, "text/html");
         for (const strategy of strategies) {
-            const { selector: sourceSelector, mode: sourceMode } =
-                parseSelector(strategy.select, "outerHTML");
+            let finalSelect = strategy.select;
 
-            let targetElement = strategy.target;
-            if (typeof strategy.target === "string") {
-                const { selector: targetSelector } = parseSelector(
-                    strategy.target,
-                    "outerHTML"
-                );
-                targetElement = rootElement.querySelector(targetSelector);
-            }
-
-            const { mode: targetMode } = parseSelector(
-                strategy.target,
-                "outerHTML"
-            );
-            const sourceElement = sourceDoc.querySelector(sourceSelector);
-
-            if (!sourceElement || !targetElement) continue;
-
-            if (strategy.sync) {
-                syncAttributes(targetElement, sourceElement);
-                const targetChildren = Array.from(
-                    targetElement.querySelectorAll("*")
-                );
-                const sourceChildren = Array.from(
-                    sourceElement.querySelectorAll("*")
-                );
-                if (targetChildren.length === sourceChildren.length) {
-                    targetChildren.forEach((child, i) => {
-                        syncAttributes(child, sourceChildren[i]);
-                    });
+            // Shorthand logic: if select is missing, infer it from target.
+            if (!finalSelect && strategy.target) {
+                const { mode: targetMode } = parseSelector(strategy.target, "outerHTML");
+                // If mode is for replacement, select is same as target.
+                if (targetMode === 'outerHTML' || targetMode === 'innerHTML') {
+                    finalSelect = strategy.target;
+                } 
+                // If mode is for insertion, select is 'this'.
+                else {
+                    finalSelect = 'this';
                 }
             }
 
-            if (strategy.replaceElements) {
-                replaceElements(
-                    targetElement,
-                    sourceElement,
-                    strategy.replaceElements
-                );
-            }
+            const { selector: sourceSelector, mode: sourceMode } = 
+                parseSelector(finalSelect, "outerHTML");
 
+            const { selector: targetSelector, mode: targetMode } = parseSelector(
+                strategy.target,
+                "outerHTML"
+            );
+            const targetElement = rootElement.querySelector(targetSelector);
+
+            // Determine the source element based on the selector.
+            const sourceElement = sourceSelector === 'this' 
+                ? sourceDoc.body
+                : sourceDoc.querySelector(sourceSelector);
+
+            if (!sourceElement || !targetElement) continue;
+
+            // Determine the content to swap.
+            const contentToSwap = (sourceSelector === 'this' || sourceMode === 'innerHTML')
+                ? sourceElement.innerHTML
+                : sourceElement.outerHTML;
+
+            // Other swap types like sync and replaceElements are not compatible with 'this' selector
+            // and will be skipped by the check above. We proceed with the main swap logic.
             if (!strategy.sync && !strategy.replaceElements) {
-                const contentToSwap =
-                    sourceMode === "innerHTML"
-                        ? sourceElement.innerHTML
-                        : sourceElement.outerHTML;
                 switch (targetMode) {
                     case "innerHTML":
                         targetElement.innerHTML = contentToSwap;
@@ -449,4 +440,70 @@ const request = async ({
 
 window.addEventListener("popstate", (event) => restoreState(event.state));
 
-export { request, swapHTML, processActions };
+/**
+ * @summary Establishes a persistent SSE connection to receive real-time updates from the server.
+ * @param {Object} config - The stream configuration object.
+ * @param {string} config.url - The URL of the SSE endpoint.
+ * @param {Array} [config.listeners=null] - An array of listener objects for client-defined behavior.
+ * @param {string} config.listeners[].event - The named event to listen for.
+ * @param {Array} config.listeners[].strategies - The swap strategies to apply for this event.
+ * @param {Array} [config.listeners[].actions=null] - The actions to execute for this event.
+ * @param {HTMLElement} [config.rootElement=document] - The root element for selector queries.
+ * @returns {EventSource} The underlying EventSource instance, allowing it to be closed manually.
+ */
+const stream = ({
+    url,
+    listeners = null,
+    rootElement = document
+}) => {
+    if (!url) {
+        console.error('[CuboMX.stream] URL is required.');
+        return null;
+    }
+
+    const eventSource = new EventSource(url);
+
+    if (listeners && listeners.length > 0) {
+        // Client-Decide Mode
+        listeners.forEach(listener => {
+            if (!listener.event) return;
+            eventSource.addEventListener(listener.event, (event) => {
+                const html = event.data;
+                const options = { rootElement };
+                if (listener.strategies) {
+                    swapHTML(html, listener.strategies, options);
+                }
+                if (listener.actions) {
+                    processActions(listener.actions, rootElement);
+                }
+            });
+        });
+    } else {
+        // Server-Commands Mode (fallback)
+        eventSource.onmessage = (event) => {
+            try {
+                const payload = JSON.parse(event.data);
+                const options = { rootElement };
+                if (payload.html && payload.strategies) {
+                    swapHTML(payload.html, payload.strategies, options);
+                }
+                if (payload.actions) {
+                    processActions(payload.actions, rootElement);
+                }
+            } catch (e) {
+                console.error("[CuboMX.stream] Failed to process server event. Data is not a valid JSON or is missing expected properties.", e);
+            }
+        };
+    }
+
+    eventSource.onerror = (err) => {
+        console.error("[CuboMX.stream] EventSource failed:", err);
+        // The browser will automatically try to reconnect, but we close it on error
+        // to prevent infinite loops on a 404, for example.
+        eventSource.close();
+    };
+
+    return eventSource;
+};
+
+export { request, swapHTML, processActions, stream };
