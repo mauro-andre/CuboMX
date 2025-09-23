@@ -1,6 +1,7 @@
 const cart = {
     items: [],
     total: null,
+    vrau: null,
 
     addUn(item) {
         item.qty += 1;

@@ -26,20 +26,20 @@ const nav = {
         });
     },
 
-    async goToPage(item) {
-        try {
-            await CuboMX.request({
-                url: item.href,
-                pushUrl: true,
-                history: true,
-                strategies: [
-                    { select: "#main-content", target: "#main-content" },
-                ],
-            });
-        } catch (error) {
-            console.log(error);
-        }
-    },
+    // async goToPage(item) {
+    //     try {
+    //         await CuboMX.request({
+    //             url: item.href,
+    //             pushUrl: true,
+    //             history: true,
+    //             strategies: [
+    //                 { select: "#main-content", target: "#main-content" },
+    //             ],
+    //         });
+    //     } catch (error) {
+    //         console.log(error);
+    //     }
+    // },
 };
 
 export { nav };
