@@ -208,6 +208,16 @@ const CuboMX = (() => {
         activeProxies[name] = proxy;
     };
 
+    const extractAttributesAsData = (el) => {
+        const data = {};
+        for (const attr of el.attributes) {
+            if (attr.name.startsWith("mx-") || attr.name === "class" || attr.name === "style") continue;
+            const value = attr.value === "" ? true : parseValue(attr.value, el);
+            data[kebabToCamel(attr.name)] = value;
+        }
+        return data;
+    };
+
     const processTemplates = (rootElement) => {
         const templatesToProcess = [];
         if (rootElement.matches("[mx-template]")) {
@@ -221,24 +231,23 @@ const CuboMX = (() => {
 
         uniqueTemplates.forEach((el) => {
             const name = el.getAttribute("mx-template");
-            if (templates[name]) return; // Already registered, skip.
+            if (templates[name]) return;
+
+            const metadata = extractAttributesAsData(el);
+            let templateHtml;
 
             if (el.tagName === 'TEMPLATE') {
-                templates[name] = el.innerHTML;
+                templateHtml = el.innerHTML;
                 el.remove();
             } else {
-                templates[name] = el.outerHTML;
+                templateHtml = el.outerHTML;
             }
+            templates[name] = { template: templateHtml, data: metadata };
         });
     };
 
     const extractDataFromElement = (el) => {
-        const data = {};
-        for (const attr of el.attributes) {
-            if (attr.name.startsWith("mx-") || attr.name === "class") continue;
-            const value = attr.value === "" ? true : parseValue(attr.value, el);
-            data[kebabToCamel(attr.name)] = value;
-        }
+        const data = extractAttributesAsData(el);
         data.text = el.textContent;
         data.html = el.innerHTML;
         if (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) {
@@ -809,13 +818,20 @@ const CuboMX = (() => {
         swapHTML: b,
         actions: d,
         render: c,
-        renderTemplate(templateName, data) {
-            const templateString = templates[templateName];
-            if (!templateString) {
+        getTemplate(templateName) {
+            const templateObj = templates[templateName];
+            if (!templateObj) {
                 console.error(`[CuboMX] Template '${templateName}' not found.`);
-                return "";
+                return undefined;
             }
-            return this.render(templateString, data);
+            return templateObj;
+        },
+        renderTemplate(templateName, data) {
+            const templateObj = this.getTemplate(templateName);
+            if (!templateObj) {
+                return ""; // getTemplate already logs the error
+            }
+            return this.render(templateObj.template, data);
         },
         stream: e,
     };
