@@ -37,40 +37,57 @@ const processActions = (actions, rootElement = document) => {
     if (!actions || !Array.isArray(actions)) return;
 
     for (const action of actions) {
-        const elements =
-            action.selector === "window"
-                ? [window]
-                : rootElement.querySelectorAll(action.selector);
-        if (!elements.length && action.selector !== "window") continue;
-
         switch (action.action) {
-            case "addClass":
-                elements.forEach((el) => el.classList.add(action.class));
+            // Actions that don't require a selector
+            case "pushUrl":
+                if (action.url) {
+                    window.history.pushState({}, action.title || "", action.url);
+                    if (action.title) {
+                        document.title = action.title;
+                    }
+                }
                 break;
-            case "removeClass":
-                elements.forEach((el) => el.classList.remove(action.class));
+
+            // Default case for actions that DO require a selector
+            default: {
+                const elements =
+                    action.selector === "window"
+                        ? [window]
+                        : rootElement.querySelectorAll(action.selector);
+                if (!elements.length && action.selector !== "window") continue;
+
+                switch (action.action) {
+                    case "addClass":
+                        elements.forEach((el) => el.classList.add(action.class));
+                        break;
+                    case "removeClass":
+                        elements.forEach((el) => el.classList.remove(action.class));
+                        break;
+                    case "setAttribute":
+                        elements.forEach((el) =>
+                            el.setAttribute(action.attribute, action.value)
+                        );
+                        break;
+                    case "removeElement":
+                        elements.forEach((el) => el.remove());
+                        break;
+                    case "setTextContent":
+                        elements.forEach((el) => (el.textContent = action.text));
+                        break;
+                    case "dispatchEvent": {
+                        const eventDetail = action.detail || {};
+                        const customEvent = new CustomEvent(action.event, {
+                            detail: eventDetail,
+                            bubbles: true,
+                            composed: true,
+                            cancelable: true,
+                        });
+                        elements.forEach((el) => el.dispatchEvent(customEvent));
+                        break;
+                    }
+                }
                 break;
-            case "setAttribute":
-                elements.forEach((el) =>
-                    el.setAttribute(action.attribute, action.value)
-                );
-                break;
-            case "removeElement":
-                elements.forEach((el) => el.remove());
-                break;
-            case "setTextContent":
-                elements.forEach((el) => (el.textContent = action.text));
-                break;
-            case "dispatchEvent":
-                const eventDetail = action.detail || {};
-                const customEvent = new CustomEvent(action.event, {
-                    detail: eventDetail,
-                    bubbles: true,
-                    composed: true,
-                    cancelable: true,
-                });
-                elements.forEach((el) => el.dispatchEvent(customEvent));
-                break;
+            }
         }
     }
 };

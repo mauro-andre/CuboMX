@@ -54,51 +54,58 @@ declare module 'cubomx' {
      */
     interface CuboMXAPI {
         /**
-         * Registers a component. A component can be a singleton (plain object)
-         * or a factory (a function that returns an object).
-         * @param name The name used in the `mx-data` attribute.
-         * @param definition The component object or factory function.
+         * @summary Registers a component.
+         * @param {string} name The name used in the `mx-data` attribute.
+         * @param {ComponentDefinition} definition The component object (singleton) or factory function.
          */
         component(name: string, definition: ComponentDefinition): void;
 
         /**
-         * Registers a global store. Stores are always singletons.
-         * @param name The name of the store, used to access it globally (e.g., `CuboMX.storeName`).
-         * @param object The store object.
+         * @summary Registers a global store.
+         * @param {string} name The name of the store, used for global access (e.g., `CuboMX.storeName`).
+         * @param {StoreDefinition} object The store object.
          */
         store(name: string, object: StoreDefinition): void;
 
         /**
-         * Registers a custom parser to transform data during hydration and reactivity.
-         * A parser must be an object with `parse` and `format` methods.
-         * @param name The name of the parser, used in directives (e.g., `::text:my-parser`).
-         * @param parser The parser object.
+         * @summary Registers a custom parser to transform data.
+         * @param {string} name The name of the parser, used in directives (e.g., `::text:my-parser`).
+         * @param {Parser} parser The parser object, containing `parse` and `format` methods.
          */
         addParser(name: string, parser: Parser): void;
 
         /**
-         * Watches a property on any global store or component for changes.
-         * @param path A string path to the property (e.g., 'componentName.propertyName' or 'storeName.propertyName').
-         * @param callback A function to execute when the property changes. It receives the new and old values.
+         * @summary Watches a property on any global store or component for changes.
+         * @param {string} path A string path to the property (e.g., 'componentName.propertyName').
+         * @param {function} callback A function to execute when the property changes.
          */
         watch(path: string, callback: (newValue: any, oldValue: any) => void): void;
 
         /**
-         * Scans the DOM, initializes all registered stores and components,
-         * and starts listening for DOM mutations. This function should be called
-         * once the entire application is ready.
-         * @param config Optional configuration object.
+         * @summary Initializes the framework, scanning the DOM and activating components.
+         * @param {object} [config] - Optional configuration object.
+         * @param {string} [config.locale='en-US'] - The default locale for formatting.
+         * @param {string} [config.currency='USD'] - The default currency code for formatting.
          */
         start(config?: {
-            /** The default locale for formatting, e.g., 'en-US', 'pt-BR'. */
             locale?: string;
-            /** The default currency code for formatting, e.g., 'USD', 'BRL'. */
             currency?: string;
         }): void;
 
         /**
-         * Performs an asynchronous request and updates the DOM based on the response.
-         * @param config The request configuration object.
+         * @summary Performs an asynchronous request and updates the DOM based on the response.
+         * @param {Object} config - The request configuration object.
+         * @param {string} config.url - The URL to which the request will be sent.
+         * @param {string} [config.method='GET'] - The HTTP method to use.
+         * @param {Object|FormData} [config.body=null] - The request body.
+         * @param {Object} [config.headers={}] - Custom request headers.
+         * @param {boolean} [config.pushUrl=false] - Fallback to update the URL if the backend does not send `X-Push-Url`.
+         * @param {boolean} [config.history=false] - Whether the change should be added to the browser history.
+         * @param {Array<string>} [config.loadingSelectors=[]] - Selectors to apply the 'x-request' class during the request.
+         * @param {Array<Object>} [config.strategies=null] - Swap strategies, with priority over server-sent ones.
+         * @param {Array<Object>} [config.actions=null] - Imperative actions to execute after the swap, with priority over server-sent ones.
+         * @param {HTMLElement} [config.rootElement=document] - The root element for selector queries.
+         * @returns {Promise<Object>} A promise that resolves with the status and final URL of the response.
          */
         request(config: {
             url: string;
@@ -114,10 +121,14 @@ declare module 'cubomx' {
         }): Promise<{ ok: boolean; status: number; url: string; redirected?: boolean; }>;
 
         /**
-         * Updates the DOM from an HTML string using specified strategies.
-         * @param htmlContent The source HTML content.
-         * @param strategies The list of swap strategies.
-         * @param options Options for URL, history, and scope control.
+         * @summary Updates the DOM from an HTML string using specified strategies.
+         * @param {string} htmlContent - The source HTML content.
+         * @param {Array<Object>} strategies - The list of swap strategies.
+         * @param {Object} [options={}] - Options for URL, history, and scope control.
+         * @param {string} [options.targetUrl] - The new URL to display in the address bar.
+         * @param {boolean} [options.history] - Whether the change should be added to the browser history.
+         * @param {Array<Object>} [options.actions=null] - Imperative actions to execute after the swap.
+         * @param {HTMLElement} [options.rootElement=document] - The root element for selector queries.
          */
         swapHTML(htmlContent: string, strategies: object[], options?: {
             targetUrl?: string;
@@ -127,30 +138,30 @@ declare module 'cubomx' {
         }): void;
 
         /**
-         * Renders a template string with data by replacing `{{key}}` placeholders.
-         * @param templateString The template string to process.
-         * @param data A data object where keys match the placeholders.
-         * @returns The rendered HTML string.
+         * @summary Renders a template string with data by replacing `{{key}}` placeholders.
+         * @param {string} templateString The template string to process.
+         * @param {object} data A data object where keys match the placeholders.
+         * @returns {string} The rendered HTML string.
          */
         render(templateString: string, data: object): string;
 
         /**
-         * Renders a pre-registered template found in a `<template mx-template="name">` tag.
-         * @param templateName The name of the template to render.
-         * @param data A data object to populate the template.
-         * @returns The rendered HTML string.
+         * @summary Renders a pre-registered template.
+         * @param {string} templateName The name of the template to render.
+         * @param {object} data A data object to populate the template.
+         * @returns {string} The rendered HTML string.
          */
         renderTemplate(templateName: string, data: object): string;
 
         /**
-         * Programmatically executes a list of DOM actions.
-         * @param actions An array of action objects.
-         * @param rootElement The root element for selector queries.
+         * @summary Programmatically executes a list of DOM actions.
+         * @param {Array<Object>} actions An array of action objects.
+         * @param {HTMLElement} [rootElement=document] The root element for selector queries.
          */
         actions(actions: object[], rootElement?: HTMLElement): void;
 
         /**
-         * Resets the internal state of CuboMX. Used primarily for testing.
+         * @summary Resets the internal state of CuboMX. Used primarily for testing.
          */
         reset(): void;
 

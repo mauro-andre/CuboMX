@@ -923,3 +923,4 @@ showSuccess() {
 -   `{ action: 'removeElement', selector: '.temp' }`
 -   `{ action: 'setTextContent', selector: 'h1', text: 'New Title' }`
 -   `{ action: 'dispatchEvent', selector: 'button', event: 'custom-event', detail: { ... } }`
+-   `{ action: 'pushUrl', url: '/new-path', title: 'New Page Title' }`: Updates the browser's URL and, optionally, the document's title, adding a new entry to the session history.
