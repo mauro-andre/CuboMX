@@ -687,6 +687,44 @@ CuboMX.swapHTML(alertHtml, [
 ]);
 ```
 
+#### Step 4: Using Templates with Metadata
+
+The real power of attaching metadata to your templates comes from the `CuboMX.getTemplate()` method. While `renderTemplate()` is a quick way to get rendered HTML, `getTemplate()` gives you both the raw template string and the parsed metadata object.
+
+This allows you to create powerful, self-contained components. Let's expand on our previous login form example:
+
+**HTML:**
+```html
+<template
+  mx-template="resetPwdTemplate"
+  page-title="Reset Password"
+  data-url="/reset-password"
+>
+  <!-- ... form content ... -->
+</template>
+```
+
+**JavaScript:**
+```javascript
+const auth = {
+  htmlContent: null,
+  
+  goToResetPwd() {
+    // 1. Get the template and its metadata
+    const { template, data } = CuboMX.getTemplate("resetPwdTemplate");
+
+    // 2. Use the metadata to perform actions
+    CuboMX.actions([
+      { action: 'pushUrl', url: data.dataUrl, title: data.pageTitle }
+    ]);
+
+    // 3. Render the template and update the view
+    this.htmlContent = CuboMX.render(template, {});
+  }
+};
+```
+This pattern allows your backend to define not just the template's HTML, but also related configuration like the page title and URL, keeping all related logic neatly organized in your HTML.
+
 ## 8. Magic Properties
 
 Within a component's methods, you have access to special properties on `this`:
@@ -718,6 +756,7 @@ const searchField = {
 -   **`CuboMX.watch(path, callback)`**: Watches a property on any global store or component (e.g., `'theme.mode'`).
 -   **`CuboMX.render(templateString, data)`**: Renders a template string with data.
 -   **`CuboMX.renderTemplate(templateName, data)`**: Renders a pre-registered template.
+-   **`CuboMX.getTemplate(templateName)`**: Retrieves a pre-registered template, returning an object `{ template: string, data: object }` which contains the raw template HTML and any metadata extracted from its attributes.
 
 ### CuboMX.request(config)
 

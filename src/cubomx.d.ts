@@ -146,6 +146,13 @@ declare module 'cubomx' {
         render(templateString: string, data: object): string;
 
         /**
+         * @summary Gets a pre-registered template and its associated metadata.
+         * @param {string} templateName The name of the template to get.
+         * @returns {{ template: string, data: object } | undefined} An object with the template string and a data object with the metadata, or undefined if not found.
+         */
+        getTemplate(templateName: string): { template: string, data: object } | undefined;
+
+        /**
          * @summary Renders a pre-registered template.
          * @param {string} templateName The name of the template to render.
          * @param {object} data A data object to populate the template.
