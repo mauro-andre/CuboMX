@@ -719,21 +719,6 @@ const CuboMX = (() => {
         addParser("number", numberParser);
         addParser("currency", currencyParser);
 
-        for (const name in registeredStores) {
-            const proxy = createProxy({ ...registeredStores[name] }, name);
-            addActiveProxy(name, proxy);
-            if (proxy.init) initQueue.push(proxy);
-        }
-
-        const domInstances = scanDOM(document.body);
-        initQueue = initQueue.concat(domInstances);
-
-        processTemplates(document.body);
-        bindDirectives(document.body);
-        isInitialLoad = false;
-
-        processInit(initQueue);
-
         observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 mutation.addedNodes.forEach((node) => {
@@ -751,6 +736,21 @@ const CuboMX = (() => {
         });
 
         observer.observe(document.body, { childList: true, subtree: true });
+
+        for (const name in registeredStores) {
+            const proxy = createProxy({ ...registeredStores[name] }, name);
+            addActiveProxy(name, proxy);
+            if (proxy.init) initQueue.push(proxy);
+        }
+
+        const domInstances = scanDOM(document.body);
+        initQueue = initQueue.concat(domInstances);
+
+        processTemplates(document.body);
+        bindDirectives(document.body);
+        isInitialLoad = false;
+
+        processInit(initQueue);
 
         window.addEventListener("cubo:dom-updated", () => {
             for (const proxy of Object.values(activeProxies)) {
