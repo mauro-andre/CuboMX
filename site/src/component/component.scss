@@ -1,0 +1,5 @@
+@use "../scss/mixins" as *;
+
+.card-do-comp {
+    @extend .card-base
+}

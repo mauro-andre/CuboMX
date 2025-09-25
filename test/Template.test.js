@@ -73,4 +73,31 @@ describe("CuboMX - Template System", () => {
         expect(renderedHtml.trim()).toBe('<div>Dynamic!</div>');
         expect(document.querySelector('[mx-template="dynamicAlert"]')).toBeNull();
     });
+
+    it('should register a template from a regular element using its outerHTML and not remove it', () => {
+        document.body.innerHTML = `
+            <div id="component-source" mx-template="fromDiv">
+                <p>Hello, {{ name }}!</p>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        // Assert that the source element was NOT removed from the DOM
+        const sourceElement = document.getElementById('component-source');
+        expect(sourceElement).not.toBeNull();
+
+        // Render the template with some data
+        const renderedHtml = CuboMX.renderTemplate('fromDiv', { name: 'CuboMX' });
+
+        // Create a temporary element to inspect the rendered output
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = renderedHtml;
+        const renderedElement = tempDiv.firstElementChild;
+
+        // Assert that the rendered HTML is the outerHTML of the original element
+        expect(renderedElement.id).toBe('component-source');
+        expect(renderedElement.getAttribute('mx-template')).toBe('fromDiv');
+        expect(renderedElement.querySelector('p').textContent).toBe('Hello, CuboMX!');
+    });
 });
