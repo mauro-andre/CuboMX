@@ -616,9 +616,13 @@ You can access any Singleton or Factory instance (via `mx-ref`) from anywhere.
 
 While CuboMX prioritizes server-rendered HTML, it provides a template system for when you need to render new elements on the client-side (e.g., notifications, content from an AJAX response).
 
-**Step 1: Define the Template with `mx-template`**
+**Step 1: Define Your Template**
 
-Your backend renders an inert `<template>` tag.
+The `mx-template` directive is flexible and can be used in two ways, depending on your needs.
+
+#### A) Using the `<template>` Tag for Inert Content
+
+This is the standard approach for defining a piece of UI that you don't want to be visible on initial page load. CuboMX will register the content (`innerHTML`) of the `<template>` tag and then remove the tag itself from the DOM.
 
 ```html
 <template mx-template="error-alert">
@@ -631,6 +635,36 @@ Your backend renders an inert `<template>` tag.
 
 > [!IMPORTANT]
 > If your template engine (Jinja, Blade, etc.) also uses `{{...}}`, wrap the content in a "raw" block to prevent the server from processing it.
+
+#### B) Defining a Template from a Visible Element
+
+This powerful feature allows you to create a reusable template from any element that is already part of your rendered page. This is ideal for reducing duplication when you want to be able to re-render a component that was already sent by the server.
+
+When you place `mx-template` on a regular element (like a `<div>`), CuboMX registers the element's **entire `outerHTML`** as the template and **leaves the original element in the DOM**.
+
+**Example:** Imagine a login page where you might want to switch to a "reset password" view and then back again, all on the client side.
+
+```html
+<!-- The initial view rendered by the server -->
+<div id="auth-box">
+    <!-- This login form is visible, but also registered as a template for later use -->
+    <div mx-template="login-form">
+        <h1>Login</h1>
+        <form>...</form>
+        <a href="#" mx-on:click.prevent="showReset()">Forgot password?</a>
+    </div>
+</div>
+
+<!-- The reset form can be an inert template, as it's not visible initially -->
+<template mx-template="reset-form">
+    <div>
+        <h1>Reset Password</h1>
+        <form>...</form>
+        <a href="#" mx-on:click.prevent="showLogin()">Back to login</a>
+    </div>
+</template>
+```
+Now, `CuboMX.renderTemplate('login-form', ...)` can be called at any time to get the full login form HTML, even after you've swapped it out for the reset form.
 
 **Step 2: Render with JavaScript**
 
