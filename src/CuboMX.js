@@ -210,17 +210,25 @@ const CuboMX = (() => {
 
     const processTemplates = (rootElement) => {
         const templatesToProcess = [];
-        if (rootElement.matches("template[mx-template]")) {
+        if (rootElement.matches("[mx-template]")) {
             templatesToProcess.push(rootElement);
         }
         rootElement
-            .querySelectorAll("template[mx-template]")
+            .querySelectorAll("[mx-template]")
             .forEach((t) => templatesToProcess.push(t));
 
-        templatesToProcess.forEach((templateEl) => {
-            const name = templateEl.getAttribute("mx-template");
-            templates[name] = templateEl.innerHTML;
-            templateEl.remove();
+        const uniqueTemplates = [...new Set(templatesToProcess)];
+
+        uniqueTemplates.forEach((el) => {
+            const name = el.getAttribute("mx-template");
+            if (templates[name]) return; // Already registered, skip.
+
+            if (el.tagName === 'TEMPLATE') {
+                templates[name] = el.innerHTML;
+                el.remove();
+            } else {
+                templates[name] = el.outerHTML;
+            }
         });
     };
 
