@@ -153,6 +153,23 @@ declare module 'cubomx' {
         getTemplate(templateName: string): { template: string, data: object } | undefined;
 
         /**
+         * @summary Swaps a pre-registered template into the DOM, with automatic history handling.
+         * @description This function looks for URL and title information first in the `options` object, then in the template's HTML attributes (e.g., `url="..."` or `data-url="..."`).
+         * @param {string} templateName The name of the template to swap.
+         * @param {object} options Configuration for the swap operation.
+         * @param {string} options.target The CSS selector for the destination element (e.g., '#container:innerHTML').
+         * @param {boolean} [options.history] Explicitly controls history. If a URL is present, history is enabled by default. Set to `false` to disable.
+         * @param {string} [options.url] The URL for the history entry. Overrides URL from template metadata (e.g., `url="..."` or `data-url="..."`).
+         * @param {string} [options.pageTitle] The document title. Overrides title from template metadata (e.g., `page-title="..."` or `data-page-title="..."`).
+         */
+        swapTemplate(templateName: string, options: { 
+            target: string; 
+            history?: boolean; 
+            url?: string; 
+            pageTitle?: string; 
+        }): void;
+
+        /**
          * @summary Renders a pre-registered template.
          * @param {string} templateName The name of the template to render.
          * @param {object} data A data object to populate the template.

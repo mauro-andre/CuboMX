@@ -689,9 +689,9 @@ CuboMX.swapHTML(alertHtml, [
 
 #### Step 4: Using Templates with Metadata
 
-The real power of attaching metadata to your templates comes from the `CuboMX.getTemplate()` method. While `renderTemplate()` is a quick way to get rendered HTML, `getTemplate()` gives you both the raw template string and the parsed metadata object.
+The real power of attaching metadata to your templates comes when you use them for navigation. With the `CuboMX.swapTemplate()` helper function, this entire flow becomes a single, clean function call.
 
-This allows you to create powerful, self-contained components. Let's expand on our previous login form example:
+Let's look at the complete, recommended pattern:
 
 **HTML:**
 ```html
@@ -707,23 +707,19 @@ This allows you to create powerful, self-contained components. Let's expand on o
 **JavaScript:**
 ```javascript
 const auth = {
-  htmlContent: null,
-  
   goToResetPwd() {
-    // 1. Get the template and its metadata
-    const { template, data } = CuboMX.getTemplate("resetPwdTemplate");
-
-    // 2. Use the metadata to perform actions
-    CuboMX.actions([
-      { action: 'pushUrl', url: data.dataUrl, title: data.pageTitle }
-    ]);
-
-    // 3. Render the template and update the view
-    this.htmlContent = CuboMX.render(template, {});
+    // This single call does everything:
+    // 1. Gets the template and its metadata.
+    // 2. Uses the metadata to set the page title and push the new URL to history.
+    // 3. Swaps the template content into the specified target.
+    CuboMX.swapTemplate("resetPwdTemplate", { 
+        target: "#auth-form-wrapper:innerHTML",
+        history: true
+    });
   }
 };
 ```
-This pattern allows your backend to define not just the template's HTML, but also related configuration like the page title and URL, keeping all related logic neatly organized in your HTML.
+This pattern allows your backend to define not just the template's HTML, but also related configuration like the page title and URL, while keeping your JavaScript components clean and concise.
 
 ## 8. Magic Properties
 
@@ -757,6 +753,39 @@ const searchField = {
 -   **`CuboMX.render(templateString, data)`**: Renders a template string with data.
 -   **`CuboMX.renderTemplate(templateName, data)`**: Renders a pre-registered template.
 -   **`CuboMX.getTemplate(templateName)`**: Retrieves a pre-registered template, returning an object `{ template: string, data: object }` which contains the raw template HTML and any metadata extracted from its attributes.
+
+### CuboMX.swapTemplate(templateName, options)
+
+A high-level helper function that orchestrates getting a template, swapping it into the DOM, and automatically handling history and title updates. This is the preferred way to perform client-side navigation from a template.
+
+**Parameters:**
+
+-   `templateName` (string): The name of the template to render and swap.
+-   `options` (object): A configuration object.
+    -   `target` (string, **required**): The CSS selector for the destination element (e.g., `#container:innerHTML`).
+    -   `history` (boolean, optional): Explicitly controls history. If a URL is present (in options or metadata), history is enabled by default. Set to `false` to disable.
+    -   `url` (string, optional): The URL for the history entry. **Overrides** the `url` or `data-url` from the template's metadata.
+    -   `pageTitle` (string, optional): The document title. **Overrides** the `page-title` or `data-page-title` from the template's metadata.
+
+**Example:**
+
+```javascript
+// Given a template: <template mx-template="resetPwd" data-url="/reset" page-title="Reset Password">...</template>
+
+const auth = {
+  goToResetPwd() {
+    // This single call will get the template, set the title, update the URL, and swap the HTML.
+    CuboMX.swapTemplate("resetPwd", { target: "#auth-form-wrapper:innerHTML" });
+  },
+  
+  // You can also override the metadata from JavaScript:
+  goToResetPwdAsModal() {
+      CuboMX.swapTemplate("resetPwd", {
+          target: "#modal-body:innerHTML",
+          history: false // Don't create a history entry for a modal
+      });
+  }
+};
 
 ### CuboMX.request(config)
 

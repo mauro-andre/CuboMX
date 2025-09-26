@@ -833,6 +833,41 @@ const CuboMX = (() => {
             }
             return this.render(templateObj.template, data);
         },
+        swapTemplate(templateName, options = {}) {
+            const templateObj = this.getTemplate(templateName);
+            if (!templateObj) {
+                return; // getTemplate already logs the error
+            }
+
+            const { template, data: metadata } = templateObj;
+            const { target, history, url, pageTitle } = options;
+
+            if (!target) {
+                console.error("[CuboMX.swapTemplate] The 'target' option is required.");
+                return;
+            }
+
+            const finalUrl = url ?? metadata.url ?? metadata.dataUrl;
+            const finalTitle = pageTitle ?? metadata.pageTitle ?? metadata.dataPageTitle;
+            const isHistoryActive = !!finalUrl && history === true;
+
+            const strategies = [{ select: "this", target: target }];
+            const actions = [];
+            if (finalTitle && isHistoryActive) {
+                actions.push({ 
+                    action: "setTextContent", 
+                    selector: "title", 
+                    text: finalTitle 
+                });
+            }
+
+            const targetUrlForSwap = isHistoryActive ? finalUrl : null;
+            this.swapHTML(template, strategies, {
+                history: isHistoryActive,
+                targetUrl: targetUrlForSwap,
+                actions: actions,
+            });
+        },
         stream: e,
     };
 

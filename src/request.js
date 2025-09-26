@@ -86,7 +86,11 @@ const processActions = (actions, rootElement = document) => {
                         elements.forEach((el) => el.remove());
                         break;
                     case "setTextContent":
-                        elements.forEach((el) => (el.textContent = action.text));
+                        if (action.selector === 'title') {
+                            document.title = action.text;
+                        } else {
+                            elements.forEach((el) => (el.textContent = action.text));
+                        }
                         break;
                     case "dispatchEvent": {
                         const eventDetail = action.detail || {};
@@ -320,8 +324,8 @@ const processDOMUpdate = (
     }
 
     if (targetUrl) {
-        const stateObject = history ? { swaps: [] } : {};
-        window.history.pushState(stateObject, "", targetUrl);
+        const stateObject = history ? { swaps: [], title: document.title } : {};
+        window.history.pushState(stateObject, document.title, targetUrl);
     }
     window.dispatchEvent(new CustomEvent("cubo:dom-updated"));
 };
