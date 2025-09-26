@@ -847,9 +847,9 @@ const CuboMX = (() => {
                 return;
             }
 
-            const finalUrl = url ?? metadata.url ?? metadata.dataUrl;
-            const finalTitle = pageTitle ?? metadata.pageTitle ?? metadata.dataPageTitle;
-            const isHistoryActive = !!finalUrl && history === true;
+            const finalUrl = url ?? metadata.dataUrl ?? metadata.url;
+            const finalTitle = pageTitle ?? metadata.dataPageTitle ?? metadata.pageTitle;
+            const isHistoryActive = history === true || (history !== false && !!finalUrl);
 
             const strategies = [{ select: "this", target: target }];
             const actions = [];
@@ -861,10 +861,9 @@ const CuboMX = (() => {
                 });
             }
 
-            const targetUrlForSwap = isHistoryActive ? finalUrl : null;
             this.swapHTML(template, strategies, {
                 history: isHistoryActive,
-                targetUrl: targetUrlForSwap,
+                targetUrl: finalUrl,
                 actions: actions,
             });
         },
