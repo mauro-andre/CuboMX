@@ -80,4 +80,10 @@ describe("CuboMX Actions", () => {
         // Assert title was restored
         expect(document.title).toBe('Initial Swap Title');
     });
+
+    it('should set document.title directly via setTextContent action', () => {
+        document.title = 'Old';
+        CuboMX.actions([{ action: 'setTextContent', selector: 'title', text: 'New' }]);
+        expect(document.title).toBe('New');
+    });
 });

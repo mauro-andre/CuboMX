@@ -80,7 +80,7 @@ describe('CuboMX Utilities', () => {
 
             CuboMX.swapHTML(sourceHtml, strategies, options);
 
-            expect(window.history.pushState).toHaveBeenCalledWith({ swaps: [] }, "", "/new-page");
+            expect(window.history.pushState).toHaveBeenCalledWith({ swaps: [], title: "" }, "", "/new-page");
         });
 
         describe('Shorthand Strategy', () => {
