@@ -10,7 +10,15 @@ import morphdom from "morphdom";
  * Handles selectors that match multiple elements.
  */
 const restoreState = (state, rootElement = document) => {
-    if (!state || !state.swaps) return;
+    if (!state) return;
+
+    // Restore title if it exists in the state
+    if (state.title) {
+        document.title = state.title;
+    }
+
+    if (!state.swaps) return; // Check for swaps after handling title
+
     for (const swap of state.swaps) {
         const { selector: targetSelector } = parseSelector(
             swap.selector,
@@ -41,7 +49,13 @@ const processActions = (actions, rootElement = document) => {
             // Actions that don't require a selector
             case "pushUrl":
                 if (action.url) {
-                    window.history.pushState({}, action.title || "", action.url);
+                    // First, update the state for the CURRENT page to include its title
+                    const currentState = window.history.state || {};
+                    window.history.replaceState({ ...currentState, title: document.title }, "", window.location.href);
+
+                    // Now, push the NEW page state
+                    const newTitle = action.title || document.title;
+                    window.history.pushState({ title: newTitle }, newTitle, action.url);
                     if (action.title) {
                         document.title = action.title;
                     }
@@ -294,7 +308,7 @@ const processDOMUpdate = (
     if (history && targetUrl) {
         const currentState = captureState(strategies, actions, rootElement);
         window.history.replaceState(
-            { swaps: currentState },
+            { swaps: currentState, title: document.title }, // Save title
             "",
             window.location.href
         );
