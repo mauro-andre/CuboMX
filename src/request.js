@@ -323,8 +323,8 @@ const processDOMUpdate = (
         processActions(actions, rootElement);
     }
 
-    if (targetUrl) {
-        const stateObject = history ? { swaps: [], title: document.title } : {};
+    if (history && targetUrl) {
+        const stateObject = { swaps: [], title: document.title };
         window.history.pushState(stateObject, document.title, targetUrl);
     }
     window.dispatchEvent(new CustomEvent("cubo:dom-updated"));

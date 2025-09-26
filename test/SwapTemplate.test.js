@@ -61,7 +61,7 @@ describe("CuboMX.swapTemplate", () => {
         expect(pushStateSpy).toHaveBeenCalledWith({ swaps: [], title: 'Overridden Title' }, 'Overridden Title', '/overridden-path');
     });
 
-    it('should NOT update history if history option is false or omitted', () => {
+    it('should NOT update history if history option is explicitly false', () => {
         const pushStateSpy = vi.spyOn(window.history, 'pushState');
         document.body.innerHTML = `
             <div id="container"></div>
@@ -71,10 +71,26 @@ describe("CuboMX.swapTemplate", () => {
         `;
         CuboMX.start();
 
-        CuboMX.swapTemplate('nav-link', { target: '#container' }); // history: false is default
+        CuboMX.swapTemplate('nav-link', { target: '#container:innerHTML', history: false });
 
         expect(pushStateSpy).not.toHaveBeenCalled();
         expect(document.title).not.toBe('New Page');
+    });
+
+    it('should implicitly update history if history option is omitted and url is present', () => {
+        const pushStateSpy = vi.spyOn(window.history, 'pushState');
+        document.body.innerHTML = `
+            <div id="container"></div>
+            <template mx-template="nav-link" page-title="New Page" data-url="/new-page">
+                <h1>New Page</h1>
+            </template>
+        `;
+        CuboMX.start();
+
+        CuboMX.swapTemplate('nav-link', { target: '#container:innerHTML' });
+
+        expect(document.title).toBe('New Page');
+        expect(pushStateSpy).toHaveBeenCalledWith({ swaps: [], title: 'New Page' }, 'New Page', '/new-page');
     });
 
     it('should do nothing and log an error if template does not exist', () => {
@@ -82,25 +98,38 @@ describe("CuboMX.swapTemplate", () => {
         document.body.innerHTML = `<div id="container">Original</div>`;
         CuboMX.start();
 
-        CuboMX.swapTemplate('non-existent', { target: '#container' });
+        CuboMX.swapTemplate('non-existent', { target: '#container:innerHTML' });
 
         expect(document.getElementById('container').textContent).toBe('Original'); // Content should not change
         expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Template 'non-existent' not found."));
     });
 
-    it('should use data-* attributes from metadata as a fallback', () => {
+    it('should implicitly enable history when url is passed in options', () => {
         const pushStateSpy = vi.spyOn(window.history, 'pushState');
-        document.body.innerHTML = `
-            <div id="container"></div>
-            <template mx-template="nav-link" data-page-title="Data Attr Page" data-url="/data-attr-page">
-                <h1>From Data Attr</h1>
-            </template>
-        `;
+        document.body.innerHTML = `<div id="container"></div><template mx-template="t1">Test</template>`;
         CuboMX.start();
 
-        CuboMX.swapTemplate('nav-link', { target: '#container', history: true });
+        CuboMX.swapTemplate('t1', {
+            target: '#container:innerHTML',
+            url: '/implicit-on',
+            pageTitle: 'Implicit On'
+        });
 
-        expect(document.title).toBe('Data Attr Page');
-        expect(pushStateSpy).toHaveBeenCalledWith(expect.any(Object), 'Data Attr Page', '/data-attr-page');
+        expect(document.title).toBe('Implicit On');
+        expect(pushStateSpy).toHaveBeenCalledWith(expect.any(Object), 'Implicit On', '/implicit-on');
+    });
+
+    it('should implicitly disable history when no url is provided', () => {
+        const pushStateSpy = vi.spyOn(window.history, 'pushState');
+        document.body.innerHTML = `<div id="container">Old</div><template mx-template="t2">New</template>`;
+        const originalTitle = "Original Title";
+        document.title = originalTitle;
+        CuboMX.start();
+
+        CuboMX.swapTemplate('t2', { target: '#container:innerHTML' });
+
+        expect(document.getElementById('container').textContent).toBe('New'); // a swap happened
+        expect(pushStateSpy).not.toHaveBeenCalled();
+        expect(document.title).toBe(originalTitle); // title did not change
     });
 });
