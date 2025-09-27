@@ -437,7 +437,7 @@ This powerful pattern allows you to keep your HTML semantic and structured logic
 -   **Attributes to Properties:** HTML attributes are converted to properties on the object.
 -   **Case Conversion:** `kebab-case` becomes `camelCase` (`user-id` -> `userId`).
 -   **Value Parsing:** Values are converted to the correct types (`"123"` -> `123`, `"true"` -> `true`). Attributes without a value become `true`.
--   **Special Properties:** `text` (`textContent`), `html` (`innerHTML`), and `class` (a reactive array of CSS classes) are always created.
+-   **Special Properties:** `text` (`textContent`), `html` (`innerHTML`), and `class` are always created. The `class` property is special: it's a reactive array-like object that mirrors the element's `classList`. You can manipulate it with standard array methods (`push`, `splice`, etc.) or with convenient helper methods (`add`, `remove`, `toggle`) attached directly to it.
 
 ### Granular Hydration
 
@@ -451,6 +451,11 @@ Sometimes, you don't need a whole object.
         <input type="text" :value="email" />
     </div>
     ```
+> **Note on `:class`:** The `:class` binding is special. Instead of binding to a string, it hydrates the property as a reactive array-like object for managing classes, identical to the `.class` property from a full `mx-bind`. This allows for more powerful and ergonomic class manipulation from your component state.
+> ```javascript
+> // component.myClasses is now a reactive array with .add(), .remove(), .toggle()
+> component.myClasses.add('new-class');
+> ```
 > **Shorthand and Ambiguity Warning**
 >
 > The `:` shorthand is an alias **exclusively** for `mx-bind:`. Its purpose is to bind HTML attributes. **Do not** use it as a shorthand for `mx-item:prop`, as this will lead to unexpected behavior.
@@ -559,18 +564,33 @@ userCard.userId = 100;
 
 // Changes the element's text
 userCard.text = "Welcome, Mauro!";
-
-// Adds the "highlight" class to the element
-userCard.class.push("highlight");
 ```
 
-### Class Manipulation Helpers
+### Manipulating CSS Classes
 
-For convenience, the hydrated object comes with methods to manage classes:
+When an element is hydrated using `mx-bind` or a class property is bound using `:class` or `::class`, the corresponding `class` property in your state becomes a powerful, array-like object. It's a proxy to the element's `classList` that you can manipulate directly.
 
--   `myObject.addClass('class-name')`
--   `myObject.removeClass('class-name')`
--   `myObject.toggleClass('class-name')`
+It supports standard array mutation methods:
+```javascript
+// Adds the "highlight" class
+myObject.class.push("highlight");
+
+// Removes the first class
+myObject.class.splice(0, 1);
+```
+
+For convenience and to mimic the native `classList` API, it also includes `.add()`, `.remove()`, and `.toggle()` methods. The `.add()` method will not add a class if it already exists.
+```javascript
+// Add a class
+myObject.class.add('active');
+
+// Remove a class
+myObject.class.remove('highlight');
+
+// Toggle a class
+myObject.class.toggle('is-visible');
+```
+This unified approach works for full bindings (`myObject.class.add(...)`) and granular class bindings (`myClasses.add(...)`).
 
 ## 6. Scopes: The Power of Local and the Flexibility of Global
 

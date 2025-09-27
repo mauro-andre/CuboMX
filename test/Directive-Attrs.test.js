@@ -28,8 +28,8 @@ describe("CuboMX - mx-bind Directive", () => {
         const attrs = CuboMX.myComp.myAttrs;
         expect(attrs).toBeDefined();
         expect(attrs.href).toBe("/um/path");
-        expect(attrs.dataId).toBe(123); // Changed from data-id to dataId, and '123' to 123
-        expect(attrs.class).toEqual(["text-class", "active"]);
+        expect(attrs.dataId).toBe(123); // Changed from data-id to dataId
+        expect(Array.from(attrs.class)).toEqual(["text-class", "active"]);
         expect(attrs.text).toBe("Um texto");
         expect(attrs.html).toBe("<span>Um texto</span>");
 
