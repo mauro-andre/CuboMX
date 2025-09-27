@@ -182,10 +182,10 @@ describe("CuboMX - Composite Item Hydration (`mx-item` v2)", () => {
 
         // 1. --- Initial Hydration Assertions ---
         expect(item.id).toBe('PROD-123');
-        expect(item.editBtnClass).toEqual(['btn']);
+        expect(Array.from(item.editBtnClass)).toEqual(['btn']);
         expect(item.description).toBe('Initial <strong>HTML</strong>');
         expect(item.statusText).toBe('Pending');
-        expect(item.stockIndicatorClass).toEqual(['text-green']);
+        expect(Array.from(item.stockIndicatorClass)).toEqual(['text-green']);
 
         // 2. --- Reactivity Assertions (State -> DOM) ---
 

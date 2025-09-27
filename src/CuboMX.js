@@ -288,20 +288,34 @@ const CuboMX = (() => {
             },
         });
 
+        // Attach helper methods directly to the proxy object for better ergonomics
+        classProxy.add = (className) => {
+            if (!classProxy.includes(className)) {
+                classProxy.push(className);
+            }
+        };
+
+        classProxy.remove = (className) => {
+            const index = classProxy.indexOf(className);
+            if (index > -1) {
+                classProxy.splice(index, 1);
+            }
+        };
+
+        classProxy.toggle = (className) => {
+            const index = classProxy.indexOf(className);
+            if (index > -1) {
+                classProxy.splice(index, 1);
+            } else {
+                classProxy.push(className);
+            }
+        };
+
         const helpers = {
             class: classProxy,
-            addClass: (className) => {
-                if (!classProxy.includes(className)) classProxy.push(className);
-            },
-            removeClass: (className) => {
-                const index = classProxy.indexOf(className);
-                if (index > -1) classProxy.splice(index, 1);
-            },
-            toggleClass: (className) => {
-                const index = classProxy.indexOf(className);
-                if (index > -1) classProxy.splice(index, 1);
-                else classProxy.push(className);
-            },
+            addClass: classProxy.add,
+            removeClass: classProxy.remove,
+            toggleClass: classProxy.toggle,
         };
 
         return helpers;
@@ -432,21 +446,25 @@ const CuboMX = (() => {
             const expression = attr.value;
             const { context, key } = getContextForExpression(expression, el);
 
+            const hydrate = () => {
+                if (directiveProp === 'class') {
+                    context[key] = createClassProxy(el).class;
+                } else {
+                    context[key] = getDOMValue(
+                        el,
+                        camelToKebab(directiveProp),
+                        parserName
+                    );
+                }
+            };
+
             if (
                 isInitialLoad &&
                 (context[key] === null || context[key] === undefined)
             ) {
-                context[key] = getDOMValue(
-                    el,
-                    camelToKebab(directiveProp),
-                    parserName
-                );
+                hydrate();
             } else if (!isInitialLoad) {
-                context[key] = getDOMValue(
-                    el,
-                    camelToKebab(directiveProp),
-                    parserName
-                );
+                hydrate();
             }
 
             const binding = {
