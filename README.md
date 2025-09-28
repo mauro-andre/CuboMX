@@ -707,6 +707,63 @@ CuboMX.swapHTML(alertHtml, [
 ]);
 ```
 
+#### Initializing Components with State
+
+A common challenge with client-side rendering is creating new components that need specific, dynamic data from the start. For example, rendering a new chat message requires setting its text and author, and a new alert needs its specific message and type (`success`, `error`, etc.).
+
+CuboMX solves this with the `state` option in `swapTemplate`. This option allows you to "inject" data directly into the components as they are being created from the template, bypassing both the component's default values and the standard DOM hydration.
+
+**Example:** Let's create a system to dynamically add alerts.
+
+**1. The Component Factory (JS):**
+Define a component with default values.
+```javascript
+CuboMX.component('alerta', () => ({
+    mensagem: 'Uma mensagem padrão.',
+    tipo: 'info' // e.g., 'info', 'success', 'error'
+}));
+```
+
+**2. The Template (HTML):**
+The template uses these properties to render itself.
+```html
+<template mx-template="alerta-template">
+    <div mx-data="alerta()" :class="`alert alert-${tipo}`" mx-show="true">
+        <p :text="mensagem">Texto do alerta aqui...</p>
+    </div>
+</template>
+```
+
+**3. Rendering with Initial State (JS):**
+When calling `swapTemplate`, pass a `state` object. The keys of this object must match the names of the components you want to initialize.
+
+```javascript
+// Add a success alert
+CuboMX.swapTemplate('alerta-template', {
+  target: '#alert-container:beforeend',
+  state: {
+    alerta: { // This key matches the component name 'alerta'
+      mensagem: 'Operação concluída com sucesso!',
+      tipo: 'success'
+    }
+  }
+});
+
+// Add an error alert moments later
+CuboMX.swapTemplate('alerta-template', {
+  target: '#alert-container:beforeend',
+  state: {
+    alerta: {
+      mensagem: 'Falha ao salvar os dados.',
+      tipo: 'danger'
+    }
+  }
+});
+```
+
+In this flow, the `state` object provides the initial data, ensuring each new alert component is "born" with the correct message and type, ignoring the defaults in the factory and the static text in the template.
+
+
 #### Step 4: Using Templates with Metadata
 
 The real power of attaching metadata to your templates comes when you use them for navigation. With the `CuboMX.swapTemplate()` helper function, this entire flow becomes a single, clean function call.
@@ -786,6 +843,7 @@ A high-level helper function that orchestrates getting a template, swapping it i
     -   `history` (boolean, optional): Explicitly controls history. If a URL is present (in options or metadata), history is enabled by default. Set to `false` to disable.
     -   `url` (string, optional): The URL for the history entry. **Overrides** the `url` or `data-url` from the template's metadata.
     -   `pageTitle` (string, optional): The document title. **Overrides** the `page-title` or `data-page-title` from the template's metadata.
+    -   `state` (object, optional): An object containing initial state for the components within the template. The object keys should match the component names (e.g., `{ myComp: { prop1: 'value' } }`). This state takes priority over default component values and DOM hydration.
 
 **Example:**
 
@@ -909,7 +967,7 @@ data: {"actions": [{ "action": "setTextContent", "selector": "#status", "text": 
 
 ### CuboMX.swapHTML(html, strategies, options)
 
-A powerful utility to swap parts of the DOM from a given HTML string, without making a request. It's the engine used internally by `CuboMX.request`.
+A powerful utility to swap parts of the DOM from a given HTML string, without making a request. It's the engine used internally by `CuboMX.request`. The optional third argument, `options`, can be used to control history or pass an initial `state` object to components being created.
 
 **Example:** This is useful for when you already have the HTML content and just need to place it in the DOM, for example, after rendering a client-side template.
 

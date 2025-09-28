@@ -458,13 +458,18 @@ const CuboMX = (() => {
                 }
             };
 
-            if (
-                isInitialLoad &&
-                (context[key] === null || context[key] === undefined)
-            ) {
-                hydrate();
-            } else if (!isInitialLoad) {
-                hydrate();
+            const componentRootEl = el.closest("[mx-data]");
+            const hasInitialState = componentRootEl && componentRootEl.__cubo_initial_state__;
+
+            if (!hasInitialState) {
+                if (
+                    isInitialLoad &&
+                    (context[key] === null || context[key] === undefined)
+                ) {
+                    hydrate();
+                } else if (!isInitialLoad) {
+                    hydrate();
+                }
             }
 
             const binding = {
@@ -671,6 +676,9 @@ const CuboMX = (() => {
 
             if (isFactory) {
                 const instanceObj = definition();
+                if (el.__cubo_initial_state__) {
+                    Object.assign(instanceObj, el.__cubo_initial_state__);
+                }
                 if (!refName) {
                     refName = `_cubo_${anonCounter++}`;
                     el.setAttribute("mx-ref", refName);
@@ -694,6 +702,10 @@ const CuboMX = (() => {
                             instance[key] = value;
                         }
                     }
+                }
+
+                if (el.__cubo_initial_state__) {
+                    Object.assign(instance, el.__cubo_initial_state__);
                 }
 
                 const proxy = createProxy(instance, componentName, el);
@@ -851,6 +863,17 @@ const CuboMX = (() => {
             }
             return this.render(templateObj.template, data);
         },
+        /**
+         * @summary Swaps a pre-registered template into the DOM, with automatic history handling.
+         * @description This function looks for URL and title information first in the `options` object, then in the template's HTML attributes (e.g., `url="..."` or `data-url="..."`). It also allows passing an initial state to the components being rendered.
+         * @param {string} templateName The name of the template to swap.
+         * @param {object} options Configuration for the swap operation.
+         * @param {string} options.target The CSS selector for the destination element (e.g., '#container:innerHTML').
+         * @param {boolean} [options.history] Explicitly controls history. If a URL is present, history is enabled by default. Set to `false` to disable.
+         * @param {string} [options.url] The URL for the history entry. Overrides URL from template metadata.
+         * @param {string} [options.pageTitle] The document title. Overrides title from template metadata.
+         * @param {object} [options.state] An object containing initial state for the components in the template. The keys should match the component names.
+         */
         swapTemplate(templateName, options = {}) {
             const templateObj = this.getTemplate(templateName);
             if (!templateObj) {
@@ -858,7 +881,7 @@ const CuboMX = (() => {
             }
 
             const { template, data: metadata } = templateObj;
-            const { target, history, url, pageTitle } = options;
+            const { target, history, url, pageTitle, state } = options;
 
             if (!target) {
                 console.error("[CuboMX.swapTemplate] The 'target' option is required.");
@@ -872,10 +895,10 @@ const CuboMX = (() => {
             const strategies = [{ select: "this", target: target }];
             const actions = [];
             if (finalTitle && isHistoryActive) {
-                actions.push({ 
-                    action: "setTextContent", 
-                    selector: "title", 
-                    text: finalTitle 
+                actions.push({
+                    action: "setTextContent",
+                    selector: "title",
+                    text: finalTitle
                 });
             }
 
@@ -883,6 +906,7 @@ const CuboMX = (() => {
                 history: isHistoryActive,
                 targetUrl: finalUrl,
                 actions: actions,
+                state: state,
             });
         },
         stream: e,

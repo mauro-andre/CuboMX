@@ -129,12 +129,14 @@ declare module 'cubomx' {
          * @param {boolean} [options.history] - Whether the change should be added to the browser history.
          * @param {Array<Object>} [options.actions=null] - Imperative actions to execute after the swap.
          * @param {HTMLElement} [options.rootElement=document] - The root element for selector queries.
+         * @param {object} [options.state] - An object containing initial state for any components in the `htmlContent`.
          */
         swapHTML(htmlContent: string, strategies: object[], options?: {
             targetUrl?: string;
             history?: boolean;
             actions?: object[] | null;
             rootElement?: HTMLElement;
+            state?: object;
         }): void;
 
         /**
@@ -154,19 +156,21 @@ declare module 'cubomx' {
 
         /**
          * @summary Swaps a pre-registered template into the DOM, with automatic history handling.
-         * @description This function looks for URL and title information first in the `options` object, then in the template's HTML attributes (e.g., `url="..."` or `data-url="..."`).
+         * @description This function looks for URL and title information first in the `options` object, then in the template's HTML attributes (e.g., `url="..."` or `data-url="..."`). It also allows passing an initial state to the components being rendered.
          * @param {string} templateName The name of the template to swap.
          * @param {object} options Configuration for the swap operation.
          * @param {string} options.target The CSS selector for the destination element (e.g., '#container:innerHTML').
          * @param {boolean} [options.history] Explicitly controls history. If a URL is present, history is enabled by default. Set to `false` to disable.
-         * @param {string} [options.url] The URL for the history entry. Overrides URL from template metadata (e.g., `url="..."` or `data-url="..."`).
-         * @param {string} [options.pageTitle] The document title. Overrides title from template metadata (e.g., `page-title="..."` or `data-page-title="..."`).
+         * @param {string} [options.url] The URL for the history entry. Overrides URL from template metadata.
+         * @param {string} [options.pageTitle] The document title. Overrides title from template metadata.
+         * @param {object} [options.state] An object containing initial state for the components in the template. The keys should match the component names.
          */
         swapTemplate(templateName: string, options: { 
             target: string; 
             history?: boolean; 
             url?: string; 
             pageTitle?: string; 
+            state?: object;
         }): void;
 
         /**
