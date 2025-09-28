@@ -9,6 +9,7 @@ const CuboMX = (() => {
     let watchers = {};
     let activeProxies = {};
     let anonCounter = 0;
+    let loadIdCounter = 0;
     let bindings = [];
     let isInitialLoad = true;
     let templates = {};
@@ -430,6 +431,27 @@ const CuboMX = (() => {
                 publicAPI.swapTemplate(templateName, { target });
             });
         },
+        "mx-load": (el, url) => {
+            let target = el.getAttribute("mx-target");
+            let select = el.getAttribute("mx-select");
+            let strategy = {};
+
+            if (target) {
+                strategy = { target };
+                if (select) {
+                    strategy.select = select;
+                }
+            } else {
+                if (!el.id) {
+                    el.id = `cubo-load-${loadIdCounter++}`;
+                }
+                target = `#${el.id}:outerHTML`;
+                select = select || 'this'; 
+                strategy = { select, target };
+            }
+            
+            publicAPI.request({ url, strategies: [strategy] });
+        },
         "mx-show": (el, expression) => {
             const originalDisplay =
                 el.style.display === "none" ? "" : el.style.display;
@@ -638,6 +660,8 @@ const CuboMX = (() => {
             if (el.hasAttribute("mx-link")) directiveHandlers["mx-link"](el);
             if (el.hasAttribute("mx-swap-template")) 
                 directiveHandlers["mx-swap-template"](el, el.getAttribute("mx-swap-template"));
+            if (el.hasAttribute("mx-load"))
+                directiveHandlers["mx-load"](el, el.getAttribute("mx-load"));
 
             for (const attr of [...el.attributes]) {
                 if (attr.name.startsWith("mx-bind:"))

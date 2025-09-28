@@ -366,6 +366,70 @@ By adding `mx-trigger`, you can change the event, for example, to load a preview
 ```
 In all cases, the directive automatically calls `event.preventDefault()` to prevent unwanted default behaviors, such as a link navigating to a new page.
 
+### `mx-load`
+
+This directive allows you to load content from a URL and swap it into the DOM as soon as the element is processed by CuboMX. It's a powerful tool for **lazy-loading** content, such as widgets, comment sections, or complex components, without needing to write any JavaScript. It acts as a declarative shorthand for `CuboMX.request`.
+
+**Attributes:**
+
+-   `mx-load="url"`: **(Required)** The URL to fetch the content from.
+-   `mx-target="css-selector"`: (Optional) The CSS selector of the element to be updated. If omitted, the element with `mx-load` will be replaced (self-replacement).
+-   `mx-select="css-selector"`: (Optional) A CSS selector to extract a specific part of the HTML response.
+
+#### Example 1: Loading Content into a Target
+
+This is the most common use case, where you have a placeholder element that triggers a load into another part of the page.
+
+```html
+<!-- This div will be populated with content from /my-widget -->
+<div id="widget-container"></div>
+
+<!-- When this div is processed, it will fetch /my-widget, find #widget-content
+     in the response, and swap it into #widget-container on this page. -->
+<div mx-load="/my-widget" mx-target="#widget-container" mx-select="#widget-content"></div>
+```
+> **Shorthand:** If `mx-select` is omitted, CuboMX assumes it is the same as `mx-target`.
+
+#### Example 2: Self-Replacement
+
+If you omit the `mx-target` attribute, the element carrying the `mx-load` directive will be replaced.
+
+```html
+<!-- This div will replace itself with the ENTIRE body of the /status response -->
+<div mx-load="/status">
+    Loading status...
+</div>
+
+<!-- This div will replace itself with just the #status-badge from the response -->
+<div mx-load="/status" mx-select="#status-badge">
+    Loading badge...
+</div>
+```
+
+#### Example 3: The Lazy-Loading Pattern
+
+The true power of `mx-load` is revealed when you combine it with other directives like `mx-swap-template`. This allows you to load content in stages.
+
+```html
+<!-- 1. A button to start the process -->
+<button mx-swap-template="comments-loader" mx-target="#comments-section:innerHTML">
+    Load Comments
+</button>
+
+<!-- 3. The final destination for the comments -->
+<div id="comments-section"></div>
+
+<!-- 2. The template, which contains a temporary loader state -->
+<template mx-template="comments-loader">
+    <!-- This div is a temporary loader. As soon as it appears in the DOM,
+         it triggers mx-load to fetch the actual comments and update the target. -->
+    <div mx-load="/api/comments" mx-target="#comments-section:innerHTML">
+        <p>Loading comments...</p>
+    </div>
+</template>
+```
+In this powerful pattern, clicking the button first renders a "Loading comments..." state. As soon as that loader element is added to the DOM, its `mx-load` directive is activated automatically, fetching the real content and swapping it into the final destination.
+
 ## 5. Hydration: HTML as the Source of Truth
 
 One of CuboMX's superpowers is hydration: the ability to read data directly from your server-rendered HTML and transform it into **reactive** JavaScript objects. This means that any change to these objects will update the DOM, and any change in the DOM (in forms) will update the objects.
