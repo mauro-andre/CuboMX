@@ -233,4 +233,53 @@ describe("CuboMX.swapTemplate", () => {
         expect(p.textContent).toBe('State for A');
         expect(h3.textContent).toBe('State for B');
     });
+
+    it('should create a reactive class proxy when initializing state for a :class binding', async () => {
+        CuboMX.component('alert', () => ({
+            alertClasses: null,
+            text: 'Default text'
+        }));
+    
+        document.body.innerHTML = `
+            <div id="container"></div>
+            <template mx-template="alert-template">
+                <div mx-data="alert()" mx-ref="myAlert" :class="alertClasses">
+                    <p :text="text"></p>
+                </div>
+            </template>
+        `;
+        CuboMX.start();
+    
+        CuboMX.swapTemplate('alert-template', {
+            target: '#container:innerHTML',
+            state: {
+                alert: {
+                    alertClasses: ['alert', 'alert-success'],
+                    text: 'Success!'
+                }
+            }
+        });
+    
+        await new Promise(resolve => setTimeout(resolve, 0));
+    
+        const alertComp = CuboMX.myAlert;
+        const divEl = document.querySelector('#container div');
+        const pEl = document.querySelector('#container p');
+    
+        expect(pEl.textContent).toBe('Success!');
+
+        expect(alertComp.alertClasses).toBeDefined();
+        expect(Array.isArray(alertComp.alertClasses)).toBe(true);
+        expect(typeof alertComp.alertClasses.add).toBe('function');
+        expect(typeof alertComp.alertClasses.remove).toBe('function');
+
+        expect(divEl.classList.contains('alert')).toBe(true);
+        expect(divEl.classList.contains('alert-success')).toBe(true);
+
+        alertComp.alertClasses.remove('alert-success');
+        alertComp.alertClasses.add('alert-warning');
+
+        expect(divEl.classList.contains('alert-success')).toBe(false);
+        expect(divEl.classList.contains('alert-warning')).toBe(true);
+    });
 });
