@@ -661,6 +661,40 @@ const CuboMX = (() => {
             ? [rootElement, ...rootElement.querySelectorAll("[mx-data]")]
             : [...rootElement.querySelectorAll("[mx-data]")];
 
+        const applyInitialState = (instance, componentEl) => {
+            if (!componentEl.__cubo_initial_state__) return;
+    
+            const initialState = componentEl.__cubo_initial_state__;
+    
+            const elementsWithClassBinding = [
+                ...(componentEl.hasAttribute(':class') ? [componentEl] : []),
+                ...componentEl.querySelectorAll('[\\:class]')
+            ];
+    
+            const classBoundProps = new Map();
+            elementsWithClassBinding.forEach(boundEl => {
+                if (boundEl.closest('[mx-data]') === componentEl) {
+                    classBoundProps.set(boundEl.getAttribute(':class'), boundEl);
+                }
+            });
+    
+            for (const propName in initialState) {
+                if (Object.hasOwnProperty.call(initialState, propName)) {
+                    if (classBoundProps.has(propName)) {
+                        const boundEl = classBoundProps.get(propName);
+                        const proxy = createClassProxy(boundEl).class;
+                        const initialClasses = initialState[propName];
+                        if (Array.isArray(initialClasses)) {
+                            initialClasses.forEach(c => proxy.add(c));
+                        }
+                        instance[propName] = proxy;
+                    } else {
+                        instance[propName] = initialState[propName];
+                    }
+                }
+            }
+        };
+
         elements.forEach((el) => {
             const expression = el.getAttribute("mx-data");
             const isFactory = expression.endsWith("()");
@@ -676,9 +710,7 @@ const CuboMX = (() => {
 
             if (isFactory) {
                 const instanceObj = definition();
-                if (el.__cubo_initial_state__) {
-                    Object.assign(instanceObj, el.__cubo_initial_state__);
-                }
+                applyInitialState(instanceObj, el);
                 if (!refName) {
                     refName = `_cubo_${anonCounter++}`;
                     el.setAttribute("mx-ref", refName);
@@ -704,9 +736,7 @@ const CuboMX = (() => {
                     }
                 }
 
-                if (el.__cubo_initial_state__) {
-                    Object.assign(instance, el.__cubo_initial_state__);
-                }
+                applyInitialState(instance, el);
 
                 const proxy = createProxy(instance, componentName, el);
                 addActiveProxy(componentName, proxy);
