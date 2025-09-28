@@ -51,11 +51,19 @@ const processActions = (actions, rootElement = document) => {
                 if (action.url) {
                     // First, update the state for the CURRENT page to include its title
                     const currentState = window.history.state || {};
-                    window.history.replaceState({ ...currentState, title: document.title }, "", window.location.href);
+                    window.history.replaceState(
+                        { ...currentState, title: document.title },
+                        "",
+                        window.location.href
+                    );
 
                     // Now, push the NEW page state
                     const newTitle = action.title || document.title;
-                    window.history.pushState({ title: newTitle }, newTitle, action.url);
+                    window.history.pushState(
+                        { title: newTitle },
+                        newTitle,
+                        action.url
+                    );
                     if (action.title) {
                         document.title = action.title;
                     }
@@ -72,10 +80,14 @@ const processActions = (actions, rootElement = document) => {
 
                 switch (action.action) {
                     case "addClass":
-                        elements.forEach((el) => el.classList.add(action.class));
+                        elements.forEach((el) =>
+                            el.classList.add(action.class)
+                        );
                         break;
                     case "removeClass":
-                        elements.forEach((el) => el.classList.remove(action.class));
+                        elements.forEach((el) =>
+                            el.classList.remove(action.class)
+                        );
                         break;
                     case "setAttribute":
                         elements.forEach((el) =>
@@ -86,10 +98,12 @@ const processActions = (actions, rootElement = document) => {
                         elements.forEach((el) => el.remove());
                         break;
                     case "setTextContent":
-                        if (action.selector === 'title') {
+                        if (action.selector === "title") {
                             document.title = action.text;
                         } else {
-                            elements.forEach((el) => (el.textContent = action.text));
+                            elements.forEach(
+                                (el) => (el.textContent = action.text)
+                            );
                         }
                         break;
                     case "dispatchEvent": {
@@ -203,10 +217,18 @@ const replaceElements = (targetElement, sourceElement, selectors) => {
     }
 };
 
+const kebabToCamel = (str) =>
+    str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+
 /**
  * Applies DOM swaps based on strategies and the source HTML.
  */
-const applySwaps = (strategies, htmlContent, rootElement = document) => {
+const applySwaps = (
+    strategies,
+    htmlContent,
+    rootElement = document,
+    state = null
+) => {
     // Priority 1: Explicit strategies always win.
     if (strategies && strategies.length > 0) {
         const parser = new DOMParser();
@@ -216,53 +238,79 @@ const applySwaps = (strategies, htmlContent, rootElement = document) => {
 
             // Shorthand logic: if select is missing, infer it from target.
             if (!finalSelect && strategy.target) {
-                const { mode: targetMode } = parseSelector(strategy.target, "outerHTML");
+                const { mode: targetMode } = parseSelector(
+                    strategy.target,
+                    "outerHTML"
+                );
                 // If mode is for replacement, select is same as target.
-                if (targetMode === 'outerHTML' || targetMode === 'innerHTML') {
+                if (targetMode === "outerHTML" || targetMode === "innerHTML") {
                     finalSelect = strategy.target;
-                } 
+                }
                 // If mode is for insertion, select is 'this'.
                 else {
-                    finalSelect = 'this';
+                    finalSelect = "this";
                 }
             }
 
-            const { selector: sourceSelector, mode: sourceMode } = 
+            const { selector: sourceSelector, mode: sourceMode } =
                 parseSelector(finalSelect, "outerHTML");
 
-            const { selector: targetSelector, mode: targetMode } = parseSelector(
-                strategy.target,
-                "outerHTML"
-            );
+            const { selector: targetSelector, mode: targetMode } =
+                parseSelector(strategy.target, "outerHTML");
             const targetElement = rootElement.querySelector(targetSelector);
 
             // Determine the source element based on the selector.
-            const sourceElement = sourceSelector === 'this' 
-                ? sourceDoc.body
-                : sourceDoc.querySelector(sourceSelector);
+            const sourceElement =
+                sourceSelector === "this"
+                    ? sourceDoc.body
+                    : sourceDoc.querySelector(sourceSelector);
 
             if (!sourceElement || !targetElement) continue;
 
-            // Determine the content to swap.
-            const contentToSwap = (sourceSelector === 'this' || sourceMode === 'innerHTML')
-                ? sourceElement.innerHTML
-                : sourceElement.outerHTML;
+            // Create a fragment and populate it with the nodes to be swapped.
+            const fragment = document.createDocumentFragment();
+            if (sourceSelector === "this" || sourceMode === "innerHTML") {
+                fragment.append(...Array.from(sourceElement.childNodes));
+            } else {
+                // outerHTML
+                fragment.append(sourceElement);
+            }
+
+            // Pre-process the fragment to attach initial state to components
+            if (state) {
+                const elements = fragment.querySelectorAll("[mx-data]");
+                elements.forEach((el) => {
+                    const componentName = kebabToCamel(
+                        el.getAttribute("mx-data").replace("()", "")
+                    );
+                    if (state[componentName]) {
+                        el.__cubo_initial_state__ = state[componentName];
+                    }
+                });
+            }
 
             // Other swap types like sync and replaceElements are not compatible with 'this' selector
             // and will be skipped by the check above. We proceed with the main swap logic.
             if (!strategy.sync && !strategy.replaceElements) {
+                // Use node-based insertion methods instead of string-based ones.
                 switch (targetMode) {
                     case "innerHTML":
-                        targetElement.innerHTML = contentToSwap;
+                        targetElement.replaceChildren(fragment);
                         break;
                     case "outerHTML":
-                        targetElement.outerHTML = contentToSwap;
+                        targetElement.replaceWith(fragment);
                         break;
-                    default:
-                        targetElement.insertAdjacentHTML(
-                            targetMode,
-                            contentToSwap
-                        );
+                    case "beforebegin":
+                        targetElement.before(fragment);
+                        break;
+                    case "afterbegin":
+                        targetElement.prepend(fragment);
+                        break;
+                    case "beforeend":
+                        targetElement.append(fragment);
+                        break;
+                    case "afterend":
+                        targetElement.after(fragment);
                         break;
                 }
             }
@@ -307,6 +355,7 @@ const processDOMUpdate = (
         history = false,
         rootElement = document,
         actions = null,
+        state = null,
     }
 ) => {
     if (history && targetUrl) {
@@ -317,7 +366,7 @@ const processDOMUpdate = (
             window.location.href
         );
     }
-    applySwaps(strategies, htmlContent, rootElement);
+    applySwaps(strategies, htmlContent, rootElement, state);
 
     if (actions) {
         processActions(actions, rootElement);
@@ -339,6 +388,7 @@ const processDOMUpdate = (
  * @param {boolean} [options.history] - Whether the change should be added to the browser history.
  * @param {Array<Object>} [options.actions=null] - Imperative actions to execute after the swap.
  * @param {HTMLElement} [options.rootElement=document] - The root element for selector queries.
+ * @param {object} [options.state] - An object containing initial state for any components in the `htmlContent`.
  */
 const swapHTML = (htmlContent, strategies, options = {}) => {
     processDOMUpdate(htmlContent, strategies, options);
@@ -486,13 +536,9 @@ window.addEventListener("popstate", (event) => restoreState(event.state));
  * @param {HTMLElement} [config.rootElement=document] - The root element for selector queries.
  * @returns {EventSource} The underlying EventSource instance, allowing it to be closed manually.
  */
-const stream = ({
-    url,
-    listeners = null,
-    rootElement = document
-}) => {
+const stream = ({ url, listeners = null, rootElement = document }) => {
     if (!url) {
-        console.error('[CuboMX.stream] URL is required.');
+        console.error("[CuboMX.stream] URL is required.");
         return null;
     }
 
@@ -500,7 +546,7 @@ const stream = ({
 
     if (listeners && listeners.length > 0) {
         // Client-Decide Mode
-        listeners.forEach(listener => {
+        listeners.forEach((listener) => {
             if (!listener.event) return;
             eventSource.addEventListener(listener.event, (event) => {
                 const html = event.data;
@@ -526,7 +572,10 @@ const stream = ({
                     processActions(payload.actions, rootElement);
                 }
             } catch (e) {
-                console.error("[CuboMX.stream] Failed to process server event. Data is not a valid JSON or is missing expected properties.", e);
+                console.error(
+                    "[CuboMX.stream] Failed to process server event. Data is not a valid JSON or is missing expected properties.",
+                    e
+                );
             }
         };
     }

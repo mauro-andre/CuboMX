@@ -132,4 +132,105 @@ describe("CuboMX.swapTemplate", () => {
         expect(pushStateSpy).not.toHaveBeenCalled();
         expect(document.title).toBe(originalTitle); // title did not change
     });
+
+    it('should initialize a component with the provided initial state', async () => {
+        const stateComp = () => ({
+            title: 'Default Title',
+            active: false
+        });
+        CuboMX.component('stateComp', stateComp);
+    
+        document.body.innerHTML = `
+            <div id="container"></div>
+            <template mx-template="state-template">
+                <div mx-data="stateComp()" mx-ref="myInstance">
+                    <h1 :text="title">Template Title</h1>
+                    <span mx-show="active">Active</span>
+                </div>
+            </template>
+        `;
+        CuboMX.start();
+    
+        CuboMX.swapTemplate('state-template', {
+            target: '#container:innerHTML',
+            state: {
+                stateComp: {
+                    title: 'Initial State Title',
+                    active: true
+                }
+            }
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 0));
+    
+        const h1 = document.querySelector('#container h1');
+        const span = document.querySelector('#container span');
+    
+        expect(h1.textContent).toBe('Initial State Title');
+        expect(span.style.display).not.toBe('none');
+        expect(CuboMX.myInstance.title).toBe('Initial State Title');
+        expect(CuboMX.myInstance.active).toBe(true);
+    });
+
+    it('should apply the same initial state to all instances of the same component type', async () => {
+        const itemComp = () => ({ value: 0 });
+        CuboMX.component('itemComp', itemComp);
+    
+        document.body.innerHTML = `
+            <div id="container"></div>
+            <template mx-template="list-template">
+                <div mx-data="itemComp()">
+                    <span :text="value"></span>
+                </div>
+                <div mx-data="itemComp()">
+                    <span :text="value"></span>
+                </div>
+            </template>
+        `;
+        CuboMX.start();
+    
+        CuboMX.swapTemplate('list-template', {
+            target: '#container:innerHTML',
+            state: {
+                itemComp: { value: 99 }
+            }
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 0));
+    
+        const spans = document.querySelectorAll('#container span');
+        expect(spans.length).toBe(2);
+        expect(spans[0].textContent).toBe('99');
+        expect(spans[1].textContent).toBe('99');
+    });
+
+    it('should apply correct initial state to different components in the same template', async () => {
+        CuboMX.component('compA', () => ({ text: 'Default A' }));
+        CuboMX.component('compB', () => ({ text: 'Default B' }));
+    
+        document.body.innerHTML = `
+            <div id="container"></div>
+            <template mx-template="mixed-template">
+                <div mx-data="compA()"><p :text="text"></p></div>
+                <div mx-data="compB()"><h3 :text="text"></h3></div>
+            </template>
+        `;
+        CuboMX.start();
+    
+        CuboMX.swapTemplate('mixed-template', {
+            target: '#container:innerHTML',
+            state: {
+                compA: { text: 'State for A' },
+                compB: { text: 'State for B' }
+            }
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 0));
+    
+        const p = document.querySelector('#container p');
+        const h3 = document.querySelector('#container h3');
+    
+        expect(p.textContent).toBe('State for A');
+        expect(h3.textContent).toBe('State for B');
+    });
 });
