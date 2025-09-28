@@ -416,6 +416,20 @@ const CuboMX = (() => {
                 a(requestConfig); // `a` is the imported `request` function
             });
         },
+        "mx-swap-template": (el, templateName) => {
+            const target = el.getAttribute("mx-target");
+            if (!target) {
+                console.error("[CuboMX] The mx-target attribute is required for mx-swap-template.");
+                return;
+            }
+    
+            const triggerEvent = el.getAttribute("mx-trigger") || "click";
+    
+            el.addEventListener(triggerEvent, (event) => {
+                event.preventDefault();
+                publicAPI.swapTemplate(templateName, { target });
+            });
+        },
         "mx-show": (el, expression) => {
             const originalDisplay =
                 el.style.display === "none" ? "" : el.style.display;
@@ -622,6 +636,8 @@ const CuboMX = (() => {
             if (el.hasAttribute("mx-show"))
                 directiveHandlers["mx-show"](el, el.getAttribute("mx-show"));
             if (el.hasAttribute("mx-link")) directiveHandlers["mx-link"](el);
+            if (el.hasAttribute("mx-swap-template")) 
+                directiveHandlers["mx-swap-template"](el, el.getAttribute("mx-swap-template"));
 
             for (const attr of [...el.attributes]) {
                 if (attr.name.startsWith("mx-bind:"))

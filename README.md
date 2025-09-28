@@ -306,6 +306,66 @@ The server should respond with an `X-Swap-Strategies` header to instruct CuboMX 
 <!-- X-Swap-Strategies: [{ "select": "#main-content", "target": "#main-content" }] -->
 ```
 
+### `mx-swap-template`
+
+This directive provides a declarative, HTML-first way to swap a client-side template into the DOM, serving as a clean shorthand for the `CuboMX.swapTemplate()` JavaScript function.
+
+It turns any element into a trigger that renders a specified `<template>` into a target container. It requires a companion `mx-target` attribute and can optionally be triggered by different events using `mx-trigger`.
+
+**Attributes:**
+
+-   `mx-swap-template="templateName"`: **(Required)** The name of the template (defined with `mx-template`) to render.
+-   `mx-target="css-selector"`: **(Required)** The CSS selector of the element to be updated.
+-   `mx-trigger="event-name"`: (Optional) The event that triggers the swap. If omitted, it **defaults to `click`**.
+
+This approach is often cleaner than using `mx-on:click` for simple template swaps.
+
+**Example (Default `click` trigger):**
+
+Instead of writing the JavaScript call in an `mx-on` directive:
+```html
+<!-- Less declarative -->
+<button mx-on:click="CuboMX.swapTemplate('login-form', {target: '#auth-box'})">
+    Show Login
+</button>
+```
+
+You can use the more semantic, declarative approach:
+```html
+<!-- More declarative and cleaner -->
+<button mx-swap-template="login-form" mx-target="#auth-box">
+    Show Login
+</button>
+
+<div id="auth-box"></div>
+
+<template mx-template="login-form">
+    <h2>Login Form</h2>
+    <form>...</form>
+</template>
+```
+
+**Example (Custom `mouseenter` trigger):**
+
+By adding `mx-trigger`, you can change the event, for example, to load a preview when the user hovers over an element.
+
+```html
+<div class="user-card" 
+    mx-swap-template="user-preview-template" 
+    mx-target="#preview-pane"
+    mx-trigger="mouseenter">
+    <p>Mauro</p>
+</div>
+
+<div id="preview-pane"></div>
+
+<template mx-template="user-preview-template">
+    <h3>Mauro's Details</h3>
+    <p>...</p>
+</template>
+```
+In all cases, the directive automatically calls `event.preventDefault()` to prevent unwanted default behaviors, such as a link navigating to a new page.
+
 ## 5. Hydration: HTML as the Source of Truth
 
 One of CuboMX's superpowers is hydration: the ability to read data directly from your server-rendered HTML and transform it into **reactive** JavaScript objects. This means that any change to these objects will update the DOM, and any change in the DOM (in forms) will update the objects.
