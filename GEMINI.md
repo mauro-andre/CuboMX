@@ -1,61 +1,109 @@
-# Documentação da Funcionalidade: Estado Inicial para `swapTemplate`
+# Plano de Ação: Funcionalidade `beforeRender` para Hidratação Crítica
 
-## 1. Objetivo da Funcionalidade
+## 1. Objetivo
 
-O objetivo é estender a função `CuboMX.swapTemplate` para que ela aceite uma nova opção chamada `state`. Este objeto `state` permitirá ao desenvolvedor fornecer dados iniciais para os componentes que serão renderizados a partir do template.
+Resolver o problema de "flicker" (FOUC - Flash of Unstyled Content) que ocorre em aplicações SSR quando o estado inicial renderizado pelo servidor difere do estado que o JavaScript no cliente precisa aplicar. Um exemplo clássico é uma sidebar que o servidor renderiza expandida, mas o cliente, com base no `localStorage` ou `window.innerWidth`, precisa que ela esteja colapsada desde o início.
 
-O principal caso de uso é a renderização dinâmica de listas, onde cada novo item (um componente) precisa ser criado com dados específicos (ex: uma nova mensagem de chat com seu texto e autor, um novo alerta com sua mensagem, etc.).
+O objetivo é criar uma solução robusta, integrada ao framework CuboMX e transparente para o desenvolvedor, que aplique esse estado crítico do lado do cliente **antes** da primeira pintura do navegador, eliminando o flicker.
 
-**Exemplo de Uso Desejado:**
+A solução não deve depender de uma ferramenta de build específica (Vite, Webpack), mas pode assumir que um processo de build está em uso.
+
+## 2. Arquitetura Proposta
+
+A solução consiste em duas partes principais que trabalham em conjunto:
+
+1.  **Um novo hook de ciclo de vida:** `beforeRender()` a ser definido nos componentes.
+2.  **Uma nova ferramenta de linha de comando (CLI):** `cubomx build`, que virá com o pacote `npm`.
+
+A ideia central é que o desenvolvedor declare a "lógica crítica" no hook `beforeRender`, e a ferramenta de build extraia essa lógica para gerar um script que será executado de forma síncrona no `<head>` da página.
+
+## 3. A Experiência do Desenvolvedor
+
+### A. O Hook `beforeRender`
+
+O desenvolvedor define um método `beforeRender` no seu componente. Este método deve:
+- Conter apenas lógica síncrona.
+- Usar apenas APIs do navegador que estão disponíveis imediatamente (ex: `window`, `localStorage`).
+- Retornar um objeto onde as chaves são nomes de classes CSS e os valores são booleanos indicando se a classe deve ou não ser aplicada ao elemento raiz do componente.
+
+**Exemplo (`sidebar.js`):**
 ```javascript
-CuboMX.swapTemplate('alerta-template', {
-  target: '#container:beforeend',
-  state: {
-    alerta: { // 'alerta' é o nome do componente em mx-data
-      mensagem: 'Operação concluída com sucesso!',
-      tipo: 'success'
-    }
-  }
+CuboMX.component('sidebar', {
+    beforeRender() {
+        const isMobile = window.innerWidth <= 800;
+        const storageStatus = JSON.parse(localStorage.getItem("is_sidebar_collapsed"));
+        const shouldCollapse = isMobile || (!isMobile && storageStatus);
+        return { 
+            'collapsed': shouldCollapse,
+            'outra-classe': true 
+        };
+    },
+    // ... resto da lógica do componente (init, toggleCollapse, etc.)
 });
 ```
 
-## 2. Alterações Realizadas (Etapa 1 - `@src/request.js`)
+### B. O Comando `cubomx build`
 
-Esta etapa **já foi concluída** no código. As seguintes alterações foram feitas:
+O desenvolvedor adiciona a execução do CLI ao seu script de build no `package.json`. O CLI receberá o "ponto de entrada" da aplicação, onde os componentes são registrados.
 
-1.  **Refatoração de `applySwaps`**: A função foi refatorada para parar de usar manipulação de strings de HTML (`innerHTML`) e passar a usar manipulação de nós de DOM (`replaceChildren`, `append`, etc.). Isso foi um pré-requisito técnico para permitir a modificação dos elementos *antes* de sua inserção no DOM.
+**Exemplo (`package.json`):**
+```json
+"scripts": {
+  "dev": "vite",
+  "build": "cubomx build --entry src/main.js --output dist/critical.js && vite build"
+}
+```
 
-2.  **Inteligência em `applySwaps`**: A função agora contém uma lógica de "pré-processamento":
-    *   Ela aceita o objeto `state` vindo da chamada da função.
-    *   Após criar os nós do DOM a partir do HTML do template, mas antes de inseri-los na página, ela procura por todos os elementos com o atributo `[mx-data]`.
-    *   Para cada elemento encontrado, ela identifica o nome do componente (ex: "alerta" de `mx-data="alerta()"`).
-    *   Ela usa esse nome como chave para procurar os dados correspondentes no objeto `state`.
-    *   Se encontrar, ela anexa esses dados ao elemento usando uma propriedade especial: `el.__cubo_initial_state__ = state[componentName]`.
+### C. A Injeção no Template do Servidor
 
-3.  **Atualização da Assinatura de Funções**: As funções `swapHTML` e `processDOMUpdate` foram atualizadas para aceitar a opção `state` e repassá-la até chegar na `applySwaps`.
+O desenvolvedor configura seu template de servidor (Jinja, Blade, etc.) para injetar o conteúdo do arquivo `critical.js` gerado dentro de uma tag `<script>` no `<head>`.
 
-## 3. Próximos Passos (Etapa 2 - `@src/CuboMX.js`)
+**Exemplo (template base):**
+```html
+<head>
+    <meta charset="UTF-8">
+    <script>
+        // O conteúdo de 'dist/critical.js' será injetado aqui pelo backend
+    </script>
+    <link rel="stylesheet" href="/main.css">
+    <script type="module" src="/main.js"></script>
+</head>
+```
 
-Esta é a parte que **precisa ser implementada** para que a funcionalidade seja concluída.
+## 4. Detalhes da Implementação
 
-1.  **`swapTemplate`**: A função precisa ser modificada para reconhecer a opção `state` e passá-la adiante na sua chamada para `this.swapHTML`.
+### O Comando `cubomx build`
 
-2.  **`scanDOM`**: Esta função precisa ser modificada para "consumir" a propriedade que foi preparada pela `applySwaps`.
-    *   Ao processar um novo elemento, ela deve verificar se `el.__cubo_initial_state__` existe.
-    *   Se existir, ela deve usar `Object.assign()` para mesclar este objeto de estado na instância do componente que está sendo criada. Isso garante que o componente "nasça" com os dados corretos.
+Este será um script Node.js que funcionará como um CLI.
 
-3.  **`mx-bind:` (A Correção Crítica)**: Descobrimos que a lógica padrão da diretiva `mx-bind:` (e seus atalhos como `:text`) entra em conflito com nosso objetivo.
-    *   **O Problema:** Por padrão, após um componente ser criado, a diretiva `mx-bind:` "hidrata" o estado do componente a partir do conteúdo do DOM. Isso significa que ela lê o texto do template (ex: "Título Padrão") e sobrescreve o estado que acabamos de injetar (ex: "Título do Estado").
-    *   **A Solução:** A diretiva `mx-bind:` precisa ser alterada para também verificar a existência da "bandeira" `__cubo_initial_state__` no elemento do componente (`el.closest('[mx-data]')`).
-        *   Se a bandeira existir, a diretiva **não deve** hidratar os dados a partir do DOM, pois o estado injetado tem prioridade.
-        *   Se a bandeira não existir, ela deve seguir com seu comportamento normal de hidratação para não quebrar outras funcionalidades do framework.
+1.  **Interface:** Será registrado no `package.json` do CuboMX através da chave `bin` para ser acessível como `cubomx`. Aceitará os argumentos `--entry` e `--output`.
+2.  **Estratégia de "Mock":** Para descobrir os componentes sem depender do sistema de arquivos diretamente, o builder usará a seguinte estratégia:
+    a. Criará um objeto "dublê" (mock) do `CuboMX` em memória.
+    b. Este mock terá os métodos `component(name, definition)` e `store(name, definition)`. O método `store` será uma função vazia (no-op), mas o método `component` irá salvar a `definition` de cada componente em uma lista interna.
+    c. O builder executará o arquivo de `--entry` (ex: `src/main.js`) dentro do ambiente Node.js, usando o `CuboMX` dublê. Isso fará com que todas as chamadas `CuboMX.component` populem a lista interna do builder.
+3.  **Lógica de Geração de Script:**
+    a. Após executar o entry point, o builder irá iterar sobre a lista de definições de componentes que ele coletou.
+    b. Para cada componente que possuir o método `beforeRender`, ele irá gerar uma string de um IIFE (Immediately Invoked Function Expression).
+    c. A string gerada para cada componente será no formato:
+        ```javascript
+        (function() {
+            try {
+                var el = document.querySelector('[mx-data="NOME_DO_COMPONENTE"]');
+                if (el) {
+                    var logic = (FUNÇÃO_BEFORE_RENDER_COMO_STRING);
+                    var classes = logic();
+                    for (var className in classes) {
+                        if (Object.prototype.hasOwnProperty.call(classes, className) && classes[className]) {
+                            el.classList.add(className);
+                        }
+                    }
+                }
+            } catch(e) { console.error(e); }
+        })();
+        ```
+    d. Todas as strings de IIFE geradas serão concatenadas em um único bloco de texto.
+    e. Este bloco de texto final será salvo no caminho especificado por `--output`.
 
-## 4. Testes (TDD)
+### O Hook `beforeRender` no Runtime
 
-Seguindo a metodologia TDD, já foram adicionados 3 testes (que atualmente falham) ao arquivo `@test/SwapTemplate.test.js` para validar a funcionalidade:
-
-1.  **`should initialize a component with the provided initial state`**: Valida o caso de uso básico de inicializar um componente com dados específicos.
-2.  **`should apply the same initial state to all instances of the same component type`**: Garante que, se um template tiver múltiplos componentes do mesmo tipo, o estado será aplicado a todos.
-3.  **`should apply correct initial state to different components in the same template`**: Valida que os dados para diferentes tipos de componentes (`compA`, `compB`) são roteados corretamente para suas respectivas instâncias.
-
-**Nota sobre Assincronicidade:** Uma descoberta importante da depuração foi que os testes falham não apenas pela ausência da implementação, mas também porque eles rodam de forma síncrona. O `MutationObserver`, que o CuboMX usa para ativar componentes, é assíncrono. Portanto, a etapa final, após a implementação do código, será ajustar esses 3 testes para que sejam `async` e esperem a atualização do DOM antes de fazer as asserções.
+Para a implementação inicial desta funcionalidade, o runtime principal do `CuboMX.js` **não precisa ser alterado**. O hook `beforeRender` é apenas uma convenção lida pela ferramenta de build. A lógica dele é executada pelo `critical.js` antes do `main.js` (que contém o CuboMX) ser carregado, resolvendo o problema do flicker de forma isolada.
