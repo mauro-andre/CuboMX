@@ -282,4 +282,25 @@ describe("CuboMX.swapTemplate", () => {
         expect(divEl.classList.contains('alert-success')).toBe(false);
         expect(divEl.classList.contains('alert-warning')).toBe(true);
     });
+
+    it('should select a fragment from the template if \'select\' option is provided', () => {
+        document.body.innerHTML = `
+            <div id="container"></div>
+            <template mx-template="multi-part">
+                <div id="part1">Part 1</div>
+                <div id="part2">Part 2</div>
+            </template>
+        `;
+        CuboMX.start();
+
+        CuboMX.swapTemplate('multi-part', { 
+            target: '#container:innerHTML',
+            select: '#part2' 
+        });
+
+        const container = document.getElementById('container');
+        expect(container.querySelector('#part2')).not.toBeNull();
+        expect(container.querySelector('#part1')).toBeNull();
+        expect(container.textContent).toBe('Part 2');
+    });
 });

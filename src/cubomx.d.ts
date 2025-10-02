@@ -160,6 +160,7 @@ declare module 'cubomx' {
          * @param {string} templateName The name of the template to swap.
          * @param {object} options Configuration for the swap operation.
          * @param {string} options.target The CSS selector for the destination element (e.g., '#container:innerHTML').
+         * @param {string} [options.select] A CSS selector to extract a fragment from the template. If omitted, the entire template content is used.
          * @param {boolean} [options.history] Explicitly controls history. If a URL is present, history is enabled by default. Set to `false` to disable.
          * @param {string} [options.url] The URL for the history entry. Overrides URL from template metadata.
          * @param {string} [options.pageTitle] The document title. Overrides title from template metadata.
@@ -167,6 +168,7 @@ declare module 'cubomx' {
          */
         swapTemplate(templateName: string, options: { 
             target: string; 
+            select?: string;
             history?: boolean; 
             url?: string; 
             pageTitle?: string; 

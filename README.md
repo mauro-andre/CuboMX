@@ -316,6 +316,7 @@ It turns any element into a trigger that renders a specified `<template>` into a
 
 -   `mx-swap-template="templateName"`: **(Required)** The name of the template (defined with `mx-template`) to render.
 -   `mx-target="css-selector"`: **(Required)** The CSS selector of the element to be updated.
+-   `mx-select="css-selector"`: (Optional) A CSS selector to extract a specific fragment from the template. If omitted, the entire template is used.
 -   `mx-trigger="event-name"`: (Optional) The event that triggers the swap. If omitted, it **defaults to `click`**.
 
 This approach is often cleaner than using `mx-on:click` for simple template swaps.

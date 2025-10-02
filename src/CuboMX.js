@@ -424,11 +424,16 @@ const CuboMX = (() => {
                 return;
             }
     
+            const select = el.getAttribute("mx-select");
             const triggerEvent = el.getAttribute("mx-trigger") || "click";
     
             el.addEventListener(triggerEvent, (event) => {
                 event.preventDefault();
-                publicAPI.swapTemplate(templateName, { target });
+                const swapOptions = { target };
+                if (select) {
+                    swapOptions.select = select;
+                }
+                publicAPI.swapTemplate(templateName, swapOptions);
             });
         },
         "mx-load": (el, url) => {
@@ -939,6 +944,7 @@ const CuboMX = (() => {
          * @param {string} templateName The name of the template to swap.
          * @param {object} options Configuration for the swap operation.
          * @param {string} options.target The CSS selector for the destination element (e.g., '#container:innerHTML').
+         * @param {string} [options.select] A CSS selector to extract a fragment from the template. If omitted, the entire template content is used.
          * @param {boolean} [options.history] Explicitly controls history. If a URL is present, history is enabled by default. Set to `false` to disable.
          * @param {string} [options.url] The URL for the history entry. Overrides URL from template metadata.
          * @param {string} [options.pageTitle] The document title. Overrides title from template metadata.
@@ -951,7 +957,7 @@ const CuboMX = (() => {
             }
 
             const { template, data: metadata } = templateObj;
-            const { target, history, url, pageTitle, state } = options;
+            const { target, select, history, url, pageTitle, state } = options;
 
             if (!target) {
                 console.error("[CuboMX.swapTemplate] The 'target' option is required.");
@@ -962,7 +968,8 @@ const CuboMX = (() => {
             const finalTitle = pageTitle ?? metadata.dataPageTitle ?? metadata.pageTitle;
             const isHistoryActive = history === true || (history !== false && !!finalUrl);
 
-            const strategies = [{ select: "this", target: target }];
+            const finalSelect = select || "this";
+            const strategies = [{ select: finalSelect, target: target }];
             const actions = [];
             if (finalTitle && isHistoryActive) {
                 actions.push({

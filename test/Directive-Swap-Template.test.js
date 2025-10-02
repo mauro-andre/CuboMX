@@ -95,4 +95,30 @@ describe("Directive: mx-swap-template", () => {
 
         consoleSpy.mockRestore();
     });
+
+    it('should swap only the selected fragment when using mx-select', async () => {
+        document.body.innerHTML = `
+            <div id="container"></div>
+            <template mx-template="my-template">
+                <div id="part1">Part 1</div>
+                <div id="part2">Part 2</div>
+            </template>
+            <button 
+                mx-swap-template="my-template" 
+                mx-target="#container:innerHTML"
+                mx-select="#part2"
+            >Click Me</button>
+        `;
+        CuboMX.start();
+
+        const button = document.querySelector('button');
+        button.click();
+
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        const container = document.querySelector('#container');
+        expect(container.querySelector('#part2')).not.toBeNull();
+        expect(container.querySelector('#part1')).toBeNull();
+        expect(container.textContent.trim()).toBe('Part 2');
+    });
 });
