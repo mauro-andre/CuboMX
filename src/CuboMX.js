@@ -842,6 +842,14 @@ const CuboMX = (() => {
                 if (typeof proxy.destroy === "function")
                     proxy.destroy.call(proxy);
                 delete activeProxies[refName];
+
+                // Clean up watchers associated with the destroyed proxy
+                const watcherPrefix = `${refName}.`;
+                for (const path in watchers) {
+                    if (path.startsWith(watcherPrefix)) {
+                        delete watchers[path];
+                    }
+                }
             }
         });
 
