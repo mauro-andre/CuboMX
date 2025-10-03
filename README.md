@@ -179,6 +179,67 @@ Let's use our `dropdown` factory:
 
 In this example, `isOpen` resolves to `CuboMX.headerMenu.isOpen`.
 
+### `mx-delay`
+
+This directive controls the visibility of an element, keeping it hidden initially and revealing it after a specified delay. It's ideal for preventing "Flash of Unstyled Content" (FOUC) or for implementing loading indicators that only appear if an operation takes longer than a certain time.
+
+For `mx-delay` to work correctly, you **must** add the following CSS rule to your project:
+
+```css
+[mx-delay] {
+    display: none !important;
+}
+```
+
+**Attributes:**
+
+-   `mx-delay="<milliseconds>"`: The time in milliseconds the element will remain hidden.
+-   `mx-delay` (no value): Equivalent to `mx-delay="0"`. The element will be hidden by CSS and revealed on the next JavaScript "tick", ensuring it only appears after being fully processed by CuboMX.
+
+**How it works:**
+
+1.  When an element with `mx-delay` is added to the DOM, the CSS rule hides it immediately.
+2.  CuboMX processes the `mx-delay` directive.
+3.  A timer is started with the specified value.
+4.  At the end of the timer, the `mx-delay` attribute is removed from the element.
+5.  The removal of the attribute causes the CSS rule `[mx-delay] { display: none !important; }` to no longer apply, and the element becomes visible (or its `display` state is determined by other CSS rules or directives like `mx-show`).
+
+**Usage Examples:**
+
+**1. Preventing "Flicker" with `mx-show`:**
+
+To ensure an element controlled by `mx-show` never "flickers" before JavaScript acts, use `mx-delay` without a value:
+
+```html
+<div mx-show="isLoading" mx-delay>
+    Loading data...
+</div>
+```
+In this case, the `div` starts hidden by CSS. As soon as CuboMX processes it, `mx-delay` removes its attribute, and `mx-show` takes control, keeping it hidden if `isLoading` is `false`.
+
+**2. Delayed Loading Indicator:**
+
+To show a skeleton loader only if a request takes longer than 300ms:
+
+```html
+<!-- In your CSS: -->
+<!-- [mx-delay] { display: none !important; } -->
+
+<!-- In your HTML: -->
+<div id="content-area">
+    <!-- Main content will be loaded here -->
+</div>
+
+<div mx-load="/api/data" mx-target="#content-area:innerHTML" mx-delay="300">
+    <!-- This div will be replaced by the content from /api/data -->
+    <div class="skeleton-loader">
+        <div class="placeholder-line"></div>
+        <div class="placeholder-line"></div>
+    </div>
+</div>
+```
+If the `/api/data` request finishes in less than 300ms, the `div` with `mx-delay` will be replaced before becoming visible, preventing the skeleton "flicker". If it takes longer, the skeleton will appear after 300ms, providing feedback to the user.
+
 ### `mx-on`: Handling User Events
 
 This directive attaches an event listener to an element, allowing you to run code in response to user interactions. You can use any standard browser DOM event, like `click`, `submit`, `keydown`, `mouseenter`, etc. By default, the expression is evaluated in the **local component's scope**.

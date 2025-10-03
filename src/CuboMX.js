@@ -457,6 +457,27 @@ const CuboMX = (() => {
             
             publicAPI.request({ url, strategies: [strategy] });
         },
+        "mx-delay": (el, value) => {
+            const delay = parseInt(value || "0", 10);
+            if (isNaN(delay)) {
+                el.removeAttribute('mx-delay');
+                return;
+            }
+
+            const originalInlineDisplay = el.style.display;
+            el.style.setProperty('display', 'none', 'important');
+
+            setTimeout(() => {
+                if (document.body.contains(el)) {
+                    el.removeAttribute('mx-delay');
+                    el.style.removeProperty('display');
+
+                    if (originalInlineDisplay) {
+                        el.style.display = originalInlineDisplay;
+                    }
+                }
+            }, delay);
+        },
         "mx-show": (el, expression) => {
             const originalDisplay =
                 el.style.display === "none" ? "" : el.style.display;
@@ -667,6 +688,8 @@ const CuboMX = (() => {
                 directiveHandlers["mx-swap-template"](el, el.getAttribute("mx-swap-template"));
             if (el.hasAttribute("mx-load"))
                 directiveHandlers["mx-load"](el, el.getAttribute("mx-load"));
+            if (el.hasAttribute("mx-delay"))
+                directiveHandlers["mx-delay"](el, el.getAttribute("mx-delay"));
 
             for (const attr of [...el.attributes]) {
                 if (attr.name.startsWith("mx-bind:"))
