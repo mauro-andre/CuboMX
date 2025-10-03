@@ -426,12 +426,23 @@ const CuboMX = (() => {
     
             const select = el.getAttribute("mx-select");
             const triggerEvent = el.getAttribute("mx-trigger") || "click";
+
+            // Extract URL and pageTitle from the triggering element
+            const elementUrl = el.getAttribute("url") ?? el.getAttribute("data-url");
+            const elementPageTitle = el.getAttribute("page-title") ?? el.getAttribute("data-page-title");
     
             el.addEventListener(triggerEvent, (event) => {
                 event.preventDefault();
                 const swapOptions = { target };
                 if (select) {
                     swapOptions.select = select;
+                }
+                // Pass extracted URL and pageTitle to swapTemplate options
+                if (elementUrl) {
+                    swapOptions.url = elementUrl;
+                }
+                if (elementPageTitle) {
+                    swapOptions.pageTitle = elementPageTitle;
                 }
                 publicAPI.swapTemplate(templateName, swapOptions);
             });

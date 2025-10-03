@@ -378,8 +378,11 @@ It turns any element into a trigger that renders a specified `<template>` into a
 -   `mx-swap-template="templateName"`: **(Required)** The name of the template (defined with `mx-template`) to render.
 -   `mx-target="css-selector"`: **(Required)** The CSS selector of the element to be updated.
 -   `mx-select="css-selector"`: (Optional) A CSS selector to extract a specific fragment from the template. If omitted, the entire template is used.
--   `mx-trigger="event-name"`: (Optional) The event that triggers the swap. If omitted, it **defaults to `click`**.
-
+    -   `mx-trigger="event-name"`: (Optional) The event that triggers the swap. If omitted, it **defaults to `click`**.
+-   `url="url"`: (Optional) Specifies the URL to push to the browser's history. Takes precedence over `data-url` on the triggering element and any URL metadata on the template.
+-   `data-url="url"`: (Optional) Specifies the URL to push to the browser's history. Takes precedence over any URL metadata on the template.
+-   `page-title="title"`: (Optional) Specifies the page title to set. Takes precedence over `data-page-title` on the triggering element and any page title metadata on the template.
+-   `data-page-title="title"`: (Optional) Specifies the page title to set. Takes precedence over any page title metadata on the template.
 This approach is often cleaner than using `mx-on:click` for simple template swaps.
 
 **Example (Default `click` trigger):**
