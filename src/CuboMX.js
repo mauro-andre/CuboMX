@@ -232,7 +232,6 @@ const CuboMX = (() => {
 
         uniqueTemplates.forEach((el) => {
             const name = el.getAttribute("mx-template");
-            if (templates[name]) return;
 
             const metadata = extractAttributesAsData(el);
             let templateHtml;
