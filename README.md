@@ -1053,6 +1053,7 @@ const auth = {
       });
   }
 };
+```
 
 ### CuboMX.request(config)
 

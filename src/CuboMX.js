@@ -311,6 +311,10 @@ const CuboMX = (() => {
             }
         };
 
+        classProxy.contains = (className) => {
+            return classProxy.includes(className);
+        };
+
         const helpers = {
             class: classProxy,
             addClass: classProxy.add,

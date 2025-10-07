@@ -46,6 +46,31 @@ describe('Reactive Class Proxy', () => {
         expect(el.className).toBe('added toggled');
     });
 
+    it('should have a .contains() method that checks for class existence', () => {
+        document.body.innerHTML = `
+            <div mx-data="myComponent">
+                <div id="test-el" class="initial existing" :class="myClasses"></div>
+            </div>
+        `;
+
+        CuboMX.component('myComponent', { myClasses: null });
+        CuboMX.start();
+
+        const component = CuboMX.myComponent;
+
+        // 1. Assert .contains() works on initial state
+        expect(component.myClasses.contains('initial')).toBe(true);
+        expect(component.myClasses.contains('existing')).toBe(true);
+        expect(component.myClasses.contains('non-existent')).toBe(false);
+
+        // 2. Assert it reacts to changes
+        component.myClasses.add('added');
+        expect(component.myClasses.contains('added')).toBe(true);
+
+        component.myClasses.remove('initial');
+        expect(component.myClasses.contains('initial')).toBe(false);
+    });
+
     it('should hydrate an item property as a reactive proxy via ::class', () => {
         document.body.innerHTML = `
             <div mx-data="myComponent">
