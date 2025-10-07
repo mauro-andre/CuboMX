@@ -41,11 +41,44 @@ const restoreState = (state, rootElement = document) => {
     window.dispatchEvent(new CustomEvent("cubo:dom-updated"));
 };
 
-const processActions = (actions, rootElement = document) => {
+const processActions = (actions, rootElement = document, activeProxies = {}) => {
     if (!actions || !Array.isArray(actions)) return;
 
     for (const action of actions) {
         switch (action.action) {
+            case "setProperty": {
+                const path = action.property;
+                const value = action.value;
+                const dotIndex = path.indexOf('.');
+
+                if (dotIndex === -1) {
+                    console.error('[CuboMX] setProperty action requires a path in the format "componentName.propertyName"');
+                    continue;
+                }
+
+                const componentName = path.substring(0, dotIndex);
+                const propertyPath = path.substring(dotIndex + 1);
+                const component = activeProxies[componentName];
+
+                if (!component) {
+                    console.error(`[CuboMX] setProperty failed: component '${componentName}' not found.`);
+                    continue;
+                }
+
+                const pathParts = propertyPath.split('.');
+                const finalProp = pathParts.pop();
+                let current = component;
+
+                for (const part of pathParts) {
+                    if (current[part] === undefined || current[part] === null) {
+                        current[part] = {};
+                    }
+                    current = current[part];
+                }
+
+                current[finalProp] = value;
+                break;
+            }
             // Actions that don't require a selector
             case "pushUrl":
                 if (action.url) {
@@ -356,7 +389,8 @@ const processDOMUpdate = (
         rootElement = document,
         actions = null,
         state = null,
-    }
+    },
+    activeProxies
 ) => {
     if (history && targetUrl) {
         const currentState = captureState(strategies, actions, rootElement);
@@ -369,7 +403,7 @@ const processDOMUpdate = (
     applySwaps(strategies, htmlContent, rootElement, state);
 
     if (actions) {
-        processActions(actions, rootElement);
+        processActions(actions, rootElement, activeProxies);
     }
 
     if (history && targetUrl) {
@@ -420,18 +454,21 @@ const toggleLoadingState = (selectors, add, rootElement = document) => {
  * @param {HTMLElement} [config.rootElement=document] - The root element for selector queries.
  * @returns {Promise<Object>} A promise that resolves with the status and final URL of the response.
  */
-const request = async ({
-    url,
-    method = "GET",
-    body = null,
-    headers = {},
-    pushUrl = false,
-    history = false,
-    loadingSelectors = [],
-    strategies = null,
-    actions = null,
-    rootElement = document,
-}) => {
+const request = async (
+    {
+        url,
+        method = "GET",
+        body = null,
+        headers = {},
+        pushUrl = false,
+        history = false,
+        loadingSelectors = [],
+        strategies = null,
+        actions = null,
+        rootElement = document,
+    },
+    activeProxies
+) => {
     method = method.toUpperCase();
     const fetchOptions = {
         method,
@@ -503,15 +540,20 @@ const request = async ({
             const finalUrl = response.url;
             const pushUrlFromHeader = response.headers.get("X-Push-Url");
             const targetUrl = pushUrlFromHeader || (pushUrl ? finalUrl : null);
-            processDOMUpdate(htmlContent, finalStrategies, {
-                targetUrl,
-                history,
-                rootElement,
-                actions: finalActions,
-            });
+            processDOMUpdate(
+                htmlContent,
+                finalStrategies,
+                {
+                    targetUrl,
+                    history,
+                    rootElement,
+                    actions: finalActions,
+                },
+                activeProxies
+            );
         } else if (finalActions) {
             // This only runs if there are no strategies and no HTML, but there are actions.
-            processActions(finalActions, rootElement);
+            processActions(finalActions, rootElement, activeProxies);
         }
 
         return { ok: response.ok, status: response.status, url: response.url };

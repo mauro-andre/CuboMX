@@ -1251,8 +1251,16 @@ showSuccess() {
 }
 ```
 
+#### State vs. DOM Actions (`setProperty` vs. `setAttribute`)
+
+When you need to modify an element that is controlled by a reactive binding (e.g., `:company-id="companyId"`), it is crucial to **change the component's state**, not the DOM attribute directly.
+
+-   **`setAttribute`**: Changes the DOM directly. This is fine for elements that are not under reactive control, but can be undone by a reactive binding, as the component's state is still the source of truth.
+-   **`setProperty`**: Changes the component's state directly. This is the **recommended** approach for interacting with reactive components. By changing the state, CuboMX's reactivity system will automatically and correctly update the DOM, avoiding race conditions.
+
 **Available Actions:**
 
+-   `{ action: 'setProperty', property: 'componentName.propertyName', value: 'new-value' }`: Directly sets a property on a component's state. The `property` key uses dot notation to specify the target component (or store, or `mx-ref` instance) and the property to change. This is the preferred way to update state from the server.
 -   `{ action: 'addClass', selector: '#el', class: 'new-class' }`
 -   `{ action: 'removeClass', selector: '#el', class: 'old-class' }`
 -   `{ action: 'setAttribute', selector: 'input', attribute: 'disabled', value: '' }`

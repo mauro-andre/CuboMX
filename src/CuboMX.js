@@ -964,7 +964,7 @@ const CuboMX = (() => {
         watch,
         start,
         reset,
-        request: a,
+        request: (...args) => a(...args, activeProxies),
         swapHTML: b,
         actions: d,
         render: c,

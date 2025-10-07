@@ -131,9 +131,12 @@ describe('CuboMX Utilities', () => {
             expect(el.classList.contains('initial')).toBe(false);
         });
 
-        it('should set attributes', () => {
+        it('should set attributes with values', () => {
             document.body.innerHTML = '<button id="btn"></button>';
             const btn = document.getElementById('btn');
+
+            CuboMX.actions([{ action: 'setAttribute', selector: '#btn', attribute: 'data-id', value: '123' }]);
+            expect(btn.getAttribute('data-id')).toBe('123');
 
             CuboMX.actions([{ action: 'setAttribute', selector: '#btn', attribute: 'disabled', value: '' }]);
             expect(btn.hasAttribute('disabled')).toBe(true);
@@ -187,6 +190,24 @@ describe('CuboMX Utilities', () => {
             await CuboMX.request({ url: '/test' });
 
             expect(document.getElementById('el').classList.contains('processed')).toBe(true);
+        });
+
+        it('should set attribute with value from X-Cubo-Actions header', async () => {
+            document.body.innerHTML = '<div id="el-to-set"></div>';
+            const actions = JSON.stringify([{ action: 'setAttribute', selector: '#el-to-set', attribute: 'data-test-id', value: 'xyz-987' }]);
+
+            mockFetch.mockResolvedValue({
+                ok: true,
+                status: 200,
+                text: () => Promise.resolve(''),
+                headers: new Headers({ 'X-Cubo-Actions': actions }),
+                url: '/test-attr-val'
+            });
+
+            await CuboMX.request({ url: '/test-attr-val' });
+
+            const el = document.getElementById('el-to-set');
+            expect(el.getAttribute('data-test-id')).toBe('xyz-987');
         });
 
         it('should handle redirects via X-Redirect header', async () => {
