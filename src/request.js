@@ -41,6 +41,13 @@ const restoreState = (state, rootElement = document) => {
     window.dispatchEvent(new CustomEvent("cubo:dom-updated"));
 };
 
+/**
+ * Executes a list of imperative actions on the DOM or component state.
+ * Available actions: setProperty, pushUrl, addClass, removeClass, setAttribute, removeElement, setTextContent, dispatchEvent.
+ * @param {Array<Object>} actions An array of action objects.
+ * @param {HTMLElement} [rootElement=document] The root element for selector queries.
+ * @param {Object} [activeProxies={}] A map of active component/store proxies, used by `setProperty`.
+ */
 const processActions = (actions, rootElement = document, activeProxies = {}) => {
     if (!actions || !Array.isArray(actions)) return;
 
@@ -431,16 +438,17 @@ const swapHTML = (htmlContent, strategies, options = {}) => {
 /**
  * Adds or removes a loading class from the specified elements.
  */
-const toggleLoadingState = (selectors, add, rootElement = document) => {
+const toggleLoadingState = (selectors, add, className, rootElement = document) => {
     if (!selectors || !Array.isArray(selectors)) return;
     for (const selector of selectors) {
         const elements = rootElement.querySelectorAll(selector);
-        elements.forEach((el) => el.classList.toggle("x-request", add));
+        elements.forEach((el) => el.classList.toggle(className, add));
     }
 };
 
 /**
- * @summary Performs an asynchronous request and updates the DOM based on the response.
+ * @summary Performs an asynchronous request, updates the DOM, and returns response data.
+ * @description This function makes an AJAX request and orchestrates DOM updates based on server response headers like `X-Swap-Strategies` and `X-Cubo-Actions`. It can also return a JSON payload from the `X-Cubo-Data` header.
  * @param {Object} config - The request configuration object.
  * @param {string} config.url - The URL to which the request will be sent.
  * @param {string} [config.method='GET'] - The HTTP method to use.
@@ -448,11 +456,12 @@ const toggleLoadingState = (selectors, add, rootElement = document) => {
  * @param {Object} [config.headers={}] - Custom request headers.
  * @param {boolean} [config.pushUrl=false] - Fallback to update the URL if the backend does not send `X-Push-Url`.
  * @param {boolean} [config.history=false] - Whether the change should be added to the browser history.
- * @param {Array<string>} [config.loadingSelectors=[]] - Selectors to apply the 'x-request' class during the request.
+ * @param {Array<string>} [config.loadingSelectors=[]] - Selectors to apply the loading class to during the request.
+ * @param {string} [config.loadingClass='x-request'] - The CSS class to apply to loading selectors.
  * @param {Array<Object>} [config.strategies=null] - Swap strategies, with priority over server-sent ones.
  * @param {Array<Object>} [config.actions=null] - Imperative actions to execute after the swap, with priority over server-sent ones.
  * @param {HTMLElement} [config.rootElement=document] - The root element for selector queries.
- * @returns {Promise<Object>} A promise that resolves with the status and final URL of the response.
+ * @returns {Promise<{ok: boolean, status: number, url: string, redirected: boolean, data: object | null}>} A promise that resolves to an object containing the response status, URL, and any data sent in the `X-Cubo-Data` header.
  */
 const request = async (
     {
@@ -463,6 +472,7 @@ const request = async (
         pushUrl = false,
         history = false,
         loadingSelectors = [],
+        loadingClass = 'x-request',
         strategies = null,
         actions = null,
         rootElement = document,
@@ -490,7 +500,7 @@ const request = async (
         }
     }
 
-    toggleLoadingState(loadingSelectors, true, rootElement);
+    toggleLoadingState(loadingSelectors, true, loadingClass, rootElement);
 
     try {
         const response = await fetch(url, fetchOptions);
@@ -522,6 +532,7 @@ const request = async (
                 ok: response.ok,
                 status: response.status,
                 redirected: true,
+                data: null
             };
         }
 
@@ -534,6 +545,9 @@ const request = async (
         }
 
         const htmlContent = await response.text();
+
+        const dataHeader = response.headers.get("X-Cubo-Data");
+        const responseData = dataHeader ? JSON.parse(dataHeader) : null;
 
         // If we have strategies OR we have HTML content (for a potential smart swap)
         if (finalStrategies || htmlContent) {
@@ -556,12 +570,12 @@ const request = async (
             processActions(finalActions, rootElement, activeProxies);
         }
 
-        return { ok: response.ok, status: response.status, url: response.url };
+        return { ok: response.ok, status: response.status, url: response.url, data: responseData, redirected: false };
     } catch (error) {
         console.error("Request operation failed:", error);
         throw error;
     } finally {
-        toggleLoadingState(loadingSelectors, false, rootElement);
+        toggleLoadingState(loadingSelectors, false, loadingClass, rootElement);
     }
 };
 

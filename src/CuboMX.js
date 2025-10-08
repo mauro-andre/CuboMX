@@ -831,6 +831,33 @@ const CuboMX = (() => {
 
     const destroyProxies = (removedNode) => {
         if (removedNode.nodeType !== 1) return;
+
+        // Clean up mx-item elements
+        const itemElements = removedNode.matches('[mx-item]')
+            ? [removedNode, ...removedNode.querySelectorAll('[mx-item]')]
+            : [...removedNode.querySelectorAll('[mx-item]')];
+
+        itemElements.forEach(el => {
+            if (el.__cubo_item_object__) {
+                const itemObject = el.__cubo_item_object__;
+
+                // Brute-force search for the item in all component arrays
+                for (const compName in activeProxies) {
+                    const component = activeProxies[compName];
+                    for (const prop in component) {
+                        if (Object.hasOwnProperty.call(component, prop) && Array.isArray(component[prop])) {
+                            const array = component[prop];
+                            const index = array.indexOf(itemObject);
+                            if (index > -1) {
+                                array.splice(index, 1);
+                                return; // Exit forEach once found and removed
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
         const elementsWithData = removedNode.matches("[mx-data]")
             ? [removedNode, ...removedNode.querySelectorAll("[mx-data]")]
             : [...removedNode.querySelectorAll("[mx-data]")];

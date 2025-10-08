@@ -93,7 +93,8 @@ declare module 'cubomx' {
         }): void;
 
         /**
-         * @summary Performs an asynchronous request and updates the DOM based on the response.
+         * @summary Performs an asynchronous request, updates the DOM, and returns response data.
+         * @description Makes an AJAX request and orchestrates DOM updates via server headers like `X-Swap-Strategies` and `X-Cubo-Actions`. It can also return a JSON payload from the `X-Cubo-Data` header.
          * @param {Object} config - The request configuration object.
          * @param {string} config.url - The URL to which the request will be sent.
          * @param {string} [config.method='GET'] - The HTTP method to use.
@@ -101,11 +102,12 @@ declare module 'cubomx' {
          * @param {Object} [config.headers={}] - Custom request headers.
          * @param {boolean} [config.pushUrl=false] - Fallback to update the URL if the backend does not send `X-Push-Url`.
          * @param {boolean} [config.history=false] - Whether the change should be added to the browser history.
-         * @param {Array<string>} [config.loadingSelectors=[]] - Selectors to apply the 'x-request' class during the request.
+         * @param {Array<string>} [config.loadingSelectors=[]] - Selectors to apply the loading class to during the request.
+         * @param {string} [config.loadingClass='x-request'] - The CSS class to apply to loading selectors.
          * @param {Array<Object>} [config.strategies=null] - Swap strategies, with priority over server-sent ones.
          * @param {Array<Object>} [config.actions=null] - Imperative actions to execute after the swap, with priority over server-sent ones.
          * @param {HTMLElement} [config.rootElement=document] - The root element for selector queries.
-         * @returns {Promise<Object>} A promise that resolves with the status and final URL of the response.
+         * @returns {Promise<{ok: boolean, status: number, url: string, redirected: boolean, data: object | null}>} A promise that resolves to an object with the response status and data.
          */
         request(config: {
             url: string;
@@ -115,10 +117,11 @@ declare module 'cubomx' {
             pushUrl?: boolean;
             history?: boolean;
             loadingSelectors?: string[];
+            loadingClass?: string;
             strategies?: object[];
             actions?: object[];
             rootElement?: HTMLElement;
-        }): Promise<{ ok: boolean; status: number; url: string; redirected?: boolean; }>;
+        }): Promise<{ ok: boolean; status: number; url: string; redirected: boolean; data: object | null; }>;
 
         /**
          * @summary Updates the DOM from an HTML string using specified strategies.
@@ -184,7 +187,8 @@ declare module 'cubomx' {
         renderTemplate(templateName: string, data: object): string;
 
         /**
-         * @summary Programmatically executes a list of DOM actions.
+         * @summary Programmatically executes a list of DOM and state actions.
+         * @description Available actions: `setProperty`, `addClass`, `removeClass`, `setAttribute`, `removeElement`, `setTextContent`, `dispatchEvent`, `pushUrl`.
          * @param {Array<Object>} actions An array of action objects.
          * @param {HTMLElement} [rootElement=document] The root element for selector queries.
          */

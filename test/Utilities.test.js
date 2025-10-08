@@ -252,5 +252,64 @@ describe('CuboMX Utilities', () => {
             // After the request is complete, the class should be removed
             expect(btn.classList.contains('x-request')).toBe(false);
         });
+
+        it('should toggle custom loading class when loadingClass is provided', async () => {
+            document.body.innerHTML = '<button id="btn">Submit</button>';
+            const btn = document.getElementById('btn');
+
+            mockFetch.mockResolvedValue({
+                ok: true,
+                status: 200,
+                text: () => Promise.resolve(''),
+                headers: new Headers(),
+                url: '/test'
+            });
+
+            const requestPromise = CuboMX.request({
+                url: '/test',
+                loadingSelectors: ['#btn'],
+                loadingClass: 'is-loading'
+            });
+
+            // Immediately after calling, the custom class should be added
+            expect(btn.classList.contains('is-loading')).toBe(true);
+            expect(btn.classList.contains('x-request')).toBe(false);
+
+            await requestPromise;
+
+            // After the request is complete, the custom class should be removed
+            expect(btn.classList.contains('is-loading')).toBe(false);
+        });
+
+        it('should return parsed JSON from X-Cubo-Data header', async () => {
+            const responseData = { user: 'Cubo', id: 123 };
+            mockFetch.mockResolvedValue({
+                ok: true,
+                status: 200,
+                text: () => Promise.resolve(''),
+                headers: new Headers({ 'X-Cubo-Data': JSON.stringify(responseData) }),
+                url: '/test-data'
+            });
+
+            const response = await CuboMX.request({ url: '/test-data' });
+
+            expect(response.ok).toBe(true);
+            expect(response.data).toEqual(responseData);
+        });
+
+        it('should return data as null when X-Cubo-Data header is not present', async () => {
+            mockFetch.mockResolvedValue({
+                ok: true,
+                status: 200,
+                text: () => Promise.resolve(''),
+                headers: new Headers(), // No custom data header
+                url: '/test-no-data'
+            });
+
+            const response = await CuboMX.request({ url: '/test-no-data' });
+
+            expect(response.ok).toBe(true);
+            expect(response.data).toBeNull();
+        });
     });
 });

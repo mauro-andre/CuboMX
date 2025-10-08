@@ -1080,14 +1080,37 @@ loadMoreProducts() {
 -   `headers` (Object): Custom request headers.
 -   `strategies` (Array): An array of swap strategy objects. If provided, these take priority over server-sent strategies. If omitted and the server provides no `X-Swap-Strategies` header, a **smart swap** will be attempted (see `CuboMX.swapHTML` for details).
 -   `actions` (Array): An array of action objects to be executed after the request. These take priority over server-sent actions.
--   `loadingSelectors` (Array): An array of CSS selectors that will have the `x-request` class applied during the request.
+-   `loadingSelectors` (Array): An array of CSS selectors to apply a loading class to during the request.
+-   `loadingClass` (string, optional): The CSS class to apply to elements specified in `loadingSelectors`. Defaults to `'x-request'`.
 -   `history` (boolean): If `true`, the navigation will be added to the browser's history. Defaults to `false`.
 -   `pushUrl` (boolean): A fallback to update the browser URL to the request's final URL if the server does not provide an `X-Push-Url` header. Defaults to `false`.
+
+**Return Value**
+
+The `CuboMX.request` function returns a Promise that resolves to an object containing details about the response:
+
+-   `ok` (boolean): `true` if the HTTP status code was in the 200-299 range.
+-   `status` (number): The HTTP status code of the response (e.g., `200`, `404`).
+-   `url` (string): The final URL of the response, after any redirects.
+-   `redirected` (boolean): `true` if the response was the result of a redirect.
+-   `data` (object | null): If the server response includes an `X-Cubo-Data` header, this property will contain the parsed JSON object from that header. Otherwise, it will be `null`.
+
+```javascript
+// In an async function
+async function fetchUser() {
+    const response = await CuboMX.request({ url: '/api/user' });
+    if (response.ok && response.data) {
+      console.log('User data:', response.data);
+      // You can now use this data to update charts, stores, etc.
+    }
+}
+```
 
 **Server-Driven Behavior:**
 
 -   `X-Swap-Strategies`: A header containing a JSON string of swap strategies. `CuboMX.request` will use these if no local `strategies` are provided.
 -   `X-Cubo-Actions`: A header with a JSON string of actions to be executed after the swap.
+-   `X-Cubo-Data`: A header containing a JSON string. Its parsed content will be available in the `data` property of the object returned by `CuboMX.request`.
 -   `X-Push-Url`: A header specifying the URL to push to the browser's address bar.
 -   `X-Redirect`: A header that will cause a full page redirect to the specified URL.
 
