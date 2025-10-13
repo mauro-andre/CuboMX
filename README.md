@@ -167,7 +167,7 @@ Let's use our `dropdown` factory:
 
 ```html
 <div mx-data="dropdown()" mx-ref="headerMenu">
-    <button>Menu</button>
+    <button mx-on:click="toggle()">Menu</button>
 
     <!-- `isOpen` refers to the `isOpen` property of the `headerMenu` instance -->
     <div mx-show="isOpen">
@@ -178,6 +178,80 @@ Let's use our `dropdown` factory:
 ```
 
 In this example, `isOpen` resolves to `CuboMX.headerMenu.isOpen`.
+
+### Animating with `mx-transition`
+
+You can create smooth transitions for elements controlled by `mx-show` by adding the `mx-transition` attribute. This allows for CSS-based animations instead of elements simply appearing and disappearing abruptly.
+
+**How It Works**
+
+1.  Add `mx-transition="your-animation-name"` to the same element that has `mx-show`.
+2.  In your CSS, define a set of four classes based on this name to control the different states of the animation.
+
+**The CSS Classes**
+
+For a given name, like `fade`, you need to define the following classes:
+
+-   `[name]-enter-start`: The state of the element **before** it starts entering (e.g., `opacity: 0`).
+-   `[name]-enter-end`: The state the element animates **to** when entering (e.g., `opacity: 1`).
+-   `[name]-leave-start`: The state of the element **before** it starts leaving (e.g., `opacity: 1`).
+-   `[name]-leave-end`: The state the element animates **to** when leaving (e.g., `opacity: 0`).
+
+> **Note:** The `transition` CSS property itself should be defined either on the element directly or on the `*-end` classes.
+
+**Example: Dropdown with Fade & Slide Animation**
+
+Let's create a dropdown that fades and slides into view. We'll name our transition `fade-slide`.
+
+**HTML:**
+
+```html
+<div mx-data="dropdown()" class="relative">
+    <button mx-on:click="toggle()">Options</button>
+
+    <div class="dropdown-menu"
+         mx-show="isOpen"
+         mx-on:click.outside="close()"
+         mx-transition="fade-slide"
+    >
+        <a href="#">Profile</a>
+        <a href="#">Settings</a>
+    </div>
+</div>
+```
+
+**CSS:**
+
+Now, we define the four states for our `fade-slide` animation.
+
+```css
+/* The element can have a base transition property */
+.dropdown-menu {
+    transition: opacity 200ms, transform 200ms;
+}
+
+/* 1. Enter: from invisible and up, to visible and at rest */
+.fade-slide-enter-start {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+.fade-slide-enter-end {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 2. Leave: from visible and at rest, to invisible and up */
+.fade-slide-leave-start {
+  opacity: 1;
+  transform: translateY(0);
+}
+.fade-slide-leave-end {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+```
+
+With this setup, CuboMX will automatically orchestrate the classes to create a smooth animation for both the appearance and disappearance of the dropdown menu.
 
 ### `mx-delay`
 
