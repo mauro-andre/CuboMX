@@ -24,6 +24,54 @@ const CuboMX = (() => {
     const camelToKebab = (str) =>
         str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
 
+    const transition = (el, name, type, originalDisplay) => {
+        const enterStartClass = `${name}-enter-start`;
+        const enterEndClass = `${name}-enter-end`;
+        const leaveStartClass = `${name}-leave-start`;
+        const leaveEndClass = `${name}-leave-end`;
+
+        // Cancel any ongoing transition
+        if (el.__cubo_transition_timeout__) {
+            clearTimeout(el.__cubo_transition_timeout__);
+        }
+        if (el.__cubo_transition_handler__) {
+            el.removeEventListener("transitionend", el.__cubo_transition_handler__);
+            el.__cubo_transition_handler__ = null;
+        }
+
+        const runTransition = (startClasses, endClasses, finalAction) => {
+            el.classList.add(...startClasses);
+            
+            const frame1 = () => {
+                el.classList.remove(...startClasses);
+                el.classList.add(...endClasses);
+
+                const onEnd = () => {
+                    el.classList.remove(...endClasses);
+                    el.removeEventListener('transitionend', onEnd);
+                    el.__cubo_transition_handler__ = null;
+                    if (finalAction) finalAction();
+                };
+                el.addEventListener('transitionend', onEnd);
+                el.__cubo_transition_handler__ = onEnd;
+            };
+
+            // Using setTimeout is more reliable with vitest's fake timers than rAF
+            el.__cubo_transition_timeout__ = setTimeout(frame1, 1);
+        };
+
+        if (type === "enter") {
+            el.style.display = originalDisplay;
+            el.classList.remove(leaveStartClass, leaveEndClass, enterStartClass, enterEndClass);
+            runTransition([enterStartClass], [enterEndClass], null);
+        } else { // leave
+            el.classList.remove(leaveStartClass, leaveEndClass, enterStartClass, enterEndClass);
+            runTransition([leaveStartClass], [leaveEndClass], () => {
+                el.style.display = "none";
+            });
+        }
+    };
+
     const parseValue = (value, el, parserName) => {
         if (parserName && registeredParsers[parserName]) {
             return registeredParsers[parserName].parse(value, el, config);
@@ -494,16 +542,41 @@ const CuboMX = (() => {
             }, delay);
         },
         "mx-show": (el, expression) => {
-            const originalDisplay =
-                el.style.display === "none" ? "" : el.style.display;
+            const originalDisplay = el.style.display === "none" ? "" : el.style.display;
+            let state = evaluate(expression, el);
+
+            const transitionName = el.getAttribute("mx-transition");
+
             const binding = {
                 el,
-                evaluate: () =>
-                    (el.style.display = evaluate(expression, el)
-                        ? originalDisplay
-                        : "none"),
+                evaluate: () => {
+                    const newState = evaluate(expression, el);
+                    if (newState === state) return;
+
+                    if (!transitionName) {
+                        el.style.display = newState ? originalDisplay : "none";
+                        state = newState;
+                        return;
+                    }
+
+                    if (newState) {
+                        transition(el, transitionName, "enter", originalDisplay);
+                    } else {
+                        transition(el, transitionName, "leave", originalDisplay);
+                    }
+                    state = newState;
+                },
             };
-            binding.evaluate();
+
+            // Initial state
+            if (!transitionName) {
+                el.style.display = state ? originalDisplay : "none";
+            } else {
+                if (!state) {
+                    el.style.display = "none";
+                }
+            }
+
             bindings.push(binding);
         },
         "mx-on:": (el, attr) => {
