@@ -11,6 +11,7 @@ const CuboMX = (() => {
     let anonCounter = 0;
     let loadIdCounter = 0;
     let bindings = [];
+    let outsideClickListeners = [];
     let isInitialLoad = true;
     let templates = {};
     let config = {};
@@ -510,6 +511,18 @@ const CuboMX = (() => {
             const [eventName, ...modifiers] = eventAndModifiers.split(".");
             const expression = attr.value;
 
+            if (eventName === 'click' && modifiers.includes('outside')) {
+                const handler = (event) => {
+                    if (el.contains(event.target)) {
+                        return;
+                    }
+                    evaluateEventExpression(expression, el, event);
+                };
+                document.addEventListener('click', handler, true);
+                outsideClickListeners.push({ el, handler });
+                return;
+            }
+
             el.addEventListener(eventName, (event) => {
                 if (modifiers.includes("prevent")) event.preventDefault();
                 if (modifiers.includes("stop")) event.stopPropagation();
@@ -887,6 +900,15 @@ const CuboMX = (() => {
             removedNode,
             ...removedNode.querySelectorAll("*"),
         ];
+
+        outsideClickListeners = outsideClickListeners.filter(({ el, handler }) => {
+            if (allRemovedChildren.includes(el)) {
+                document.removeEventListener('click', handler, true);
+                return false;
+            }
+            return true;
+        });
+
         bindings = bindings.filter((b) => !allRemovedChildren.includes(b.el));
     };
 
@@ -958,6 +980,8 @@ const CuboMX = (() => {
         activeProxies = {};
         anonCounter = 0;
         bindings = [];
+        outsideClickListeners.forEach(({ handler }) => document.removeEventListener('click', handler, true));
+        outsideClickListeners = [];
         isInitialLoad = true;
         templates = {};
         config = {};

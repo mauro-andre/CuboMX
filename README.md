@@ -264,12 +264,25 @@ You can chain modifiers to the event name to change its behavior:
 
 -   `.prevent`: Calls `event.preventDefault()` on the triggered event. This is useful for stopping default actions, like a form submission.
 -   `.stop`: Calls `event.stopPropagation()`, preventing the event from bubbling up to parent elements.
+-   `.outside`: (Only for the `click` event) Executes the expression only when a click occurs *outside* of the element or its children. This is extremely useful for closing modals, dropdowns, and popovers when the user clicks away.
 
 ```html
-<!-- Prevents the form from doing a full page reload on submission -->
+<!-- Using .prevent on a form -->
 <form mx-on:submit.prevent="saveData()">
     ...
 </form>
+
+<!-- Using .outside to close a dropdown -->
+<div mx-data="dropdown()" class="relative">
+    <!-- This button toggles the dropdown's visibility -->
+    <button mx-on:click="toggle()">Options</button>
+
+    <!-- This div is the dropdown menu. It closes itself if a click happens outside -->
+    <div mx-show="isOpen" mx-on:click.outside="close()" class="dropdown-menu">
+        <a href="#">Edit</a>
+        <a href="#">Delete</a>
+    </div>
+</div>
 ```
 
 #### Magic Variables
