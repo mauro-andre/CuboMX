@@ -603,9 +603,27 @@ const CuboMX = (() => {
             });
         },
         "mx-bind:": (el, attr) => {
-            const [source, parserName] = attr.name.substring(8).split(":");
-            const directiveProp = kebabToCamel(source);
+            const [propAndModifiers, parserName] = attr.name.substring(8).split(":");
+            const [propToBind, ...modifiers] = propAndModifiers.split('.');
             const expression = attr.value;
+            
+            if (modifiers.includes('array')) {
+                const { context, key } = getContextForExpression(expression, el);
+                const valueToPush = getDOMValue(el, propToBind, parserName);
+
+                if (!Object.hasOwnProperty.call(context, key) || context[key] === null) {
+                    context[key] = [];
+                }
+
+                if (Array.isArray(context[key])) {
+                    context[key].push(valueToPush);
+                } else {
+                    console.error(`[CuboMX] property '${expression}' was configured as an array but it is not an array.`);
+                }
+                return;
+            }
+
+            const directiveProp = kebabToCamel(propToBind);
             const { context, key } = getContextForExpression(expression, el);
 
             const hydrate = () => {
@@ -720,8 +738,25 @@ const CuboMX = (() => {
             if (!parentItemEl.__cubo_item_object__) return;
 
             const itemObject = parentItemEl.__cubo_item_object__;
-            const [propToBind, parserName] = attr.name.substring(8).split(":");
+            const [propAndModifiers, parserName] = attr.name.substring(8).split(":");
+            const [propToBind, ...modifiers] = propAndModifiers.split('.');
             const propertyName = attr.value;
+
+            if (modifiers.includes('array')) {
+                const valueToPush = getDOMValue(el, propToBind, parserName);
+
+                if (!Object.hasOwnProperty.call(itemObject, propertyName)) {
+                    itemObject[propertyName] = [];
+                }
+
+                if (Array.isArray(itemObject[propertyName])) {
+                    itemObject[propertyName].push(valueToPush);
+                } else {
+                    console.error(`[CuboMX] property '${propertyName}' was configured as an array but it is not an array.`);
+                }
+                return;
+            }
+            
             populateItemObject(
                 el,
                 itemObject,

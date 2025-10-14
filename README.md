@@ -736,6 +736,73 @@ Sometimes, you don't need a whole object.
 >
 > The `:` shorthand is an alias **exclusively** for `mx-bind:`. Its purpose is to bind HTML attributes. **Do not** use it as a shorthand for `mx-item:prop`, as this will lead to unexpected behavior.
 
+### Collecting Multiple Values with the `.array` Modifier
+
+A powerful feature for complex hydration scenarios is the ability to collect attribute values from multiple elements into a single array. This is achieved by adding the `.array` modifier to a granular binding directive.
+
+This is especially useful when a single conceptual item in your data has a "one-to-many" relationship represented in the DOM, such as a blog post with multiple tags, or a product with multiple associated IDs.
+
+**How It Works**
+
+When you add `.array` to a binding, CuboMX will:
+1. Find or create an array on the target property.
+2. Push the attribute value from the element into that array.
+3. Repeat for every element that has the same directive pointing to the same property.
+
+This works for both component properties (`:prop.array="compProp"`) and item properties (`::prop.array="itemProp"`).
+
+**Example: Hydrating Post Tags**
+
+Let's use a generic example where a blog post can have multiple tags, and we want to hydrate all tag names into an array.
+
+**HTML:**
+```html
+<div mx-data="blog">
+    <!-- Post 1: Two tags -->
+    <div mx-item="posts">
+        <h2 ::text="title">CuboMX is awesome</h2>
+        <ul class="tags">
+            <li ::data-tag.array="tags" data-tag="frameworks"></li>
+            <li ::data-tag.array="tags" data-tag="javascript"></li>
+        </ul>
+    </div>
+    <!-- Post 2: Three tags -->
+    <div mx-item="posts">
+        <h2 ::text="title">Hydration is key</h2>
+        <ul class="tags">
+            <li ::data-tag.array="tags" data-tag="html"></li>
+            <li ::data-tag.array="tags" data-tag="ssr"></li>
+            <li ::data-tag.array="tags" data-tag="javascript"></li>
+        </ul>
+    </div>
+</div>
+```
+
+**JavaScript:**
+```javascript
+CuboMX.component("blog", {
+    posts: [] // The array to be populated with post items
+});
+CuboMX.start();
+```
+
+**Resulting State:**
+
+After hydration, the `posts` array will contain objects where `tags` is an array of all the collected tag names for that item:
+```javascript
+[
+    {
+        title: "CuboMX is awesome",
+        tags: ["frameworks", "javascript"]
+    },
+    {
+        title: "Hydration is key",
+        tags: ["html", "ssr", "javascript"]
+    }
+]
+```
+This pattern provides a clean, declarative way to handle one-to-many relationships directly in your HTML structure.
+
 ### Parsers: Transforming Data on the Fly
 
 Parsers allow you to transform data as it moves between the DOM and your component's state. This is incredibly useful for handling numbers, dates, currency, or any other format that needs conversion.
