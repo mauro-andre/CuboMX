@@ -14,6 +14,7 @@ const CuboMX = (() => {
     let outsideClickListeners = [];
     let isInitialLoad = true;
     let templates = {};
+    let itemTemplates = {};
     let config = {};
     let registeredParsers = {};
     let observer = null;
@@ -24,13 +25,144 @@ const CuboMX = (() => {
     const camelToKebab = (str) =>
         str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
 
+    const preHydrateTemplate = (templateString, itemData) => {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = templateString;
+        const itemEl = tempDiv.firstElementChild;
+
+        if (!itemEl) return templateString;
+
+        const allElements = [itemEl, ...itemEl.querySelectorAll('*')];
+
+        const arrayDirectiveMap = new Map();
+        allElements.forEach(el => {
+            for (const attr of [...el.attributes]) {
+                if (attr.name.startsWith('::') && attr.name.includes('.array')) {
+                    const propName = attr.value;
+                    if (!arrayDirectiveMap.has(propName)) {
+                        arrayDirectiveMap.set(propName, []);
+                    }
+                    arrayDirectiveMap.get(propName).push(el);
+                }
+            }
+        });
+
+        arrayDirectiveMap.forEach((elements, propName) => {
+            if (itemData.hasOwnProperty(propName) && Array.isArray(itemData[propName])) {
+                const dataArray = itemData[propName];
+                const templateNode = elements[0];
+                const parent = templateNode.parentElement;
+
+                for (let i = 0; i < Math.max(dataArray.length, elements.length); i++) {
+                    const node = elements[i];
+                    const data = dataArray[i];
+
+                    if (data !== undefined && node) { // Update
+                        const attr = [...node.attributes].find(a => a.name.startsWith('::') && a.value === propName);
+                        const [propAndModifiers, parserName] = attr.name.substring(2).split(":");
+                        const [propToBind] = propAndModifiers.split('.');
+                        setDOMValue(node, propToBind, data, parserName);
+                    } else if (data !== undefined && !node) { // Add
+                        const newNode = templateNode.cloneNode(true);
+                        const attr = [...newNode.attributes].find(a => a.name.startsWith('::') && a.value === propName);
+                        const [propAndModifiers, parserName] = attr.name.substring(2).split(":");
+                        const [propToBind] = propAndModifiers.split('.');
+                        setDOMValue(newNode, propToBind, data, parserName);
+                        parent.appendChild(newNode);
+                    } else if (data === undefined && node) { // Remove
+                        node.remove();
+                    }
+                }
+            }
+        });
+
+        allElements.forEach(el => {
+            for (const attr of [...el.attributes]) {
+                if (attr.name.startsWith('::') && !attr.name.includes('.array')) {
+                    const propName = attr.value;
+                    if (itemData.hasOwnProperty(propName) && !Array.isArray(itemData[propName])) {
+                        const [propAndModifiers, parserName] = attr.name.substring(2).split(":");
+                        const [propToBind] = propAndModifiers.split('.');
+                        setDOMValue(el, propToBind, itemData[propName], parserName);
+                    }
+                }
+            }
+        });
+
+        return itemEl.outerHTML;
+    };
+
+    const createItemArrayProxy = (targetArray, templateInfo) => {
+        const proxy = new Proxy(targetArray, {
+            get(target, prop) {
+                if (prop === '__isItemArrayProxy') return true;
+
+                if (prop === 'add') {
+                    return (itemData) => {
+                        const preHydratedHtml = preHydrateTemplate(templateInfo.template, itemData);
+                        if (!templateInfo.parent.id) {
+                            templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
+                        }
+                        const targetSelector = `#${templateInfo.parent.id}:beforeend`;
+                        publicAPI.swapHTML(preHydratedHtml, [{ select: 'this', target: targetSelector }]);
+                    };
+                }
+                if (prop === 'prepend') {
+                    return (itemData) => {
+                        const preHydratedHtml = preHydrateTemplate(templateInfo.template, itemData);
+                        if (!templateInfo.parent.id) {
+                            templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
+                        }
+                        const targetSelector = `#${templateInfo.parent.id}:afterbegin`;
+                        publicAPI.swapHTML(preHydratedHtml, [{ select: 'this', target: targetSelector }]);
+                    };
+                }
+                if (prop === 'insert') {
+                    return (itemData, index) => {
+                        if (index < 0 || index > target.length) {
+                            return;
+                        }
+                        if (index === target.length) {
+                            proxy.add(itemData);
+                            return;
+                        }
+
+                        const preHydratedHtml = preHydrateTemplate(templateInfo.template, itemData);
+                        const targetItem = target[index];
+                        if (targetItem && targetItem.__el) {
+                            const targetEl = targetItem.__el;
+                            if (!targetEl.id) {
+                                targetEl.id = `cubo-item-el-${anonCounter++}`;
+                            }
+                            const targetSelector = `#${targetEl.id}:beforebegin`;
+                            publicAPI.swapHTML(preHydratedHtml, [{ select: 'this', target: targetSelector }]);
+                        }
+                    };
+                }
+                if (prop === 'delete') {
+                    return (index) => {
+                        if (index < 0 || index >= target.length) {
+                            return;
+                        }
+                        const item = target[index];
+                        if (item && item.__el) {
+                            item.__el.remove();
+                        }
+                    };
+                }
+                const value = Reflect.get(target, prop);
+                return typeof value === 'function' ? value.bind(target) : value;
+            }
+        });
+        return proxy;
+    };
+
     const transition = (el, name, type, originalDisplay) => {
         const enterStartClass = `${name}-enter-start`;
         const enterEndClass = `${name}-enter-end`;
         const leaveStartClass = `${name}-leave-start`;
         const leaveEndClass = `${name}-leave-end`;
 
-        // Cancel any ongoing transition
         if (el.__cubo_transition_timeout__) {
             clearTimeout(el.__cubo_transition_timeout__);
         }
@@ -56,7 +188,6 @@ const CuboMX = (() => {
                 el.__cubo_transition_handler__ = onEnd;
             };
 
-            // Using setTimeout is more reliable with vitest's fake timers than rAF
             el.__cubo_transition_timeout__ = setTimeout(frame1, 1);
         };
 
@@ -337,7 +468,6 @@ const CuboMX = (() => {
             },
         });
 
-        // Attach helper methods directly to the proxy object for better ergonomics
         classProxy.add = (className) => {
             if (!classProxy.includes(className)) {
                 classProxy.push(className);
@@ -466,7 +596,7 @@ const CuboMX = (() => {
                     requestConfig.strategies = [{ select, target }];
                 }
 
-                a(requestConfig); // `a` is the imported `request` function
+                a(requestConfig);
             });
         },
         "mx-swap-template": (el, templateName) => {
@@ -479,7 +609,6 @@ const CuboMX = (() => {
             const select = el.getAttribute("mx-select");
             const triggerEvent = el.getAttribute("mx-trigger") || "click";
 
-            // Extract URL and pageTitle from the triggering element
             const elementUrl = el.getAttribute("url") ?? el.getAttribute("data-url");
             const elementPageTitle = el.getAttribute("page-title") ?? el.getAttribute("data-page-title");
     
@@ -489,7 +618,6 @@ const CuboMX = (() => {
                 if (select) {
                     swapOptions.select = select;
                 }
-                // Pass extracted URL and pageTitle to swapTemplate options
                 if (elementUrl) {
                     swapOptions.url = elementUrl;
                 }
@@ -568,7 +696,6 @@ const CuboMX = (() => {
                 },
             };
 
-            // Initial state
             if (!transitionName) {
                 el.style.display = state ? originalDisplay : "none";
             } else {
@@ -705,9 +832,24 @@ const CuboMX = (() => {
         },
         "mx-item": (el, expression) => {
             const { context, key } = getContextForExpression(expression, el);
-            if (context[key] === undefined || context[key] === null) {
-                context[key] = [];
+            const component = findComponentProxyFor(el);
+            const componentName = component ? Object.keys(activeProxies).find(k => activeProxies[k] === component) : 'global';
+            const templateRegistryKey = `${componentName}.${key}`;
+
+            if (context[key] === undefined || context[key] === null || !context[key].__isItemArrayProxy) {
+                const templateInfo = {
+                    template: el.outerHTML,
+                    parent: el.parentElement,
+                    key: templateRegistryKey
+                };
+                if (!itemTemplates[templateRegistryKey]) {
+                    itemTemplates[templateRegistryKey] = templateInfo;
+                }
+
+                const realArray = Array.isArray(context[key]) ? context[key] : [];
+                context[key] = createItemArrayProxy(realArray, templateInfo);
             }
+
             if (!Array.isArray(context[key])) {
                 return console.error(
                     `[CuboMX] mx-item target '${expression}' is not an array.`
@@ -716,18 +858,47 @@ const CuboMX = (() => {
             const basePath = expression.startsWith("$")
                 ? expression.substring(1)
                 : `${findComponentProxyFor(el)?.name || ""}.${expression}`;
-            const fullPath = `${basePath}[${context[key].length}]`;
-
-            const itemObject = enhanceObjectWithElementProxy({}, el, fullPath);
-            context[key].push(itemObject);
-            el.__cubo_item_object__ = itemObject;
+            
+                        const fullPath = `${basePath}[${context[key].length}]`;
+            
+            
+            
+                        const itemObject = enhanceObjectWithElementProxy({}, el, fullPath);
+            
+                        Object.defineProperty(itemObject, '__el', { value: el, configurable: true });
+            
+            
+            
+                        const parent = el.parentElement;
+            
+                        const siblingItems = [...parent.children].filter(child =>
+            
+                            child.getAttribute('mx-item') === expression
+            
+                        );
+            
+                        const domIndex = siblingItems.indexOf(el);
+            
+            
+            
+                        if (domIndex > -1) {
+            
+                            context[key].splice(domIndex, 0, itemObject);
+            
+                        } else {
+            
+                            context[key].push(itemObject);
+            
+                        }
+            
+                        
+            
+                        el.__cubo_item_object__ = itemObject;
         },
         "mx-item:": (el, attr) => {
             const parentItemEl = el.closest("[mx-item]");
 
             if (!parentItemEl) {
-                // This is a granular bind on a component property, not an item property.
-                // Delegate to the mx-bind: handler.
                 directiveHandlers["mx-bind:"](el, {
                     name: `mx-bind:${attr.name.substring(8)}`,
                     value: attr.value,
@@ -790,8 +961,6 @@ const CuboMX = (() => {
             configurable: true,
         });
 
-        // When a parser is present, we need to force an initial format pass.
-        // Reading the value triggers the 'parse' and writing it back triggers the 'format'.
         if (parserName && registeredParsers[parserName]) {
             const initialValue = itemObject[propertyName];
             itemObject[propertyName] = initialValue;
@@ -834,13 +1003,11 @@ const CuboMX = (() => {
                 else if (attr.name.startsWith("mx-on:"))
                     directiveHandlers["mx-on:"](el, attr);
                 else if (attr.name.startsWith("::")) {
-                    // Check for :: first
                     directiveHandlers["mx-item:"](el, {
                         name: `mx-item:${attr.name.substring(2)}`,
                         value: attr.value,
                     });
                 } else if (attr.name.startsWith(":")) {
-                    // Check for : second
                     directiveHandlers["mx-bind:"](el, {
                         name: `mx-bind:${attr.name.substring(1)}`,
                         value: attr.value,
@@ -953,7 +1120,6 @@ const CuboMX = (() => {
     const destroyProxies = (removedNode) => {
         if (removedNode.nodeType !== 1) return;
 
-        // Clean up mx-item elements
         const itemElements = removedNode.matches('[mx-item]')
             ? [removedNode, ...removedNode.querySelectorAll('[mx-item]')]
             : [...removedNode.querySelectorAll('[mx-item]')];
@@ -962,7 +1128,6 @@ const CuboMX = (() => {
             if (el.__cubo_item_object__) {
                 const itemObject = el.__cubo_item_object__;
 
-                // Brute-force search for the item in all component arrays
                 for (const compName in activeProxies) {
                     const component = activeProxies[compName];
                     for (const prop in component) {
@@ -971,7 +1136,7 @@ const CuboMX = (() => {
                             const index = array.indexOf(itemObject);
                             if (index > -1) {
                                 array.splice(index, 1);
-                                return; // Exit forEach once found and removed
+                                return;
                             }
                         }
                     }
@@ -994,7 +1159,6 @@ const CuboMX = (() => {
                     proxy.destroy.call(proxy);
                 delete activeProxies[refName];
 
-                // Clean up watchers associated with the destroyed proxy
                 const watcherPrefix = `${refName}.`;
                 for (const path in watchers) {
                     if (path.startsWith(watcherPrefix)) {
@@ -1087,11 +1251,13 @@ const CuboMX = (() => {
         watchers = {};
         activeProxies = {};
         anonCounter = 0;
+        loadIdCounter = 0;
         bindings = [];
         outsideClickListeners.forEach(({ handler }) => document.removeEventListener('click', handler, true));
         outsideClickListeners = [];
         isInitialLoad = true;
         templates = {};
+        itemTemplates = {};
         config = {};
         registeredParsers = {};
     };
@@ -1138,7 +1304,7 @@ const CuboMX = (() => {
         renderTemplate(templateName, data) {
             const templateObj = this.getTemplate(templateName);
             if (!templateObj) {
-                return ""; // getTemplate already logs the error
+                return "";
             }
             return this.render(templateObj.template, data);
         },
@@ -1157,7 +1323,7 @@ const CuboMX = (() => {
         swapTemplate(templateName, options = {}) {
             const templateObj = this.getTemplate(templateName);
             if (!templateObj) {
-                return; // getTemplate already logs the error
+                return;
             }
 
             const { template, data: metadata } = templateObj;
