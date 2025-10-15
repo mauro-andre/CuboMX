@@ -708,6 +708,120 @@ After hydration, `CuboMX.cart.items` will be:
 ```
 This powerful pattern allows you to keep your HTML semantic and structured logically, while still achieving full, reactive hydration of complex objects and arrays.
 
+### Dynamic List Manipulation with Array Proxies
+
+A major advantage of using `mx-item` is that the hydrated array in your component is automatically converted into a powerful **proxy object**. This proxy comes with a set of methods that allow you to easily add, insert, and remove items from the list, letting CuboMX handle the DOM manipulation and state synchronization for you.
+
+This abstracts away the manual work of rendering templates and swapping HTML.
+
+**How It Works**
+
+Behind the scenes, CuboMX automatically creates a template from the first item element it finds for a given array. When you call one of the manipulation methods, CuboMX:
+1.  Uses the stored template and the data you provide to create a new HTML element in memory.
+2.  Injects this new element into the correct position in the DOM.
+3.  Lets its reactive `MutationObserver` detect the new element and hydrate it, adding it to your state array automatically and in the correct position.
+
+**Available Methods**
+
+-   `.add(itemData)`: Adds a new item to the end of the list.
+-   `.prepend(itemData)`: Adds a new item to the beginning of the list.
+-   `.insert(itemData, index)`: Inserts a new item at a specific index.
+-   `.delete(index)`: Removes the item at the specified index.
+
+**Example: A Simple To-Do List**
+
+Let's see how easy it is to build a dynamic to-do list.
+
+**HTML:**
+```html
+<div mx-data="todoApp">
+    <input type="text" :value="newTodoText" mx-on:keydown.enter="addTodo()">
+    <button mx-on:click="addTodo()">Add</button>
+
+    <ul id="todo-list">
+        <!-- This `li` serves as the template for all new items -->
+        <li mx-item="todos">
+            <span ::text="text"></span>
+            <button mx-on:click="$item.delete()">Remove</button>
+        </li>
+    </ul>
+</div>
+```
+
+**JavaScript:**
+```javascript
+CuboMX.component('todoApp', {
+    todos: [],
+    newTodoText: '',
+    addTodo() {
+        if (!this.newTodoText.trim()) return;
+
+        // Simply call .add() on the array proxy!
+        this.todos.add({ text: this.newTodoText });
+
+        this.newTodoText = ''; // Clear the input
+    }
+});
+CuboMX.start();
+```
+In this example, calling `this.todos.add()` triggers the entire process of creating a new `<li>`, adding it to the `<ul>`, and updating the underlying state array, all with a single, intuitive method call. Notice also how we can call `.delete()` on the `$item` itself to remove it.
+
+#### Advanced: Synchronizing Sub-Arrays
+
+The real power of the array proxy methods is revealed when dealing with nested data. If your item template contains a property that collects multiple values (using `::prop.array`), you can pass an array for that property, and CuboMX will automatically **synchronize** the DOM to match your data. It will create, update, or remove elements as needed.
+
+This is extremely powerful for rendering things like a list of tags, user profiles, or any other one-to-many relationship.
+
+**Example:**
+
+Imagine an item template that contains two `<span>` elements to represent tags.
+
+**HTML:**
+```html
+<div mx-data="listApp">
+    <button mx-on:click="addItems()">Add Items</button>
+    <ul>
+        <!-- The template has one item with two initial tags -->
+        <li mx-item="items">
+            <strong ::text="name"></strong>
+            <div class="tags">
+                <span class="tag" ::text.array="tags">Tag 1</span>
+                <span class="tag" ::text.array="tags">Tag 2</span>
+            </div>
+        </li>
+    </ul>
+</div>
+```
+
+**JavaScript:**
+```javascript
+CuboMX.component('listApp', {
+    items: [],
+    addItems() {
+        // 1. Add an item with MORE tags than the template
+        this.items.add({
+            name: 'Complex Item',
+            tags: ['Alpha', 'Beta', 'Gamma'] // Data has 3 tags
+        });
+
+        // 2. Add an item with FEWER tags than the template
+        this.items.add({
+            name: 'Simple Item',
+            tags: ['Zeta'] // Data has 1 tag
+        });
+    }
+});
+CuboMX.start();
+```
+
+**Result:**
+
+When `addItems()` is called:
+-   For the "Complex Item", CuboMX sees that the data (`['Alpha', 'Beta', 'Gamma']`) has three items, but the template only provides two `<span>` elements. It will **clone** the `<span>` to create a third one, resulting in three tags in the DOM.
+-   For the "Simple Item", CuboMX sees the data (`['Zeta']`) has only one item. It will **remove** the second `<span>` from the template, leaving only one tag in the DOM.
+
+This synchronization happens automatically, ensuring the generated DOM is a perfect representation of the data you provide.
+
 ### Hydration Rules
 
 -   **Attributes to Properties:** HTML attributes are converted to properties on the object.
