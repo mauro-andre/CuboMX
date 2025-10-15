@@ -117,4 +117,17 @@ describe("Directive Modifier: .array", () => {
         expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("is not an array"));
         consoleSpy.mockRestore();
     });
+
+    it('should collect textContent into an array using :text.array when initialized as null', () => {
+        CuboMX.component('myComp', { profileNames: null });
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div :text.array="profileNames">Dominante</div>
+                <div :text.array="profileNames">Perspicaz</div>
+                <div :text.array="profileNames">Organizador</div>
+            </div>
+        `;
+        CuboMX.start();
+        expect(CuboMX.myComp.profileNames).toEqual(['Dominante', 'Perspicaz', 'Organizador']);
+    });
 });
