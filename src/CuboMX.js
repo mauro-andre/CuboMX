@@ -7,6 +7,7 @@ const CuboMX = (() => {
     let registeredComponents = {};
     let registeredStores = {};
     let watchers = {};
+    let arrayWatchers = {};
     let activeProxies = {};
     let anonCounter = 0;
     let loadIdCounter = 0;
@@ -22,8 +23,10 @@ const CuboMX = (() => {
     const kebabToCamel = (str) =>
         str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
 
-    const camelToKebab = (str) =>
-        str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
+    const camelToKebab = (str) => {
+        if (typeof str !== 'string') return str;
+        return str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
+    };
 
     const preHydrateTemplate = (templateString, itemData) => {
         const tempDiv = document.createElement('div');
@@ -92,6 +95,17 @@ const CuboMX = (() => {
         return itemEl.outerHTML;
     };
 
+    const notifyArrayWatchers = (path, eventData) => {
+        const watchersList = arrayWatchers[path];
+        if (!watchersList || watchersList.length === 0) return;
+
+        setTimeout(() => {
+            watchersList.forEach(({ callback }) => {
+                callback(eventData);
+            });
+        }, 0);
+    };
+
     const createItemArrayProxy = (targetArray, templateInfo) => {
         const proxy = new Proxy(targetArray, {
             get(target, prop) {
@@ -104,7 +118,23 @@ const CuboMX = (() => {
                             templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
                         }
                         const targetSelector = `#${templateInfo.parent.id}:beforeend`;
+                        const index = target.length;
+
                         publicAPI.swapHTML(preHydratedHtml, [{ select: 'this', target: targetSelector }]);
+
+                        setTimeout(() => {
+                            const addedItem = target[index];
+                            if (addedItem) {
+                                const arrayPath = templateInfo.key;
+                                notifyArrayWatchers(arrayPath, {
+                                    type: 'add',
+                                    item: addedItem,
+                                    index: index,
+                                    arrayName: arrayPath.split('.')[1],
+                                    componentName: arrayPath.split('.')[0]
+                                });
+                            }
+                        }, 0);
                     };
                 }
                 if (prop === 'prepend') {
@@ -114,7 +144,22 @@ const CuboMX = (() => {
                             templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
                         }
                         const targetSelector = `#${templateInfo.parent.id}:afterbegin`;
+
                         publicAPI.swapHTML(preHydratedHtml, [{ select: 'this', target: targetSelector }]);
+
+                        setTimeout(() => {
+                            const prependedItem = target[0];
+                            if (prependedItem) {
+                                const arrayPath = templateInfo.key;
+                                notifyArrayWatchers(arrayPath, {
+                                    type: 'prepend',
+                                    item: prependedItem,
+                                    index: 0,
+                                    arrayName: arrayPath.split('.')[1],
+                                    componentName: arrayPath.split('.')[0]
+                                });
+                            }
+                        }, 0);
                     };
                 }
                 if (prop === 'insert') {
@@ -122,12 +167,35 @@ const CuboMX = (() => {
                         if (index < 0 || index > target.length) {
                             return;
                         }
+
+                        const preHydratedHtml = preHydrateTemplate(templateInfo.template, itemData);
+
+                        // Handle insert at end
                         if (index === target.length) {
-                            proxy.add(itemData);
+                            if (!templateInfo.parent.id) {
+                                templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
+                            }
+                            const targetSelector = `#${templateInfo.parent.id}:beforeend`;
+
+                            publicAPI.swapHTML(preHydratedHtml, [{ select: 'this', target: targetSelector }]);
+
+                            setTimeout(() => {
+                                const insertedItem = target[index];
+                                if (insertedItem) {
+                                    const arrayPath = templateInfo.key;
+                                    notifyArrayWatchers(arrayPath, {
+                                        type: 'insert',
+                                        item: insertedItem,
+                                        index: index,
+                                        arrayName: arrayPath.split('.')[1],
+                                        componentName: arrayPath.split('.')[0]
+                                    });
+                                }
+                            }, 0);
                             return;
                         }
 
-                        const preHydratedHtml = preHydrateTemplate(templateInfo.template, itemData);
+                        // Handle insert in the middle
                         const targetItem = target[index];
                         if (targetItem && targetItem.__el) {
                             const targetEl = targetItem.__el;
@@ -135,7 +203,22 @@ const CuboMX = (() => {
                                 targetEl.id = `cubo-item-el-${anonCounter++}`;
                             }
                             const targetSelector = `#${targetEl.id}:beforebegin`;
+
                             publicAPI.swapHTML(preHydratedHtml, [{ select: 'this', target: targetSelector }]);
+
+                            setTimeout(() => {
+                                const insertedItem = target[index];
+                                if (insertedItem) {
+                                    const arrayPath = templateInfo.key;
+                                    notifyArrayWatchers(arrayPath, {
+                                        type: 'insert',
+                                        item: insertedItem,
+                                        index: index,
+                                        arrayName: arrayPath.split('.')[1],
+                                        componentName: arrayPath.split('.')[0]
+                                    });
+                                }
+                            }, 0);
                         }
                     };
                 }
@@ -145,8 +228,20 @@ const CuboMX = (() => {
                             return;
                         }
                         const item = target[index];
+                        const arrayPath = templateInfo.key;
+
                         if (item && item.__el) {
                             item.__el.remove();
+
+                            setTimeout(() => {
+                                notifyArrayWatchers(arrayPath, {
+                                    type: 'delete',
+                                    item: item,
+                                    index: index,
+                                    arrayName: arrayPath.split('.')[1],
+                                    componentName: arrayPath.split('.')[0]
+                                });
+                            }, 0);
                         }
                     };
                 }
@@ -363,6 +458,13 @@ const CuboMX = (() => {
                         watch(path, callback);
                     };
                 }
+                if (property === "$watchArrayItems") {
+                    return (arrayName, callback) => {
+                        const path = `${name}.${arrayName}`;
+                        if (!arrayWatchers[path]) arrayWatchers[path] = [];
+                        arrayWatchers[path].push({ callback, componentName: name });
+                    };
+                }
                 if (property === "$el") {
                     return el;
                 }
@@ -370,6 +472,11 @@ const CuboMX = (() => {
                 const value = Reflect.get(target, property, receiver);
 
                 if (typeof value === "function") {
+                    // Preserve spy/mock functions (e.g., from Vitest, Jest)
+                    // by checking if they have spy-specific properties
+                    if (value.mock || value._isMockFunction || typeof value.mockClear === 'function') {
+                        return value;
+                    }
                     return value.bind(receiver);
                 }
 
@@ -505,6 +612,9 @@ const CuboMX = (() => {
     };
 
     const getDOMValue = (el, propName, parserName) => {
+        // Skip symbol properties (used by testing frameworks for inspection)
+        if (typeof propName === 'symbol') return undefined;
+
         const rawValue = (() => {
             if (propName === "checked") return el.checked;
             if (propName === "value") return el.value;
@@ -563,6 +673,28 @@ const CuboMX = (() => {
                         );
                     }
                     bindings.forEach((b) => b.evaluate());
+
+                    // Notify array watchers if this is an item in an array
+                    const pathParts = basePath.match(/^(.+?)\.(.+?)\[(\d+)\]$/);
+                    if (pathParts) {
+                        const componentName = pathParts[1];
+                        const arrayName = pathParts[2];
+                        const index = parseInt(pathParts[3], 10);
+                        const arrayPath = `${componentName}.${arrayName}`;
+
+                        setTimeout(() => {
+                            notifyArrayWatchers(arrayPath, {
+                                type: 'update',
+                                item: target,
+                                index: index,
+                                arrayName: arrayName,
+                                componentName: componentName,
+                                propertyName: prop,
+                                oldValue: oldValue,
+                                newValue: value
+                            });
+                        }, 0);
+                    }
                 }
 
                 setDOMValue(el, camelToKebab(prop), value);
@@ -950,12 +1082,55 @@ const CuboMX = (() => {
             return;
         }
 
+        // Get the basePath from the itemObject's internal structure
+        const itemEl = itemObject.__el;
+        let basePath = '';
+        if (itemEl && itemEl.hasAttribute('mx-item')) {
+            const component = findComponentProxyFor(itemEl);
+            const componentName = component ? Object.keys(activeProxies).find(k => activeProxies[k] === component) : 'global';
+            const expression = itemEl.getAttribute('mx-item');
+            const arrayName = expression.startsWith('$') ? expression.substring(1) : expression;
+
+            // Find the index of this item in its parent array
+            const parent = itemEl.parentElement;
+            const siblingItems = [...parent.children].filter(child =>
+                child.getAttribute('mx-item') === expression
+            );
+            const domIndex = siblingItems.indexOf(itemEl);
+            basePath = `${componentName}.${arrayName}[${domIndex}]`;
+        }
+
         Object.defineProperty(itemObject, propertyName, {
             get() {
                 return getDOMValue(el, propToBind, parserName);
             },
             set(value) {
+                const oldValue = getDOMValue(el, propToBind, parserName);
                 setDOMValue(el, propToBind, value, parserName);
+
+                // Notify array watchers if there's a basePath
+                if (basePath && oldValue !== value) {
+                    const pathParts = basePath.match(/^(.+?)\.(.+?)\[(\d+)\]$/);
+                    if (pathParts) {
+                        const componentName = pathParts[1];
+                        const arrayName = pathParts[2];
+                        const index = parseInt(pathParts[3], 10);
+                        const arrayPath = `${componentName}.${arrayName}`;
+
+                        setTimeout(() => {
+                            notifyArrayWatchers(arrayPath, {
+                                type: 'update',
+                                item: itemObject,
+                                index: index,
+                                arrayName: arrayName,
+                                componentName: componentName,
+                                propertyName: propertyName,
+                                oldValue: oldValue,
+                                newValue: value
+                            });
+                        }, 0);
+                    }
+                }
             },
             enumerable: true,
             configurable: true,
@@ -1249,6 +1424,7 @@ const CuboMX = (() => {
         registeredComponents = {};
         registeredStores = {};
         watchers = {};
+        arrayWatchers = {};
         activeProxies = {};
         anonCounter = 0;
         loadIdCounter = 0;
