@@ -1261,6 +1261,7 @@ Within a component's methods, you have access to special properties on `this`:
 
 -   **`this.$el`**: A direct reference to the component's root DOM element (the one with `mx-data`).
 -   **`this.$watch('property', callback)`**: Watches a property **on the current component instance** and reacts to changes.
+-   **`this.$watchArrayItems('arrayName', callback)`**: Watches mutations on an array of items created with `mx-item`. The callback receives detailed information about each mutation (add, prepend, insert, delete, or update operations).
 
 ```javascript
 const searchField = {
@@ -1270,6 +1271,116 @@ const searchField = {
     },
 };
 ```
+
+### Watching Array Mutations with `$watchArrayItems`
+
+When working with dynamic lists created using `mx-item`, you often need to react to changes in the array—such as when items are added, removed, or updated. The `$watchArrayItems` method allows you to observe these mutations and execute custom logic in response.
+
+**Important:** The callback is triggered **after** both the DOM and the array proxy have been updated, ensuring you have access to the final state.
+
+**Callback Signature:**
+
+The callback receives a single object parameter with the following structure:
+
+```javascript
+{
+    type: string,           // 'add' | 'prepend' | 'insert' | 'delete' | 'update'
+    item: object,           // The item object that was affected
+    index: number,          // The position in the array
+    arrayName: string,      // The name of the array property
+    componentName: string,  // The name of the component
+
+    // Only present when type === 'update':
+    propertyName: string,   // The name of the property that changed
+    oldValue: any,          // The previous value
+    newValue: any           // The new value
+}
+```
+
+**Example: Syncing List Changes to a Server**
+
+Let's create a shopping cart that automatically saves changes to the server whenever items are added, removed, or updated.
+
+**HTML:**
+```html
+<div mx-data="cart">
+    <button mx-on:click="addItem()">Add Sample Item</button>
+
+    <ul id="cart-list">
+        <li mx-item="items" ::data-id="id" data-id="1">
+            <span ::text="name">Gaming Mouse</span>
+            <input type="number" ::value="quantity" value="1">
+            <button mx-on:click="items.delete(0)">Remove</button>
+        </li>
+    </ul>
+</div>
+```
+
+**JavaScript:**
+```javascript
+CuboMX.component('cart', {
+    items: [],
+
+    init() {
+        // Watch for any mutations on the items array
+        this.$watchArrayItems('items', (mutation) => {
+            console.log('Cart mutation:', mutation);
+
+            // Sync changes to the server
+            if (mutation.type === 'add' || mutation.type === 'prepend' || mutation.type === 'insert') {
+                this.saveItemToServer(mutation.item);
+            } else if (mutation.type === 'delete') {
+                this.deleteItemFromServer(mutation.item.id);
+            } else if (mutation.type === 'update') {
+                this.updateItemOnServer(mutation.item.id, {
+                    [mutation.propertyName]: mutation.newValue
+                });
+            }
+        });
+    },
+
+    addItem() {
+        const newId = Date.now();
+        this.items.add({
+            id: newId,
+            name: 'New Item',
+            quantity: 1
+        });
+    },
+
+    saveItemToServer(item) {
+        console.log('Saving new item:', item);
+        // CuboMX.request({ method: 'POST', url: '/api/cart', body: item });
+    },
+
+    updateItemOnServer(itemId, changes) {
+        console.log('Updating item:', itemId, changes);
+        // CuboMX.request({ method: 'PATCH', url: `/api/cart/${itemId}`, body: changes });
+    },
+
+    deleteItemFromServer(itemId) {
+        console.log('Deleting item:', itemId);
+        // CuboMX.request({ method: 'DELETE', url: `/api/cart/${itemId}` });
+    }
+});
+
+CuboMX.start();
+```
+
+**Key Points:**
+
+-   The watcher is set up once in the `init()` lifecycle hook.
+-   All mutation types (`add`, `prepend`, `insert`, `delete`, `update`) trigger the same callback, allowing you to handle them in one place.
+-   For `update` mutations (when an item's property changes), you receive the specific property name and both old and new values.
+-   The callback fires **after** CuboMX has finished updating the DOM and the array, so the state is always consistent.
+-   You can set up multiple watchers on different arrays within the same component.
+
+This pattern is especially useful for:
+-   Auto-saving changes to a backend
+-   Logging user interactions with lists
+-   Triggering animations or notifications when items change
+-   Maintaining derived state (like totals, counts, or summaries)
+-   Syncing state with localStorage or other persistence layers
 
 ## 9. Lifecycle Hooks
 
