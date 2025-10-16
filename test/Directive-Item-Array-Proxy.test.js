@@ -216,3 +216,103 @@ describe('Directive: mx-item Array Proxy', () => {
         expect(CuboMX.listManager.items.length).toBe(2);
     });
 });
+
+describe('Directive: mx-item Array Proxy with Nested Components', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '';
+        CuboMX.reset();
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.restoreAllMocks();
+    });
+
+    const setupNestedList = () => {
+        // Outer component is a singleton
+        CuboMX.component('outerComp', {
+            items: [],
+        });
+        // Inner component is a factory to get its own instance
+        CuboMX.component('innerComp', () => ({
+            items: [],
+        }));
+        document.body.innerHTML = `
+            <div mx-data="outerComp">
+                <div mx-data="innerComp()" mx-ref="inner">
+                    <ul id="nested-item-list">
+                        <li mx-item="items" ::data-id="id" data-id="nested-1">
+                            <span ::text="name">Nested Item 1</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    };
+
+    it('should hydrate items into the nearest component scope (inner)', async () => {
+        setupNestedList();
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        const outerItems = CuboMX.outerComp.items; // Access singleton by name
+        const innerItems = CuboMX.inner.items;   // Access factory by ref
+
+        // Assert that the item was added to the inner component's array
+        expect(innerItems.length).toBe(1);
+        expect(innerItems[0].name).toBe('Nested Item 1');
+        expect(innerItems[0].id).toBe('nested-1');
+
+        // Assert that the outer component's array was NOT affected
+        expect(outerItems.length).toBe(0);
+
+        // Assert proxy methods exist on the correct array
+        expect(typeof innerItems.add).toBe('function');
+        // The outer array was never converted to a proxy because no mx-item pointed to it
+        expect(outerItems.add).toBeUndefined();
+    });
+
+    it('should add a new item to the inner component list using add()', async () => {
+        setupNestedList();
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        // Act
+        CuboMX.inner.items.add({ id: 'nested-2', name: 'Nested Item 2' });
+        await vi.runAllTimersAsync();
+
+        // Assert DOM
+        const listItems = document.querySelectorAll('#nested-item-list li');
+        expect(listItems).toHaveLength(2);
+        expect(listItems[1].getAttribute('data-id')).toBe('nested-2');
+        expect(listItems[1].querySelector('span').textContent).toBe('Nested Item 2');
+
+        // Assert State
+        expect(CuboMX.inner.items.length).toBe(2);
+        expect(CuboMX.inner.items[1].name).toBe('Nested Item 2');
+        expect(CuboMX.outerComp.items.length).toBe(0); // Outer scope remains untouched
+    });
+
+    it('should remove an item from the inner component list using delete()', async () => {
+        setupNestedList();
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        // Initial state
+        expect(document.querySelectorAll('#nested-item-list li')).toHaveLength(1);
+        expect(CuboMX.inner.items.length).toBe(1);
+
+        // Act
+        CuboMX.inner.items.delete(0);
+        await vi.runAllTimersAsync();
+
+        // Assert DOM
+        const listItems = document.querySelectorAll('#nested-item-list li');
+        expect(listItems).toHaveLength(0);
+
+        // Assert State
+        expect(CuboMX.inner.items.length).toBe(0);
+        expect(CuboMX.outerComp.items.length).toBe(0); // Outer scope remains untouched
+    });
+});

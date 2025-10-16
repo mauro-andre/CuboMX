@@ -231,4 +231,238 @@ describe('CuboMX - $watchArrayItems', () => {
         expect(CuboMX.multiListManager.productMutationSpy).toHaveBeenCalledTimes(1);
         expect(CuboMX.multiListManager.productMutationSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'delete', arrayName: 'products' }));
     });
+
+    it('should call the mutation callback for `update` when an item\'s implicit class property is mutated (add, remove, toggle)', async () => {
+        CuboMX.component('listManager', {
+            items: [],
+            mutationSpy: vi.fn(),
+            init() {
+                this.$watchArrayItems('items', this.mutationSpy);
+            },
+        });
+        document.body.innerHTML = `
+            <div mx-data="listManager">
+                <ul id="item-list">
+                    <li mx-item="items" class="initial"></li>
+                </ul>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        CuboMX.listManager.mutationSpy.mockClear();
+
+        const itemToUpdate = CuboMX.listManager.items[0];
+
+        // Test .add()
+        itemToUpdate.class.add('active');
+        await vi.runAllTimersAsync();
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(1);
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenNthCalledWith(1, {
+            type: 'update',
+            item: itemToUpdate,
+            index: 0,
+            arrayName: 'items',
+            componentName: 'listManager',
+            propertyName: 'class',
+            oldValue: ['initial'],
+            newValue: expect.arrayContaining(['initial', 'active']),
+        });
+
+        // Test .toggle() - remove
+        itemToUpdate.class.toggle('active');
+        await vi.runAllTimersAsync();
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(2);
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenNthCalledWith(2, {
+            type: 'update',
+            item: itemToUpdate,
+            index: 0,
+            arrayName: 'items',
+            componentName: 'listManager',
+            propertyName: 'class',
+            oldValue: expect.arrayContaining(['initial', 'active']),
+            newValue: ['initial'],
+        });
+
+        // Test .toggle() - add
+        itemToUpdate.class.toggle('highlighted');
+        await vi.runAllTimersAsync();
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(3);
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenNthCalledWith(3, {
+            type: 'update',
+            item: itemToUpdate,
+            index: 0,
+            arrayName: 'items',
+            componentName: 'listManager',
+            propertyName: 'class',
+            oldValue: ['initial'],
+            newValue: expect.arrayContaining(['initial', 'highlighted']),
+        });
+
+        // Test .remove()
+        itemToUpdate.class.remove('initial');
+        await vi.runAllTimersAsync();
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(4);
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenNthCalledWith(4, {
+            type: 'update',
+            item: itemToUpdate,
+            index: 0,
+            arrayName: 'items',
+            componentName: 'listManager',
+            propertyName: 'class',
+            oldValue: expect.arrayContaining(['initial', 'highlighted']),
+            newValue: ['highlighted'],
+        });
+    });
+    
+    it('should call the mutation callback for `update` when an item\'s explicit class property (::class) is mutated (add, remove, toggle)', async () => {
+        CuboMX.component('listManager', {
+            items: [],
+            mutationSpy: vi.fn(),
+            init() {
+                this.$watchArrayItems('items', this.mutationSpy);
+            },
+        });
+        document.body.innerHTML = `
+            <div mx-data="listManager">
+                <ul id="item-list">
+                    <li mx-item="items" ::class="itemClasses" class="initial"></li>
+                </ul>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        CuboMX.listManager.mutationSpy.mockClear();
+
+        const itemToUpdate = CuboMX.listManager.items[0];
+
+        // Test .add()
+        itemToUpdate.itemClasses.add('active');
+        await vi.runAllTimersAsync();
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(1);
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenNthCalledWith(1, {
+            type: 'update',
+            item: itemToUpdate,
+            index: 0,
+            arrayName: 'items',
+            componentName: 'listManager',
+            propertyName: 'itemClasses',
+            oldValue: ['initial'],
+            newValue: expect.arrayContaining(['initial', 'active']),
+        });
+
+        // Test .toggle() - remove
+        itemToUpdate.itemClasses.toggle('active');
+        await vi.runAllTimersAsync();
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(2);
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenNthCalledWith(2, {
+            type: 'update',
+            item: itemToUpdate,
+            index: 0,
+            arrayName: 'items',
+            componentName: 'listManager',
+            propertyName: 'itemClasses',
+            oldValue: expect.arrayContaining(['initial', 'active']),
+            newValue: ['initial'],
+        });
+
+        // Test .toggle() - add
+        itemToUpdate.itemClasses.toggle('highlighted');
+        await vi.runAllTimersAsync();
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(3);
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenNthCalledWith(3, {
+            type: 'update',
+            item: itemToUpdate,
+            index: 0,
+            arrayName: 'items',
+            componentName: 'listManager',
+            propertyName: 'itemClasses',
+            oldValue: ['initial'],
+            newValue: expect.arrayContaining(['initial', 'highlighted']),
+        });
+
+        // Test .remove()
+        itemToUpdate.itemClasses.remove('initial');
+        await vi.runAllTimersAsync();
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(4);
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenNthCalledWith(4, {
+            type: 'update',
+            item: itemToUpdate,
+            index: 0,
+            arrayName: 'items',
+            componentName: 'listManager',
+            propertyName: 'itemClasses',
+            oldValue: expect.arrayContaining(['initial', 'highlighted']),
+            newValue: ['highlighted'],
+        });
+    });
+
+    it('should NOT call the mutation callback during initial hydration of existing items', async () => {
+        CuboMX.component('listManager', {
+            items: [],
+            mutationSpy: vi.fn(),
+            init() {
+                this.$watchArrayItems('items', this.mutationSpy);
+            },
+        });
+        document.body.innerHTML = `
+            <div mx-data="listManager">
+                <ul id="item-list">
+                    <li mx-item="items" ::data-id="id" data-id="1">
+                        <span ::text="name">Item 1</span>
+                    </li>
+                    <li mx-item="items" ::data-id="id" data-id="2">
+                        <span ::text="name">Item 2</span>
+                    </li>
+                    <li mx-item="items" ::data-id="id" data-id="3">
+                        <span ::text="name">Item 3</span>
+                    </li>
+                </ul>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        // During initialization, the 3 items are hydrated but should NOT trigger callbacks
+        expect(CuboMX.listManager.items).toHaveLength(3);
+        expect(CuboMX.listManager.items[0].id).toBe(1);
+        expect(CuboMX.listManager.items[1].id).toBe(2);
+        expect(CuboMX.listManager.items[2].id).toBe(3);
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(0);
+    });
+
+    it('should NOT call the mutation callback during initial hydration of existing items with class properties', async () => {
+        CuboMX.component('listManager', {
+            items: [],
+            mutationSpy: vi.fn(),
+            init() {
+                this.$watchArrayItems('items', this.mutationSpy);
+            },
+        });
+        document.body.innerHTML = `
+            <div mx-data="listManager">
+                <ul id="item-list">
+                    <li mx-item="items" ::class="itemClasses" class="initial item-1">
+                        <span ::text="name">Item 1</span>
+                    </li>
+                    <li mx-item="items" ::class="itemClasses" class="initial item-2">
+                        <span ::text="name">Item 2</span>
+                    </li>
+                    <li mx-item="items" ::class="itemClasses" class="initial item-3">
+                        <span ::text="name">Item 3</span>
+                    </li>
+                </ul>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        // During initialization, the 3 items with class properties are hydrated but should NOT trigger callbacks
+        expect(CuboMX.listManager.items).toHaveLength(3);
+        expect(CuboMX.listManager.items[0].itemClasses).toBeDefined();
+        expect(CuboMX.listManager.items[1].itemClasses).toBeDefined();
+        expect(CuboMX.listManager.items[2].itemClasses).toBeDefined();
+        expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(0);
+    });
 });

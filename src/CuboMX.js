@@ -632,7 +632,7 @@ const CuboMX = (() => {
         return data;
     };
 
-    const createClassProxy = (el) => {
+    const createClassProxy = (el, onMutation = null) => {
         const classArray = Array.from(el.classList);
         const MUTATION_METHODS = [
             "push",
@@ -652,8 +652,14 @@ const CuboMX = (() => {
                     MUTATION_METHODS.includes(prop)
                 ) {
                     return function (...args) {
+                        const oldValue = [...target];
                         const result = value.apply(target, args);
                         el.className = target.join(" ");
+
+                        if (onMutation) {
+                            onMutation(oldValue, [...target]);
+                        }
+
                         return result;
                     };
                 }
@@ -664,6 +670,7 @@ const CuboMX = (() => {
         classProxy.add = (className) => {
             if (!classProxy.includes(className)) {
                 classProxy.push(className);
+                // onMutation is called by the Proxy trap when push() executes
             }
         };
 
@@ -671,6 +678,7 @@ const CuboMX = (() => {
             const index = classProxy.indexOf(className);
             if (index > -1) {
                 classProxy.splice(index, 1);
+                // onMutation is called by the Proxy trap when splice() executes
             }
         };
 
@@ -681,6 +689,7 @@ const CuboMX = (() => {
             } else {
                 classProxy.push(className);
             }
+            // onMutation is called by the Proxy trap when push()/splice() executes
         };
 
         classProxy.contains = (className) => {
@@ -734,7 +743,38 @@ const CuboMX = (() => {
     };
 
     const enhanceObjectWithElementProxy = (obj, el, basePath) => {
-        const classHelpers = createClassProxy(el);
+        const onClassMutation = basePath
+            ? (oldValue, newValue) => {
+                  const pathParts = basePath.match(/^(.+?)\.(.+?)\[(\d+)\]$/);
+                  if (pathParts) {
+                      const componentName = pathParts[1];
+                      const arrayName = pathParts[2];
+                      const index = parseInt(pathParts[3], 10);
+                      const arrayPath = `${componentName}.${arrayName}`;
+
+                      // Only notify if there are registered watchers
+                      // (avoids notifications during initial hydration before $watchArrayItems is called)
+                      if (!arrayWatchers[arrayPath] || arrayWatchers[arrayPath].length === 0) {
+                          return;
+                      }
+
+                      setTimeout(() => {
+                          notifyArrayWatchers(arrayPath, {
+                              type: "update",
+                              item: obj,
+                              index: index,
+                              arrayName: arrayName,
+                              componentName: componentName,
+                              propertyName: "class",
+                              oldValue: oldValue,
+                              newValue: newValue,
+                          });
+                      }, 0);
+                  }
+              }
+            : null;
+
+        const classHelpers = createClassProxy(el, onClassMutation);
         Object.assign(obj, classHelpers);
 
         return new Proxy(obj, {
@@ -760,26 +800,44 @@ const CuboMX = (() => {
                     }
                     bindings.forEach((b) => b.evaluate());
 
-                    // Notify array watchers if this is an item in an array
-                    const pathParts = basePath.match(/^(.+?)\.(.+?)\[(\d+)\]$/);
-                    if (pathParts) {
-                        const componentName = pathParts[1];
-                        const arrayName = pathParts[2];
-                        const index = parseInt(pathParts[3], 10);
-                        const arrayPath = `${componentName}.${arrayName}`;
+                    // Only notify array watchers if the property doesn't have its own setter
+                    // (properties defined via populateItemObject have their own setters that notify)
+                    const descriptor = Object.getOwnPropertyDescriptor(
+                        target,
+                        prop
+                    );
+                    const hasCustomSetter = descriptor && descriptor.set;
 
-                        setTimeout(() => {
-                            notifyArrayWatchers(arrayPath, {
-                                type: "update",
-                                item: target,
-                                index: index,
-                                arrayName: arrayName,
-                                componentName: componentName,
-                                propertyName: prop,
-                                oldValue: oldValue,
-                                newValue: value,
-                            });
-                        }, 0);
+                    if (!hasCustomSetter) {
+                        // Notify array watchers if this is an item in an array
+                        const pathParts = basePath.match(
+                            /^(.+?)\.(.+?)\[(\d+)\]$/
+                        );
+                        if (pathParts) {
+                            const componentName = pathParts[1];
+                            const arrayName = pathParts[2];
+                            const index = parseInt(pathParts[3], 10);
+                            const arrayPath = `${componentName}.${arrayName}`;
+
+                            // Only notify if there are registered watchers
+                            // (avoids notifications during initial hydration before $watchArrayItems is called)
+                            if (!arrayWatchers[arrayPath] || arrayWatchers[arrayPath].length === 0) {
+                                return success;
+                            }
+
+                            setTimeout(() => {
+                                notifyArrayWatchers(arrayPath, {
+                                    type: "update",
+                                    item: target,
+                                    index: index,
+                                    arrayName: arrayName,
+                                    componentName: componentName,
+                                    propertyName: prop,
+                                    oldValue: oldValue,
+                                    newValue: value,
+                                });
+                            }, 0);
+                        }
                     }
                 }
 
@@ -1110,9 +1168,10 @@ const CuboMX = (() => {
                     `[CuboMX] mx-item target '${expression}' is not an array.`
                 );
             }
-            const basePath = expression.startsWith("$")
+            const arrayName = expression.startsWith("$")
                 ? expression.substring(1)
-                : `${findComponentProxyFor(el)?.name || ""}.${expression}`;
+                : expression;
+            const basePath = `${componentName}.${arrayName}`;
 
             const fullPath = `${basePath}[${context[key].length}]`;
 
@@ -1193,11 +1252,6 @@ const CuboMX = (() => {
         propertyName,
         parserName
     ) => {
-        if (propToBind === "class") {
-            itemObject[propertyName] = createClassProxy(el).class;
-            return;
-        }
-
         // Get the basePath from the itemObject's internal structure
         const itemEl = itemObject.__el;
         let basePath = "";
@@ -1220,6 +1274,47 @@ const CuboMX = (() => {
             );
             const domIndex = siblingItems.indexOf(itemEl);
             basePath = `${componentName}.${arrayName}[${domIndex}]`;
+        }
+
+        if (propToBind === "class") {
+            const onClassMutation = basePath
+                ? (oldValue, newValue) => {
+                      const pathParts = basePath.match(
+                          /^(.+?)\.(.+?)\[(\d+)\]$/
+                      );
+                      if (pathParts) {
+                          const componentName = pathParts[1];
+                          const arrayName = pathParts[2];
+                          const index = parseInt(pathParts[3], 10);
+                          const arrayPath = `${componentName}.${arrayName}`;
+
+                          // Only notify if there are registered watchers
+                          // (avoids notifications during initial hydration before $watchArrayItems is called)
+                          if (!arrayWatchers[arrayPath] || arrayWatchers[arrayPath].length === 0) {
+                              return;
+                          }
+
+                          setTimeout(() => {
+                              notifyArrayWatchers(arrayPath, {
+                                  type: "update",
+                                  item: itemObject,
+                                  index: index,
+                                  arrayName: arrayName,
+                                  componentName: componentName,
+                                  propertyName: propertyName,
+                                  oldValue: oldValue,
+                                  newValue: newValue,
+                              });
+                          }, 0);
+                      }
+                  }
+                : null;
+
+            itemObject[propertyName] = createClassProxy(
+                el,
+                onClassMutation
+            ).class;
+            return;
         }
 
         Object.defineProperty(itemObject, propertyName, {
