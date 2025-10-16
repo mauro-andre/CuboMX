@@ -116,14 +116,17 @@ const CuboMX = (() => {
                     !attr.name.includes(".array")
                 ) {
                     const propName = attr.value;
-                    if (
-                        itemData.hasOwnProperty(propName) &&
-                        !Array.isArray(itemData[propName])
-                    ) {
-                        const [propAndModifiers, parserName] = attr.name
-                            .substring(2)
-                            .split(":");
-                        const [propToBind] = propAndModifiers.split(".");
+                    const [propAndModifiers, parserName] = attr.name
+                        .substring(2)
+                        .split(":");
+                    const [propToBind] = propAndModifiers.split(".");
+
+                    // Allow arrays for class properties, but not for other properties
+                    const isClassProperty = propToBind === "class";
+                    const shouldProcess = itemData.hasOwnProperty(propName) &&
+                        (isClassProperty || !Array.isArray(itemData[propName]));
+
+                    if (shouldProcess) {
                         setDOMValue(
                             el,
                             propToBind,
@@ -134,6 +137,12 @@ const CuboMX = (() => {
                 }
             }
         });
+
+        // Apply special 'class' property if provided in itemData
+        // This allows passing initial classes for items without explicit ::class directive
+        if (itemData.hasOwnProperty('class') && Array.isArray(itemData.class)) {
+            setDOMValue(itemEl, 'class', itemData.class);
+        }
 
         return itemEl.outerHTML;
     };

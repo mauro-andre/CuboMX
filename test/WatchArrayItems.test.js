@@ -465,4 +465,102 @@ describe('CuboMX - $watchArrayItems', () => {
         expect(CuboMX.listManager.items[2].itemClasses).toBeDefined();
         expect(CuboMX.listManager.mutationSpy).toHaveBeenCalledTimes(0);
     });
+
+    it('should support adding items with implicit class property (class array)', async () => {
+        CuboMX.component('listManager', {
+            items: [],
+            init() {
+                // Empty initial items
+            },
+        });
+        document.body.innerHTML = `
+            <div mx-data="listManager">
+                <ul id="item-list">
+                    <li mx-item="items" ::text="name"></li>
+                </ul>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        // Clear the hydrated item
+        CuboMX.listManager.items.delete(0);
+        await vi.runAllTimersAsync();
+
+        // Add item with implicit class property
+        CuboMX.listManager.items.add({
+            name: "Item with classes",
+            class: ["class1", "class2", "active"]
+        });
+        await vi.runAllTimersAsync();
+
+        expect(CuboMX.listManager.items).toHaveLength(1);
+        const addedItem = CuboMX.listManager.items[0];
+
+        // Verify the item has the class property
+        expect(addedItem.class).toBeDefined();
+        expect(Array.isArray(addedItem.class)).toBe(true);
+        expect(addedItem.class).toEqual(expect.arrayContaining(["class1", "class2", "active"]));
+
+        // Verify DOM has the classes applied
+        const itemElement = document.querySelector('#item-list li');
+        expect(itemElement.classList.contains('class1')).toBe(true);
+        expect(itemElement.classList.contains('class2')).toBe(true);
+        expect(itemElement.classList.contains('active')).toBe(true);
+
+        // Verify we can manipulate classes after adding
+        addedItem.class.add('new-class');
+        await vi.runAllTimersAsync();
+        expect(addedItem.class).toEqual(expect.arrayContaining(["class1", "class2", "active", "new-class"]));
+        expect(itemElement.classList.contains('new-class')).toBe(true);
+    });
+
+    it('should support prepending items with explicit ::class property', async () => {
+        CuboMX.component('listManager', {
+            items: [],
+            init() {
+                // Empty initial items
+            },
+        });
+        document.body.innerHTML = `
+            <div mx-data="listManager">
+                <ul id="item-list">
+                    <li mx-item="items" ::class="itemClasses" ::text="name"></li>
+                </ul>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        // Clear the hydrated item
+        CuboMX.listManager.items.delete(0);
+        await vi.runAllTimersAsync();
+
+        // Prepend item with explicit ::class property
+        CuboMX.listManager.items.prepend({
+            name: "Prepended item",
+            itemClasses: ["class3", "prepended"]
+        });
+        await vi.runAllTimersAsync();
+
+        expect(CuboMX.listManager.items).toHaveLength(1);
+        const prependedItem = CuboMX.listManager.items[0];
+
+        // Verify the item has the itemClasses property
+        expect(prependedItem.itemClasses).toBeDefined();
+        expect(Array.isArray(prependedItem.itemClasses)).toBe(true);
+        expect(prependedItem.itemClasses).toEqual(expect.arrayContaining(["class3", "prepended"]));
+
+        // Verify DOM has the classes applied
+        const itemElement = document.querySelector('#item-list li');
+        expect(itemElement.classList.contains('class3')).toBe(true);
+        expect(itemElement.classList.contains('prepended')).toBe(true);
+
+        // Verify we can manipulate classes after prepending
+        prependedItem.itemClasses.remove('prepended');
+        await vi.runAllTimersAsync();
+        expect(Array.from(prependedItem.itemClasses)).toEqual(['class3']);
+        expect(itemElement.classList.contains('prepended')).toBe(false);
+        expect(itemElement.classList.contains('class3')).toBe(true);
+    });
 });
