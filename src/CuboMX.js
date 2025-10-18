@@ -1526,28 +1526,29 @@ const CuboMX = (() => {
             } else {
                 if (activeProxies[componentName]) return;
 
-                // Create a new instance that inherits from the definition
-                // This preserves class methods via prototype chain while allowing
-                // each instance to have its own state
-                const instance = Object.create(
-                    Object.getPrototypeOf(definition)
-                );
-
-                // Copy own properties from definition to the new instance
-                for (const key in definition) {
-                    if (Object.hasOwnProperty.call(definition, key)) {
-                        const value = definition[key];
-                        if (Array.isArray(value)) {
-                            instance[key] = [];
-                        } else if (
-                            typeof value === "object" &&
-                            value !== null &&
-                            !Array.isArray(value) &&
-                            value.constructor === Object
-                        ) {
-                            instance[key] = {};
-                        } else {
-                            instance[key] = value;
+                // For class instances, use the instance directly to maintain object identity.
+                // For plain objects, create a shallow copy to prevent multiple elements
+                // from sharing the same state object by reference.
+                let instance;
+                if (definition.constructor !== Object) {
+                    instance = definition;
+                } else {
+                    instance = Object.create(Object.getPrototypeOf(definition));
+                    for (const key in definition) {
+                        if (Object.hasOwnProperty.call(definition, key)) {
+                            const value = definition[key];
+                            if (Array.isArray(value)) {
+                                instance[key] = [];
+                            } else if (
+                                typeof value === "object" &&
+                                value !== null &&
+                                !Array.isArray(value) &&
+                                value.constructor === Object
+                            ) {
+                                instance[key] = {};
+                            } else {
+                                instance[key] = value;
+                            }
                         }
                     }
                 }

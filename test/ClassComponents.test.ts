@@ -76,6 +76,27 @@ describe('CuboMX Class-based Components', () => {
         expect(destroySpy).toHaveBeenCalledTimes(1);
     });
 
+    it('should preserve object identity for class-based singletons', async () => {
+        class IdentitySingleton extends MxComponent {
+            value = 'original';
+        }
+
+        const singletonInstance = new IdentitySingleton();
+        CuboMX.component('identitySingleton', singletonInstance);
+        document.body.innerHTML = '<div mx-data="identitySingleton"></div>';
+
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        // With the correct implementation, the proxy wraps the original instance.
+        // Changes to the original instance should be reflected through the proxy.
+        singletonInstance.value = 'changed from outside';
+
+        // This assertion will fail with the current cloning implementation,
+        // but will pass once the singleton logic is corrected to use the original instance.
+        expect(CuboMX.identitySingleton.value).toBe('changed from outside');
+    });
+
     class TestFactory extends MxComponent {
         id: number = 0;
         init = vi.fn();
