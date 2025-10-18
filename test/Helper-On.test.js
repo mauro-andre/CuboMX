@@ -163,4 +163,43 @@ describe('CuboMX.on() Helper - JS Objects', () => {
         expect(itemArg.id).toBe(10);
         expect(itemArg).toBe(CuboMX.listComp.items[0]);
     });
+
+    it('should work correctly with an anonymous wrapper function to pass extra parameters', async () => {
+        const methodSpy = vi.fn();
+
+        CuboMX.component('listComp', {
+            items: [],
+            componentProp: 'prop-value',
+            myMethod: methodSpy,
+            init() {
+                const el = this.$el.querySelector('li');
+                const extraParam = 'custom-value';
+
+                CuboMX.on(el, 'click', (el, event, item) => {
+                    this.myMethod(item, extraParam, this.componentProp);
+                });
+            }
+        });
+
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul>
+                    <li mx-item="items" ::data-id="id" data-id="100">Item</li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        document.querySelector('li').click();
+
+        expect(methodSpy).toHaveBeenCalledTimes(1);
+
+        const [itemArg, extraParamArg, componentPropArg] = methodSpy.mock.calls[0];
+
+        expect(itemArg).toBe(CuboMX.listComp.items[0]);
+        expect(extraParamArg).toBe('custom-value');
+        expect(componentPropArg).toBe('prop-value');
+    });
 });

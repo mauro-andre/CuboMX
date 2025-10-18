@@ -175,4 +175,46 @@ describe('CuboMX.on() Helper - TS Classes', () => {
         expect(itemArg.id).toBe(10);
         expect(itemArg).toBe((CuboMX.listComp as ListComponent).items[0]);
     });
+
+    it('should work correctly with an anonymous wrapper function to pass extra parameters', async () => {
+        const methodSpy = vi.fn();
+
+        class ListComponent extends MxComponent {
+            items!: ItemArrayProxy<ListItem>;
+            componentProp: string = 'prop-value';
+            myMethod = methodSpy;
+
+            init() {
+                const el = this.$el.querySelector('li')!;
+                const extraParam = 'custom-value';
+
+                CuboMX.on<ListItem>(el, 'click', (el, event, item) => {
+                    this.myMethod(item, extraParam, this.componentProp);
+                });
+            }
+        }
+
+        CuboMX.component('listComp', new ListComponent());
+
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul>
+                    <li mx-item="items" ::data-id="id" data-id="100">Item</li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        document.querySelector('li')!.click();
+
+        expect(methodSpy).toHaveBeenCalledTimes(1);
+
+        const [itemArg, extraParamArg, componentPropArg] = methodSpy.mock.calls[0];
+
+        expect(itemArg).toBe((CuboMX.listComp as ListComponent).items[0]);
+        expect(extraParamArg).toBe('custom-value');
+        expect(componentPropArg).toBe('prop-value');
+    });
 });
