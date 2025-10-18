@@ -885,6 +885,51 @@ const CuboMX = (() => {
         return enhanceObjectWithElementProxy(hydratedAttrs, el, basePath);
     };
 
+    const attachCuboListener = (el, eventNameWithModifiers, action) => {
+        const [eventName, ...modifiers] = eventNameWithModifiers.split(".");
+
+        if (eventName === "click" && modifiers.includes("outside")) {
+            if (typeof action !== "string") {
+                console.error(
+                    "[CuboMX] The .outside modifier is only supported for declarative mx-on directives."
+                );
+                return;
+            }
+            const handler = (event) => {
+                if (el.contains(event.target)) {
+                    return;
+                }
+                evaluateEventExpression(action, el, event);
+            };
+            document.addEventListener("click", handler, true);
+            outsideClickListeners.push({ el, handler });
+            return;
+        }
+
+        el.addEventListener(eventName, (event) => {
+            if (modifiers.includes("prevent")) event.preventDefault();
+            if (modifiers.includes("stop")) event.stopPropagation();
+
+            const $el = el;
+            const $event = event;
+            const parentItemEl = $el.closest("[mx-item]");
+            const $item = parentItemEl
+                ? parentItemEl.__cubo_item_object__
+                : undefined;
+
+            if (typeof action === "string") {
+                evaluateEventExpression(action, el, event);
+            } else if (typeof action === "function") {
+                const componentProxy = findComponentProxyFor($el);
+                if (componentProxy) {
+                    action.call(componentProxy, $el, $event, $item);
+                } else {
+                    action($el, $event, $item);
+                }
+            }
+        });
+    };
+
     const directiveHandlers = {
         "mx-link": (el) => {
             if (el.tagName !== "A" || !el.getAttribute("href")) {
@@ -1033,26 +1078,8 @@ const CuboMX = (() => {
         },
         "mx-on:": (el, attr) => {
             const eventAndModifiers = attr.name.substring(6);
-            const [eventName, ...modifiers] = eventAndModifiers.split(".");
             const expression = attr.value;
-
-            if (eventName === "click" && modifiers.includes("outside")) {
-                const handler = (event) => {
-                    if (el.contains(event.target)) {
-                        return;
-                    }
-                    evaluateEventExpression(expression, el, event);
-                };
-                document.addEventListener("click", handler, true);
-                outsideClickListeners.push({ el, handler });
-                return;
-            }
-
-            el.addEventListener(eventName, (event) => {
-                if (modifiers.includes("prevent")) event.preventDefault();
-                if (modifiers.includes("stop")) event.stopPropagation();
-                evaluateEventExpression(expression, el, event);
-            });
+            attachCuboListener(el, eventAndModifiers, expression);
         },
         "mx-bind:": (el, attr) => {
             const [propAndModifiers, parserName] = attr.name
@@ -1849,6 +1876,13 @@ const CuboMX = (() => {
             });
         },
         stream: e,
+        on(element, eventNameWithModifiers, userCallback) {
+            if (!element || typeof element.addEventListener !== "function") {
+                console.error("[CuboMX.on] Invalid element provided.");
+                return;
+            }
+            attachCuboListener(element, eventNameWithModifiers, userCallback);
+        },
     };
 
     return new Proxy(publicAPI, {

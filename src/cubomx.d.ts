@@ -2,6 +2,17 @@ declare module 'cubomx' {
     // Type definitions for CuboMX (Refactored)
 
     /**
+     * A union of common DOM event names for type-hinting.
+     * The string type is also included to allow for any event name.
+     */
+    export type CuboEventNames = 
+        | 'click' | 'dblclick' | 'mousedown' | 'mouseup' | 'mouseover' | 'mouseout' | 'mousemove' | 'mouseenter' | 'mouseleave'
+        | 'keydown' | 'keyup' | 'keypress'
+        | 'submit' | 'change' | 'input' | 'focus' | 'blur'
+        | 'drag' | 'dragstart' | 'dragend' | 'dragover' | 'dragenter' | 'dragleave' | 'drop'
+        | (string & {});
+
+    /**
      * Defines the structure for a custom parser, which transforms data
      * between the DOM and the component state.
      */
@@ -111,11 +122,11 @@ declare module 'cubomx' {
 
     export interface ItemProxy {
         /** A reactive proxy for the element's class list. */
-        class: ClassListProxy;
+        class?: ClassListProxy;
         /** The reactive `textContent` of the element. */
-        text: string;
+        text?: string;
         /** The reactive `innerHTML` of the element. */
-        html: string;
+        html?: string;
         /** The reactive `value` of a form element. */
         value?: any;
         /** The reactive `checked` state of a checkbox or radio button. */
@@ -379,6 +390,35 @@ declare module 'cubomx' {
          * @summary Resets the internal state of CuboMX. Used primarily for testing.
          */
         reset(): void;
+
+        /**
+         * @summary Attaches an event listener to an element and provides CuboMX's magic variables to the callback.
+         * @description This is a programmatic alternative to the `mx-on` directive. It ensures the callback receives
+         * the element (`el`), the browser event (`event`), and the associated `mx-item` data (`item`),
+         * and that `this` inside the callback refers to the correct component instance.
+         * @param {HTMLElement} element The DOM element to attach the listener to.
+         * @param {CuboEventNames} eventName The name of the event, with optional modifiers (e.g., 'click.prevent', 'keydown.stop').
+         * @param {(this: MxComponent, el: HTMLElement, event: Event, item?: ItemProxy) => void} callback The function to execute.
+         * @example
+         * // In a component's init() method:
+         * const buttons = this.$el.querySelectorAll('button');
+         * buttons.forEach(btn => {
+         *   CuboMX.on(btn, 'click.prevent', this.handleButtonClick);
+         * });
+         *
+         * // The callback method:
+         * handleButtonClick(el, event, item) {
+         *   console.log('Button clicked:', el);
+         *   if (item) {
+         *     console.log('Data from mx-item:', item);
+         *   }
+         * }
+         */
+        on<T extends ItemProxy = ItemProxy>(
+            element: HTMLElement, 
+            eventName: CuboEventNames, 
+            callback: (this: MxComponent, el: HTMLElement, event: Event, item?: T) => void
+        ): void;
     }
 
     /**
