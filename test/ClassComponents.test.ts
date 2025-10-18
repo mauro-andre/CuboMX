@@ -231,4 +231,230 @@ describe('CuboMX Class-based Components', () => {
 
         expect(inst1).not.toBe(inst2);
     });
+
+    it('should execute singleton class methods from DOM events', async () => {
+        class Counter extends MxComponent {
+            count: number = 0;
+            incrementCalled = vi.fn();
+            decrementCalled = vi.fn();
+
+            increment() {
+                this.incrementCalled();
+                this.count++;
+            }
+
+            decrement() {
+                this.decrementCalled();
+                this.count--;
+            }
+
+            reset() {
+                this.count = 0;
+            }
+        }
+
+        CuboMX.component('counter', new Counter());
+        document.body.innerHTML = `
+            <div mx-data="counter">
+                <button id="inc-btn" mx-on:click="increment()">+</button>
+                <button id="dec-btn" mx-on:click="decrement()">-</button>
+                <button id="reset-btn" mx-on:click="reset()">Reset</button>
+                <span id="count" ::text="count">0</span>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        expect(CuboMX.counter.count).toBe(0);
+
+        const incBtn = document.getElementById('inc-btn')!;
+        const decBtn = document.getElementById('dec-btn')!;
+        const resetBtn = document.getElementById('reset-btn')!;
+
+        incBtn.click();
+        expect(CuboMX.counter.incrementCalled).toHaveBeenCalledTimes(1);
+        expect(CuboMX.counter.count).toBe(1);
+
+        incBtn.click();
+        incBtn.click();
+        expect(CuboMX.counter.incrementCalled).toHaveBeenCalledTimes(3);
+        expect(CuboMX.counter.count).toBe(3);
+
+        decBtn.click();
+        expect(CuboMX.counter.decrementCalled).toHaveBeenCalledTimes(1);
+        expect(CuboMX.counter.count).toBe(2);
+
+        resetBtn.click();
+        expect(CuboMX.counter.count).toBe(0);
+    });
+
+    it('should execute factory class methods from DOM events independently', async () => {
+        class Toggle extends MxComponent {
+            isOn: boolean = false;
+            toggleCalled = vi.fn();
+            turnOnCalled = vi.fn();
+            turnOffCalled = vi.fn();
+
+            toggle() {
+                this.toggleCalled();
+                this.isOn = !this.isOn;
+            }
+
+            turnOn() {
+                this.turnOnCalled();
+                this.isOn = true;
+            }
+
+            turnOff() {
+                this.turnOffCalled();
+                this.isOn = false;
+            }
+        }
+
+        CuboMX.component('toggle', () => new Toggle());
+        document.body.innerHTML = `
+            <div mx-data="toggle()" mx-ref="toggle1">
+                <button id="toggle1-btn" mx-on:click="toggle()">Toggle 1</button>
+                <button id="on1-btn" mx-on:click="turnOn()">On</button>
+                <button id="off1-btn" mx-on:click="turnOff()">Off</button>
+            </div>
+            <div mx-data="toggle()" mx-ref="toggle2">
+                <button id="toggle2-btn" mx-on:click="toggle()">Toggle 2</button>
+                <button id="on2-btn" mx-on:click="turnOn()">On</button>
+                <button id="off2-btn" mx-on:click="turnOff()">Off</button>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        const toggle1 = CuboMX.toggle1 as Toggle;
+        const toggle2 = CuboMX.toggle2 as Toggle;
+
+        expect(toggle1.isOn).toBe(false);
+        expect(toggle2.isOn).toBe(false);
+
+        document.getElementById('toggle1-btn')!.click();
+        expect(toggle1.toggleCalled).toHaveBeenCalledTimes(1);
+        expect(toggle1.isOn).toBe(true);
+        expect(toggle2.isOn).toBe(false);
+        expect(toggle2.toggleCalled).not.toHaveBeenCalled();
+
+        document.getElementById('toggle2-btn')!.click();
+        expect(toggle2.toggleCalled).toHaveBeenCalledTimes(1);
+        expect(toggle2.isOn).toBe(true);
+        expect(toggle1.isOn).toBe(true);
+
+        document.getElementById('off1-btn')!.click();
+        expect(toggle1.turnOffCalled).toHaveBeenCalledTimes(1);
+        expect(toggle1.isOn).toBe(false);
+        expect(toggle2.isOn).toBe(true);
+
+        document.getElementById('on2-btn')!.click();
+        expect(toggle2.turnOnCalled).toHaveBeenCalledTimes(1);
+        expect(toggle2.isOn).toBe(true);
+
+        document.getElementById('off2-btn')!.click();
+        expect(toggle2.isOn).toBe(false);
+        expect(toggle1.isOn).toBe(false);
+    });
+
+    it('should handle methods with parameters from DOM events', async () => {
+        class Calculator extends MxComponent {
+            result: number = 0;
+            addCalled = vi.fn();
+            multiplyCalled = vi.fn();
+
+            add(value: number) {
+                this.addCalled(value);
+                this.result += value;
+            }
+
+            multiply(factor: number) {
+                this.multiplyCalled(factor);
+                this.result *= factor;
+            }
+
+            clear() {
+                this.result = 0;
+            }
+        }
+
+        CuboMX.component('calc', new Calculator());
+        document.body.innerHTML = `
+            <div mx-data="calc">
+                <button id="add5-btn" mx-on:click="add(5)">Add 5</button>
+                <button id="add10-btn" mx-on:click="add(10)">Add 10</button>
+                <button id="mult2-btn" mx-on:click="multiply(2)">Multiply by 2</button>
+                <button id="clear-btn" mx-on:click="clear()">Clear</button>
+                <span id="result" ::text="result">0</span>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        expect(CuboMX.calc.result).toBe(0);
+
+        document.getElementById('add5-btn')!.click();
+        expect(CuboMX.calc.addCalled).toHaveBeenCalledWith(5);
+        expect(CuboMX.calc.result).toBe(5);
+
+        document.getElementById('add10-btn')!.click();
+        expect(CuboMX.calc.addCalled).toHaveBeenCalledWith(10);
+        expect(CuboMX.calc.result).toBe(15);
+
+        document.getElementById('mult2-btn')!.click();
+        expect(CuboMX.calc.multiplyCalled).toHaveBeenCalledWith(2);
+        expect(CuboMX.calc.result).toBe(30);
+
+        document.getElementById('clear-btn')!.click();
+        expect(CuboMX.calc.result).toBe(0);
+    });
+
+    it('should allow factory methods to access $el from DOM events', async () => {
+        class Panel extends MxComponent {
+            isExpanded: boolean = false;
+            elementAccessCalled = vi.fn();
+
+            toggleExpand() {
+                this.isExpanded = !this.isExpanded;
+                this.elementAccessCalled(this.$el.id);
+            }
+
+            getTitle() {
+                return this.$el.querySelector('h3')?.textContent || '';
+            }
+        }
+
+        CuboMX.component('panel', () => new Panel());
+        document.body.innerHTML = `
+            <div mx-data="panel()" mx-ref="panel1" id="panel-1">
+                <h3>Panel 1</h3>
+                <button id="toggle-panel1" mx-on:click="toggleExpand()">Toggle</button>
+            </div>
+            <div mx-data="panel()" mx-ref="panel2" id="panel-2">
+                <h3>Panel 2</h3>
+                <button id="toggle-panel2" mx-on:click="toggleExpand()">Toggle</button>
+            </div>
+        `;
+        CuboMX.start();
+        await vi.runAllTimersAsync();
+
+        const panel1 = CuboMX.panel1 as Panel;
+        const panel2 = CuboMX.panel2 as Panel;
+
+        expect(panel1.isExpanded).toBe(false);
+        expect(panel2.isExpanded).toBe(false);
+
+        document.getElementById('toggle-panel1')!.click();
+        expect(panel1.elementAccessCalled).toHaveBeenCalledWith('panel-1');
+        expect(panel1.isExpanded).toBe(true);
+        expect(panel2.isExpanded).toBe(false);
+
+        document.getElementById('toggle-panel2')!.click();
+        expect(panel2.elementAccessCalled).toHaveBeenCalledWith('panel-2');
+        expect(panel2.isExpanded).toBe(true);
+
+        expect(panel1.getTitle()).toBe('Panel 1');
+        expect(panel2.getTitle()).toBe('Panel 2');
+    });
 });

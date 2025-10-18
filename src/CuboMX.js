@@ -474,7 +474,7 @@ const CuboMX = (() => {
     };
 
     const evaluateEventExpression = (expression, el, event) => {
-        const localScope = findComponentProxyFor(el) || {};
+        const localScope = findComponentProxyFor(el);
 
         const parentItemEl = el.closest("[mx-item]");
         const itemData = parentItemEl
@@ -500,7 +500,23 @@ const CuboMX = (() => {
             return;
         }
 
-        const context = { ...activeProxies, ...localScope };
+        // Create a context that merges local and global scopes
+        // Local scope (component) takes precedence, with fallback to global scope
+        const context = localScope
+            ? new Proxy(localScope, {
+                  has(target, prop) {
+                      return prop in target || prop in activeProxies;
+                  },
+                  get(target, prop) {
+                      // Access property directly from target to preserve proper 'this' binding
+                      // When target is a Proxy (component proxy), this ensures methods are bound
+                      // to the component proxy (which has $el and other magic properties)
+                      if (prop in target) return target[prop];
+                      return activeProxies[prop];
+                  },
+              })
+            : activeProxies;
+
         try {
             const func = new Function(
                 "$el",
