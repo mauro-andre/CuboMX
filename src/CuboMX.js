@@ -5,6 +5,7 @@ import {
     stream as e,
 } from "./request.js";
 import { renderTemplate as c } from "./template.js";
+import { MxComponent } from "./MxComponent.js"; // Import the runtime class
 import { numberParser } from "./parsers/number.js";
 import { currencyParser } from "./parsers/currency.js";
 
@@ -123,7 +124,8 @@ const CuboMX = (() => {
 
                     // Allow arrays for class properties, but not for other properties
                     const isClassProperty = propToBind === "class";
-                    const shouldProcess = itemData.hasOwnProperty(propName) &&
+                    const shouldProcess =
+                        itemData.hasOwnProperty(propName) &&
                         (isClassProperty || !Array.isArray(itemData[propName]));
 
                     if (shouldProcess) {
@@ -140,8 +142,8 @@ const CuboMX = (() => {
 
         // Apply special 'class' property if provided in itemData
         // This allows passing initial classes for items without explicit ::class directive
-        if (itemData.hasOwnProperty('class') && Array.isArray(itemData.class)) {
-            setDOMValue(itemEl, 'class', itemData.class);
+        if (itemData.hasOwnProperty("class") && Array.isArray(itemData.class)) {
+            setDOMValue(itemEl, "class", itemData.class);
         }
 
         return itemEl.outerHTML;
@@ -472,7 +474,7 @@ const CuboMX = (() => {
     };
 
     const evaluateEventExpression = (expression, el, event) => {
-        const localScope = findComponentProxyFor(el) || {};
+        const localScope = findComponentProxyFor(el);
 
         const parentItemEl = el.closest("[mx-item]");
         const itemData = parentItemEl
@@ -498,7 +500,23 @@ const CuboMX = (() => {
             return;
         }
 
-        const context = { ...activeProxies, ...localScope };
+        // Create a context that merges local and global scopes
+        // Local scope (component) takes precedence, with fallback to global scope
+        const context = localScope
+            ? new Proxy(localScope, {
+                  has(target, prop) {
+                      return prop in target || prop in activeProxies;
+                  },
+                  get(target, prop) {
+                      // Access property directly from target to preserve proper 'this' binding
+                      // When target is a Proxy (component proxy), this ensures methods are bound
+                      // to the component proxy (which has $el and other magic properties)
+                      if (prop in target) return target[prop];
+                      return activeProxies[prop];
+                  },
+              })
+            : activeProxies;
+
         try {
             const func = new Function(
                 "$el",
@@ -763,7 +781,10 @@ const CuboMX = (() => {
 
                       // Only notify if there are registered watchers
                       // (avoids notifications during initial hydration before $watchArrayItems is called)
-                      if (!arrayWatchers[arrayPath] || arrayWatchers[arrayPath].length === 0) {
+                      if (
+                          !arrayWatchers[arrayPath] ||
+                          arrayWatchers[arrayPath].length === 0
+                      ) {
                           return;
                       }
 
@@ -830,7 +851,10 @@ const CuboMX = (() => {
 
                             // Only notify if there are registered watchers
                             // (avoids notifications during initial hydration before $watchArrayItems is called)
-                            if (!arrayWatchers[arrayPath] || arrayWatchers[arrayPath].length === 0) {
+                            if (
+                                !arrayWatchers[arrayPath] ||
+                                arrayWatchers[arrayPath].length === 0
+                            ) {
                                 return success;
                             }
 
@@ -1299,7 +1323,10 @@ const CuboMX = (() => {
 
                           // Only notify if there are registered watchers
                           // (avoids notifications during initial hydration before $watchArrayItems is called)
-                          if (!arrayWatchers[arrayPath] || arrayWatchers[arrayPath].length === 0) {
+                          if (
+                              !arrayWatchers[arrayPath] ||
+                              arrayWatchers[arrayPath].length === 0
+                          ) {
                               return;
                           }
 
@@ -1499,21 +1526,29 @@ const CuboMX = (() => {
             } else {
                 if (activeProxies[componentName]) return;
 
-                const instance = {};
-                for (const key in definition) {
-                    if (Object.hasOwnProperty.call(definition, key)) {
-                        const value = definition[key];
-                        if (Array.isArray(value)) {
-                            instance[key] = [];
-                        } else if (
-                            typeof value === "object" &&
-                            value !== null &&
-                            !Array.isArray(value) &&
-                            value.constructor === Object
-                        ) {
-                            instance[key] = {};
-                        } else {
-                            instance[key] = value;
+                // For class instances, use the instance directly to maintain object identity.
+                // For plain objects, create a shallow copy to prevent multiple elements
+                // from sharing the same state object by reference.
+                let instance;
+                if (definition.constructor !== Object) {
+                    instance = definition;
+                } else {
+                    instance = Object.create(Object.getPrototypeOf(definition));
+                    for (const key in definition) {
+                        if (Object.hasOwnProperty.call(definition, key)) {
+                            const value = definition[key];
+                            if (Array.isArray(value)) {
+                                instance[key] = [];
+                            } else if (
+                                typeof value === "object" &&
+                                value !== null &&
+                                !Array.isArray(value) &&
+                                value.constructor === Object
+                            ) {
+                                instance[key] = {};
+                            } else {
+                                instance[key] = value;
+                            }
                         }
                     }
                 }
@@ -1635,7 +1670,9 @@ const CuboMX = (() => {
         observer.observe(document.body, { childList: true, subtree: true });
 
         for (const name in registeredStores) {
-            const proxy = createProxy({ ...registeredStores[name] }, name);
+            const storeDefinition = registeredStores[name];
+            // Use the store instance directly to preserve class methods and prototype chain
+            const proxy = createProxy(storeDefinition, name);
             addActiveProxy(name, proxy);
             if (proxy.init) initQueue.push(proxy);
         }
@@ -1649,20 +1686,50 @@ const CuboMX = (() => {
 
         processInit(initQueue);
 
-        window.addEventListener("cubo:dom-updated", () => {
+        // Store listener reference for cleanup in reset()
+        const onDOMUpdateHandler = () => {
             for (const proxy of Object.values(activeProxies)) {
                 if (typeof proxy.onDOMUpdate === "function") {
                     proxy.onDOMUpdate.call(proxy);
                 }
             }
-        });
+        };
+
+        window.addEventListener("cubo:dom-updated", onDOMUpdateHandler);
+
+        // Store reference for cleanup
+        if (typeof window !== "undefined") {
+            if (!window._cuboListeners) window._cuboListeners = {};
+            window._cuboListeners.onDOMUpdate = onDOMUpdateHandler;
+        }
     };
 
     const reset = () => {
+        // Call destroy() on all active proxies before clearing
+        for (const name in activeProxies) {
+            const proxy = activeProxies[name];
+            if (typeof proxy.destroy === "function") {
+                proxy.destroy.call(proxy);
+            }
+        }
+
         if (observer) {
             observer.disconnect();
             observer = null;
         }
+
+        // Remove the cubo:dom-updated listener
+        if (typeof window !== "undefined") {
+            const listeners = window._cuboListeners || {};
+            if (listeners.onDOMUpdate) {
+                window.removeEventListener(
+                    "cubo:dom-updated",
+                    listeners.onDOMUpdate
+                );
+                delete listeners.onDOMUpdate;
+            }
+        }
+
         registeredComponents = {};
         registeredStores = {};
         watchers = {};
@@ -1799,4 +1866,4 @@ const CuboMX = (() => {
     });
 })();
 
-export { CuboMX };
+export { CuboMX, MxComponent };
