@@ -5,6 +5,7 @@ import {
     stream as e,
 } from "./request.js";
 import { renderTemplate as c } from "./template.js";
+import { MxComponent } from "./MxComponent.js"; // Import the runtime class
 import { numberParser } from "./parsers/number.js";
 import { currencyParser } from "./parsers/currency.js";
 
@@ -123,7 +124,8 @@ const CuboMX = (() => {
 
                     // Allow arrays for class properties, but not for other properties
                     const isClassProperty = propToBind === "class";
-                    const shouldProcess = itemData.hasOwnProperty(propName) &&
+                    const shouldProcess =
+                        itemData.hasOwnProperty(propName) &&
                         (isClassProperty || !Array.isArray(itemData[propName]));
 
                     if (shouldProcess) {
@@ -140,8 +142,8 @@ const CuboMX = (() => {
 
         // Apply special 'class' property if provided in itemData
         // This allows passing initial classes for items without explicit ::class directive
-        if (itemData.hasOwnProperty('class') && Array.isArray(itemData.class)) {
-            setDOMValue(itemEl, 'class', itemData.class);
+        if (itemData.hasOwnProperty("class") && Array.isArray(itemData.class)) {
+            setDOMValue(itemEl, "class", itemData.class);
         }
 
         return itemEl.outerHTML;
@@ -763,7 +765,10 @@ const CuboMX = (() => {
 
                       // Only notify if there are registered watchers
                       // (avoids notifications during initial hydration before $watchArrayItems is called)
-                      if (!arrayWatchers[arrayPath] || arrayWatchers[arrayPath].length === 0) {
+                      if (
+                          !arrayWatchers[arrayPath] ||
+                          arrayWatchers[arrayPath].length === 0
+                      ) {
                           return;
                       }
 
@@ -830,7 +835,10 @@ const CuboMX = (() => {
 
                             // Only notify if there are registered watchers
                             // (avoids notifications during initial hydration before $watchArrayItems is called)
-                            if (!arrayWatchers[arrayPath] || arrayWatchers[arrayPath].length === 0) {
+                            if (
+                                !arrayWatchers[arrayPath] ||
+                                arrayWatchers[arrayPath].length === 0
+                            ) {
                                 return success;
                             }
 
@@ -1299,7 +1307,10 @@ const CuboMX = (() => {
 
                           // Only notify if there are registered watchers
                           // (avoids notifications during initial hydration before $watchArrayItems is called)
-                          if (!arrayWatchers[arrayPath] || arrayWatchers[arrayPath].length === 0) {
+                          if (
+                              !arrayWatchers[arrayPath] ||
+                              arrayWatchers[arrayPath].length === 0
+                          ) {
                               return;
                           }
 
@@ -1799,4 +1810,4 @@ const CuboMX = (() => {
     });
 })();
 
-export { CuboMX };
+export { CuboMX, MxComponent };
