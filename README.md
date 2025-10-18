@@ -1741,6 +1741,34 @@ This pattern is especially useful for:
 -   **`CuboMX.renderTemplate(templateName, data)`**: Renders a pre-registered template.
 -   **`CuboMX.getTemplate(templateName)`**: Retrieves a pre-registered template, returning an object `{ template: string, data: object }` which contains the raw template HTML and any metadata extracted from its attributes.
 
+-   **`CuboMX.on(element, eventName, callback)`**: A programmatic way to attach an event listener that automatically receives CuboMX's "magic variables". This is the JavaScript equivalent of the `mx-on` directive.
+    -   `element`: The DOM element to attach the listener to.
+    -   `eventName`: The name of the event. It can be chained with modifiers like `.prevent` and `.stop` (e.g., `'click.prevent'`).
+    -   `callback(el, event, item)`: The function to execute. It will be called with the correct component `this` context and receive the following arguments in this specific order:
+        1.  `el`: The element the listener is attached to.
+        2.  `event`: The raw browser Event object.
+        3.  `item`: The data object from the closest parent `mx-item` scope, or `undefined` if not found.
+
+    **Example:**
+
+    ```javascript
+    // Inside a component's init() method
+    const listItems = this.$el.querySelectorAll('li');
+
+    listItems.forEach(li => {
+        // Use the helper to attach a listener
+        CuboMX.on(li, 'click', this.handleItemClick);
+    });
+
+    // The callback method
+    handleItemClick(el, event, item) {
+        console.log('Element clicked:', el);
+        // 'item' is the reactive object for the specific <li> from the component's array
+        console.log('Item data:', item); 
+        item.selected = true; // The state is updated, and reactivity will follow
+    }
+    ```
+
 ### CuboMX.swapTemplate(templateName, options)
 
 A high-level helper function that orchestrates getting a template, swapping it into the DOM, and automatically handling history and title updates. This is the preferred way to perform client-side navigation from a template.
