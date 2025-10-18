@@ -123,6 +123,63 @@ declare module 'cubomx' {
         [key: string]: any;
     }
 
+    // --- Mutation Event Types for $watchArrayItems ---
+
+    /**
+     * The base structure for an array mutation event.
+     * @template T The type of the item being mutated.
+     */
+    interface MxArrayMutationBase<T> {
+        /** The item object that was affected. */
+        item: T;
+        /** The index of the item in the array. */
+        index: number;
+        /** The name of the array property on the component. */
+        arrayName: string;
+        /** The name of the component where the mutation occurred. */
+        componentName: string;
+    }
+
+    /**
+     * Describes an `add`, `prepend`, or `insert` mutation.
+     * @template T The type of the item being mutated.
+     */
+    export interface MxArrayAddMutation<T> extends MxArrayMutationBase<T> {
+        type: 'add' | 'prepend' | 'insert';
+    }
+
+    /**
+     * Describes a `delete` mutation.
+     * @template T The type of the item being mutated.
+     */
+    export interface MxArrayDeleteMutation<T> extends MxArrayMutationBase<T> {
+        type: 'delete';
+    }
+
+    /**
+     * Describes an `update` mutation on a property of an item.
+     * @template T The type of the item being mutated.
+     */
+    export interface MxArrayUpdateMutation<T> extends MxArrayMutationBase<T> {
+        type: 'update';
+        /** The name of the property on the item that changed. */
+        propertyName: string;
+        /** The previous value of the property. */
+        oldValue: any;
+        /** The new value of the property. */
+        newValue: any;
+    }
+
+    /**
+     * A discriminated union representing any possible array mutation.
+     * The `type` property can be used to determine the specific kind of mutation.
+     * @template T The type of the items in the array being watched.
+     */
+    export type MxArrayMutation<T> =
+        | MxArrayAddMutation<T>
+        | MxArrayDeleteMutation<T>
+        | MxArrayUpdateMutation<T>;
+
     /**
      * Describes the `this` context within a component's methods, including
      * the magic properties injected by the CuboMX runtime.
@@ -148,8 +205,17 @@ declare module 'cubomx' {
         /**
          * Watches mutations on an array of items created with `mx-item`.
          * This method is injected by the CuboMX runtime.
+         * @template T The type of items in the array. You must specify this generic type.
+         * @param arrayName The name of the array property on the component to watch.
+         * @param callback A callback function that receives a detailed mutation event object.
+         * @example
+         * this.$watchArrayItems<MyItemType>('items', (event) => {
+         *   if (event.type === 'update') {
+         *     console.log(event.item.myItemProperty);
+         *   }
+         * });
          */
-        $watchArrayItems!: <K extends keyof this>(arrayName: K, callback: (mutation: any) => void) => void;
+        $watchArrayItems!: <T>(arrayName: string, callback: (mutation: MxArrayMutation<T>) => void) => void;
     }
 
     /**
