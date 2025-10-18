@@ -119,6 +119,348 @@ A Store is semantically similar to a Singleton: it is also a single, global inst
     CuboMX.store("auth", authStore);
     ```
 
+### 3.4. TypeScript Classes
+
+For TypeScript users, CuboMX provides full support for class-based components. This gives you the benefits of type safety, autocompletion, and better code organization while maintaining complete compatibility with plain object components.
+
+#### The `MxComponent` Base Class
+
+CuboMX exports a base class called `MxComponent` that provides TypeScript definitions for the framework's "magic" properties. When you extend this class, you automatically get proper typing for:
+
+-   `this.$el`: The component's root DOM element
+-   `this.$watch()`: Watch property changes
+-   `this.$watchArrayItems()`: Watch array mutations
+
+**Important:** `MxComponent` exists purely for TypeScript typing. At runtime, it's an empty class. The actual magic properties are injected by CuboMX when your component is initialized.
+
+#### Using Classes with Stores
+
+You can use any class instance as a store. The class methods are preserved through the prototype chain.
+
+```typescript
+// components/ThemeStore.ts
+import { MxComponent } from 'cubomx';
+
+class ThemeStore {
+    mode: 'light' | 'dark' = 'light';
+
+    toggleTheme() {
+        this.mode = this.mode === 'light' ? 'dark' : 'light';
+    }
+}
+
+// main.ts
+import { CuboMX } from 'cubomx';
+import { ThemeStore } from './components/ThemeStore';
+
+CuboMX.store('theme', new ThemeStore());
+CuboMX.start();
+```
+
+#### Using Classes with Singletons
+
+For singletons, extend `MxComponent` to get access to the magic properties and their TypeScript types.
+
+```typescript
+// components/PageController.ts
+import { MxComponent } from 'cubomx';
+
+export class PageController extends MxComponent {
+    title: string = 'My Page';
+    isLoading: boolean = true;
+
+    init() {
+        // this.$el is properly typed as HTMLElement
+        console.log('Page root element:', this.$el);
+
+        // this.$watch is properly typed
+        this.$watch('isLoading', (newVal, oldVal) => {
+            console.log(`Loading changed from ${oldVal} to ${newVal}`);
+        });
+    }
+
+    loadContent() {
+        this.isLoading = false;
+    }
+}
+
+// main.ts
+import { CuboMX } from 'cubomx';
+import { PageController } from './components/PageController';
+
+CuboMX.component('pageController', new PageController());
+CuboMX.start();
+```
+
+#### Using Classes with Factories
+
+For factories, your factory function should return a new instance of your class.
+
+```typescript
+// components/Dropdown.ts
+import { MxComponent } from 'cubomx';
+
+export class Dropdown extends MxComponent {
+    isOpen: boolean = false;
+
+    toggle() {
+        this.isOpen = !this.isOpen;
+    }
+
+    close() {
+        this.isOpen = false;
+    }
+}
+
+// main.ts
+import { CuboMX } from 'cubomx';
+import { Dropdown } from './components/Dropdown';
+
+// Factory returns a new instance each time
+CuboMX.component('dropdown', () => new Dropdown());
+CuboMX.start();
+```
+
+Now each `mx-data="dropdown()"` in your HTML will create an independent instance with its own state.
+
+```html
+<!-- Two completely independent dropdowns -->
+<div mx-data="dropdown()" mx-ref="headerMenu">
+    <button mx-on:click="toggle()">Menu</button>
+    <div mx-show="isOpen">...</div>
+</div>
+
+<div mx-data="dropdown()" mx-ref="userMenu">
+    <button mx-on:click="toggle()">User</button>
+    <div mx-show="isOpen">...</div>
+</div>
+```
+
+#### Benefits of Using Classes
+
+-   **Type Safety**: Catch errors at compile time with TypeScript's type checking
+-   **IntelliSense**: Get autocomplete for your component properties and methods
+-   **Code Organization**: Use familiar OOP patterns and private/public modifiers
+-   **Refactoring**: Rename properties and methods with confidence using IDE refactoring tools
+-   **Compatibility**: Mix and match class-based and plain object components freely
+
+#### Compatibility Note
+
+Class-based components work seamlessly alongside plain object components. You can have some components as classes and others as simple objects in the same application. CuboMX treats them identically at runtime, preserving all methods and reactivity regardless of which pattern you choose.
+
+#### TypeScript Type Definitions
+
+CuboMX exports several TypeScript types and interfaces that you can use to add type safety to your components. Import them from the `'cubomx'` module:
+
+```typescript
+import {
+    CuboMX,
+    MxComponent,
+    ItemArrayProxy,
+    ClassListProxy,
+    ItemProxy,
+    Parser
+} from 'cubomx';
+```
+
+##### `ItemArrayProxy<T>`
+
+This type represents the reactive array proxy created by `mx-item`. It extends the standard `Array<T>` and adds methods for dynamic DOM manipulation.
+
+```typescript
+import { MxComponent, ItemArrayProxy } from 'cubomx';
+
+interface TodoItem {
+    text: string;
+    completed: boolean;
+}
+
+class TodoList extends MxComponent {
+    // Type the array as ItemArrayProxy to get autocomplete for .add(), .delete(), etc.
+    todos!: ItemArrayProxy<TodoItem>;
+
+    addTodo(text: string) {
+        // TypeScript now knows about .add() and validates the item structure
+        this.todos.add({ text, completed: false });
+    }
+
+    removeTodo(index: number) {
+        // TypeScript validates the index parameter
+        this.todos.delete(index);
+    }
+}
+```
+
+The `ItemArrayProxy<T>` type includes:
+- All standard array methods (`map`, `filter`, `forEach`, etc.)
+- `.add(itemData)` - Append item to end
+- `.prepend(itemData)` - Add item to beginning
+- `.insert(itemData, index)` - Insert at specific position
+- `.delete(index)` - Remove item at index
+
+##### `ClassListProxy`
+
+This type represents the reactive class list created when binding to an element's classes. It behaves like an array of strings with additional helper methods.
+
+```typescript
+import { MxComponent, ClassListProxy } from 'cubomx';
+
+class Card extends MxComponent {
+    // Type the class property for autocomplete
+    cardClasses!: ClassListProxy;
+
+    highlight() {
+        // TypeScript validates the methods
+        this.cardClasses.add('highlighted');
+        this.cardClasses.toggle('active');
+    }
+
+    reset() {
+        this.cardClasses.remove('highlighted');
+    }
+}
+```
+
+The `ClassListProxy` type includes:
+- All standard array methods
+- `.add(className)` - Add class if not present
+- `.remove(className)` - Remove class
+- `.toggle(className)` - Toggle class presence
+- `.contains(className)` - Check if class exists
+
+##### `ItemProxy`
+
+This interface represents the structure of an individual item created by `mx-item` with composite hydration. It's useful when typing items in your arrays.
+
+```typescript
+import { ItemProxy } from 'cubomx';
+
+// Extend ItemProxy to add your custom properties
+interface ProductItem extends ItemProxy {
+    sku: string;
+    name: string;
+    price: number;
+    quantity: number;
+}
+
+class ShoppingCart extends MxComponent {
+    items!: ItemArrayProxy<ProductItem>;
+
+    updateQuantity(item: ProductItem, newQty: number) {
+        // TypeScript knows about both custom properties and ItemProxy properties
+        item.quantity = newQty;
+        item.class.add('updated'); // .class comes from ItemProxy
+    }
+}
+```
+
+The `ItemProxy` interface includes:
+- `class` - Reactive ClassListProxy for the element
+- `text` - The element's textContent
+- `html` - The element's innerHTML
+- `value?` - For form elements
+- `checked?` - For checkboxes/radios
+- Any additional properties you define
+
+##### `Parser`
+
+Use this type when creating custom parsers for data transformation.
+
+```typescript
+import { Parser } from 'cubomx';
+
+const uppercaseParser: Parser = {
+    parse(value: string): string {
+        return value.toUpperCase();
+    },
+    format(value: string): string {
+        return value.toUpperCase();
+    }
+};
+
+CuboMX.addParser('uppercase', uppercaseParser);
+```
+
+##### Complete Example with Types
+
+Here's a full example showing how to use multiple types together:
+
+```typescript
+import {
+    CuboMX,
+    MxComponent,
+    ItemArrayProxy,
+    ItemProxy
+} from 'cubomx';
+
+// Define your item structure
+interface Task extends ItemProxy {
+    id: number;
+    title: string;
+    completed: boolean;
+    tags: string[];
+}
+
+// Create a typed component
+export class TaskManager extends MxComponent {
+    tasks!: ItemArrayProxy<Task>;
+    filter: 'all' | 'active' | 'completed' = 'all';
+
+    init() {
+        // Watch array mutations with proper typing
+        this.$watchArrayItems('tasks', (mutation) => {
+            console.log(`Task ${mutation.type}:`, mutation.item);
+
+            if (mutation.type === 'update') {
+                // TypeScript knows these properties exist
+                console.log(`Property "${mutation.propertyName}" changed`);
+                console.log(`From ${mutation.oldValue} to ${mutation.newValue}`);
+            }
+        });
+    }
+
+    addTask(title: string) {
+        this.tasks.add({
+            id: Date.now(),
+            title,
+            completed: false,
+            tags: []
+        });
+    }
+
+    toggleTask(task: Task) {
+        // TypeScript validates the property exists
+        task.completed = !task.completed;
+
+        // TypeScript knows about .class from ItemProxy
+        task.class.toggle('completed');
+    }
+
+    deleteTask(index: number) {
+        this.tasks.delete(index);
+    }
+
+    get filteredTasks(): Task[] {
+        // Full type safety with array methods
+        return this.tasks.filter(task => {
+            if (this.filter === 'active') return !task.completed;
+            if (this.filter === 'completed') return task.completed;
+            return true;
+        });
+    }
+}
+
+// Register the component
+CuboMX.component('taskManager', new TaskManager());
+CuboMX.start();
+```
+
+With these type definitions, you get:
+- **Compile-time validation** of all property names and method calls
+- **IntelliSense/autocomplete** in your IDE for all CuboMX-specific methods
+- **Refactoring support** when renaming properties
+- **Documentation** inline via TypeScript's hover tooltips
+
 ## 4. Directives: Connecting HTML and JavaScript
 
 Directives are special attributes in HTML that CuboMX understands. They are the bridge between your DOM and your JavaScript components.

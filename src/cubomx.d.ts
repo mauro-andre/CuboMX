@@ -46,13 +46,128 @@ declare module 'cubomx' {
     };
 
     /**
+     * Represents a reactive proxy for an array of items created with `mx-item`.
+     * It extends the standard Array and adds methods for dynamic DOM manipulation.
+     * @template T The type of the items in the array.
+     */
+    export type ItemArrayProxy<T> = Array<T> & {
+        /**
+         * Adds a new item to the end of the list and updates the DOM.
+         * @param {Partial<T>} itemData The data for the new item.
+         */
+        add: (itemData: Partial<T>) => void;
+
+        /**
+         * Adds a new item to the beginning of the list and updates the DOM.
+         * @param {Partial<T>} itemData The data for the new item.
+         */
+        prepend: (itemData: Partial<T>) => void;
+
+        /**
+         * Inserts a new item at a specific index and updates the DOM.
+         * @param {Partial<T>} itemData The data for the new item.
+         * @param {number} index The index at which to insert the item.
+         */
+        insert: (itemData: Partial<T>, index: number) => void;
+
+        /**
+         * Removes the item at the specified index and updates the DOM.
+         * @param {number} index The index of the item to remove.
+         */
+        delete: (index: number) => void;
+    };
+
+    /**
+     * Represents a reactive proxy for an element's class list.
+     * It behaves like an array of strings, but also includes helper methods
+     * for common class manipulations.
+     */
+    export type ClassListProxy = Array<string> & {
+        /**
+         * Adds a class to the element, if it's not already present.
+         * @param {string} className The class to add.
+         */
+        add: (className: string) => void;
+
+        /**
+         * Removes a class from the element.
+         * @param {string} className The class to remove.
+         */
+        remove: (className: string) => void;
+
+        /**
+         * Adds a class if it's not present, or removes it if it is.
+         * @param {string} className The class to toggle.
+         */
+        toggle: (className: string) => void;
+
+        /**
+         * Checks if the element has a given class.
+         * @param {string} className The class to check for.
+         * @returns {boolean}
+         */
+        contains: (className: string) => boolean;
+    };
+
+    export interface ItemProxy {
+        /** A reactive proxy for the element's class list. */
+        class: ClassListProxy;
+        /** The reactive `textContent` of the element. */
+        text: string;
+        /** The reactive `innerHTML` of the element. */
+        html: string;
+        /** The reactive `value` of a form element. */
+        value?: any;
+        /** The reactive `checked` state of a checkbox or radio button. */
+        checked?: boolean;
+        [key: string]: any;
+    }
+
+    /**
+     * Describes the `this` context within a component's methods, including
+     * the magic properties injected by the CuboMX runtime.
+     */
+    /**
+     * The base class for creating strongly-typed CuboMX components.
+     * Extend this class to automatically inherit the framework's "magic" properties
+     * like `$el`, `$watch`, and `$watchArrayItems`.
+     */
+    export class MxComponent {
+        /**
+         * A direct reference to the component's root DOM element.
+         * This property is injected by the CuboMX runtime.
+         */
+        $el!: HTMLElement;
+
+        /**
+         * Watches a property on the current component instance for changes.
+         * This method is injected by the CuboMX runtime.
+         */
+        $watch!: <K extends keyof this>(prop: K, callback: (newValue: this[K], oldValue: this[K]) => void) => void;
+
+        /**
+         * Watches mutations on an array of items created with `mx-item`.
+         * This method is injected by the CuboMX runtime.
+         */
+        $watchArrayItems!: <K extends keyof this>(arrayName: K, callback: (mutation: any) => void) => void;
+    }
+
+    /**
      * The core CuboMX API.
-     * This interface includes the static methods for registering components/stores,
-     * starting the framework, and watching for changes.
-     * It also allows for dynamic properties, representing the globally accessible
-     * stores and component instances.
      */
     interface CuboMXAPI {
+        /**
+         * An abstract base class for creating strongly-typed CuboMX components.
+         * Extend this class to automatically inherit the framework's "magic" properties
+         * like `$el`, `$watch`, and `$watchArrayItems`.
+         * @example
+         * class MyComponent extends CuboMX.MxComponent {
+         *   // ...
+         * }
+         */
+        MxComponent: typeof MxComponent;
+
+
         /**
          * @summary Registers a component.
          * @param {string} name The name used in the `mx-data` attribute.
@@ -198,13 +313,12 @@ declare module 'cubomx' {
          * @summary Resets the internal state of CuboMX. Used primarily for testing.
          */
         reset(): void;
-
-        /**
-         * Allows dynamic access to any registered store or component instance.
-         * For example, `CuboMX.myStore` or `CuboMX.myComponentRef`.
-         */
-        [key: string]: any;
     }
 
-    export const CuboMX: CuboMXAPI;
+    /**
+     * The core CuboMX instance with typed methods and dynamic property access.
+     * Allows access to registered stores and components via their names
+     * (e.g., `CuboMX.myStore`, `CuboMX.myComponentRef`).
+     */
+    export const CuboMX: CuboMXAPI & Record<string, any>;
 }

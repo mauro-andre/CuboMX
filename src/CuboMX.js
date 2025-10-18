@@ -1510,7 +1510,14 @@ const CuboMX = (() => {
             } else {
                 if (activeProxies[componentName]) return;
 
-                const instance = {};
+                // Create a new instance that inherits from the definition
+                // This preserves class methods via prototype chain while allowing
+                // each instance to have its own state
+                const instance = Object.create(
+                    Object.getPrototypeOf(definition)
+                );
+
+                // Copy own properties from definition to the new instance
                 for (const key in definition) {
                     if (Object.hasOwnProperty.call(definition, key)) {
                         const value = definition[key];
@@ -1646,7 +1653,9 @@ const CuboMX = (() => {
         observer.observe(document.body, { childList: true, subtree: true });
 
         for (const name in registeredStores) {
-            const proxy = createProxy({ ...registeredStores[name] }, name);
+            const storeDefinition = registeredStores[name];
+            // Use the store instance directly to preserve class methods and prototype chain
+            const proxy = createProxy(storeDefinition, name);
             addActiveProxy(name, proxy);
             if (proxy.init) initQueue.push(proxy);
         }
@@ -1660,20 +1669,50 @@ const CuboMX = (() => {
 
         processInit(initQueue);
 
-        window.addEventListener("cubo:dom-updated", () => {
+        // Store listener reference for cleanup in reset()
+        const onDOMUpdateHandler = () => {
             for (const proxy of Object.values(activeProxies)) {
                 if (typeof proxy.onDOMUpdate === "function") {
                     proxy.onDOMUpdate.call(proxy);
                 }
             }
-        });
+        };
+
+        window.addEventListener("cubo:dom-updated", onDOMUpdateHandler);
+
+        // Store reference for cleanup
+        if (typeof window !== "undefined") {
+            if (!window._cuboListeners) window._cuboListeners = {};
+            window._cuboListeners.onDOMUpdate = onDOMUpdateHandler;
+        }
     };
 
     const reset = () => {
+        // Call destroy() on all active proxies before clearing
+        for (const name in activeProxies) {
+            const proxy = activeProxies[name];
+            if (typeof proxy.destroy === "function") {
+                proxy.destroy.call(proxy);
+            }
+        }
+
         if (observer) {
             observer.disconnect();
             observer = null;
         }
+
+        // Remove the cubo:dom-updated listener
+        if (typeof window !== "undefined") {
+            const listeners = window._cuboListeners || {};
+            if (listeners.onDOMUpdate) {
+                window.removeEventListener(
+                    "cubo:dom-updated",
+                    listeners.onDOMUpdate
+                );
+                delete listeners.onDOMUpdate;
+            }
+        }
+
         registeredComponents = {};
         registeredStores = {};
         watchers = {};
