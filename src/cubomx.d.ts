@@ -64,22 +64,22 @@ declare module 'cubomx' {
     export type ItemArrayProxy<T> = Array<T> & {
         /**
          * Adds a new item to the end of the list and updates the DOM.
-         * @param {Partial<T>} itemData The data for the new item.
+         * @param {ItemData<T>} itemData The plain data object for the new item.
          */
-        add: (itemData: Partial<T>) => void;
+        add: (itemData: ItemData<T>) => void;
 
         /**
          * Adds a new item to the beginning of the list and updates the DOM.
-         * @param {Partial<T>} itemData The data for the new item.
+         * @param {ItemData<T>} itemData The plain data object for the new item.
          */
-        prepend: (itemData: Partial<T>) => void;
+        prepend: (itemData: ItemData<T>) => void;
 
         /**
          * Inserts a new item at a specific index and updates the DOM.
-         * @param {Partial<T>} itemData The data for the new item.
+         * @param {ItemData<T>} itemData The plain data object for the new item.
          * @param {number} index The index at which to insert the item.
          */
-        insert: (itemData: Partial<T>, index: number) => void;
+        insert: (itemData: ItemData<T>, index: number) => void;
 
         /**
          * Removes the item at the specified index and updates the DOM.
@@ -120,9 +120,19 @@ declare module 'cubomx' {
         contains: (className: string) => boolean;
     };
 
-    export interface ItemProxy {
+    /**
+     * A utility type that converts an ItemProxy type `T` into a plain data object
+     * suitable for passing to methods like `.add()` or `.prepend()`.
+     * It correctly maps proxy types (like `ClassListProxy`) to their plain data
+     * counterparts (like `string[]`).
+     */
+    export type ItemData<T> = Partial<{
+        [P in keyof Omit<T, 'component' | 'variable'>]: T[P] extends ClassListProxy ? string[] : T[P];
+    }>;
+
+    export interface ItemProxy<TOwner = object> {
         /** A reactive proxy for the element's class list. */
-        class?: ClassListProxy;
+        class: ClassListProxy;
         /** The reactive `textContent` of the element. */
         text?: string;
         /** The reactive `innerHTML` of the element. */
@@ -131,6 +141,10 @@ declare module 'cubomx' {
         value?: any;
         /** The reactive `checked` state of a checkbox or radio button. */
         checked?: boolean;
+        /** The component or store instance that owns the array this item belongs to. */
+        component: TOwner;
+        /** The name of the array variable on the component that this item belongs to. */
+        variable: string;
         [key: string]: any;
     }
 

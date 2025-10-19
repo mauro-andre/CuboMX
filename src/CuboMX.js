@@ -1235,7 +1235,23 @@ const CuboMX = (() => {
 
             const fullPath = `${basePath}[${context[key].length}]`;
 
-            const itemObject = enhanceObjectWithElementProxy({}, el, fullPath);
+            const isGlobal = expression.startsWith("$");
+            let componentOwner;
+            if (isGlobal) {
+                const storeName = expression.substring(1).split(".")[0];
+                componentOwner = activeProxies[storeName];
+            } else {
+                componentOwner = findComponentProxyFor(el);
+            }
+
+            const itemObject = enhanceObjectWithElementProxy(
+                {
+                    component: componentOwner,
+                    variable: key,
+                },
+                el,
+                fullPath
+            );
 
             Object.defineProperty(itemObject, "__el", {
                 value: el,

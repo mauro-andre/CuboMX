@@ -328,31 +328,31 @@ The `ClassListProxy` type includes:
 - `.toggle(className)` - Toggle class presence
 - `.contains(className)` - Check if class exists
 
-##### `ItemProxy`
+##### `ItemProxy<TOwner>`
 
-This interface represents the structure of an individual item created by `mx-item` with composite hydration. It's useful when typing items in your arrays.
+This interface represents the structure of an individual item created by `mx-item`. It's useful when typing items in your arrays.
+
+To get full type safety on the injected `component` property, you can pass the component's type as a generic parameter to `ItemProxy`. This is optional, but highly recommended.
 
 ```typescript
-import { ItemProxy } from 'cubomx';
+import { ItemProxy, MxComponent, ItemArrayProxy } from 'cubomx';
 
-// Extend ItemProxy to add your custom properties
-interface ProductItem extends ItemProxy {
-    sku: string;
+// Define your component class
+class MyComponent extends MxComponent {
+    componentId: string = 'comp-123';
+    items!: ItemArrayProxy<MyItem>;
+}
+
+// Extend ItemProxy and pass the component's type as a generic
+interface MyItem extends ItemProxy<MyComponent> {
     name: string;
-    price: number;
-    quantity: number;
 }
 
-class ShoppingCart extends MxComponent {
-    items!: ItemArrayProxy<ProductItem>;
-
-    updateQuantity(item: ProductItem, newQty: number) {
-        // TypeScript knows about both custom properties and ItemProxy properties
-        item.quantity = newQty;
-        item.class.add('updated'); // .class comes from ItemProxy
-    }
-}
+// Now, when you have an instance of MyItem, TypeScript knows its parent:
+// let item: MyItem = ...
+// console.log(item.component.componentId); // This is type-safe!
 ```
+If you omit the generic parameter (e.g., `extends ItemProxy`), the `component` property will default to the generic `object` type for backward compatibility.
 
 The `ItemProxy` interface includes:
 - `class` - Reactive ClassListProxy for the element
@@ -360,6 +360,8 @@ The `ItemProxy` interface includes:
 - `html` - The element's innerHTML
 - `value?` - For form elements
 - `checked?` - For checkboxes/radios
+- `component: TOwner` - A direct, typed reference to the component/store proxy that owns the array.
+- `variable: string` - The name of the array property on the owner component.
 - Any additional properties you define
 
 ##### `Parser`
@@ -1035,19 +1037,28 @@ CuboMX.component("cart", {
 CuboMX.start();
 ```
 
-**Resulting State:**
+**Resulting State & Injected Metadata:**
 
-After hydration, `CuboMX.cart.items` will be:
+After hydration, `CuboMX.cart.items` will contain a reactive object for each `<tr>`. In addition to the properties you define with `::`, CuboMX automatically injects two powerful metadata properties: `component` and `variable`.
+
+The resulting object for the first item will look like this:
 ```javascript
 [
     {
+        // --- Your Hydrated Properties ---
         sku: "MOUSE-G403",
         description: "A very cool gaming mouse",
         quantity: 2,
-        price: "$119.00"
+        price: "$119.00",
+
+        // --- Injected Metadata ---
+        component: proxyForCart, // A direct reference to the `cart` component proxy
+        variable: "items"        // The name of the array this item belongs to
     }
 ]
 ```
+This metadata allows any item to know "where it came from," enabling powerful patterns. For example, an `archive()` method on an item could use `this.component[this.variable]` to find its own parent array and remove itself, making the item self-contained.
+
 This powerful pattern allows you to keep your HTML semantic and structured logically, while still achieving full, reactive hydration of complex objects and arrays.
 
 ### Dynamic List Manipulation with Array Proxies
