@@ -155,6 +155,8 @@ declare module 'cubomx' {
         component: TOwner;
         /** The name of the array variable on the component that this item belongs to. */
         variable: string;
+        /** The string name of the component or store that owns the array this item belongs to. */
+        componentName: string;
         [key: string]: any;
     }
 

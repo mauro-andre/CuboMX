@@ -6,6 +6,7 @@ interface TestItem extends ItemProxy {
     id: number;
     component: TestComponent | TestStore; // The owner can be a component or a store
     variable: string;
+    componentName: string;
 }
 
 // A class-based component
@@ -26,7 +27,7 @@ describe("mx-item: Injected Metadata (TS)", () => {
     });
 
     describe("With Class-based Singleton", () => {
-        it("should inject component instance and variable name", () => {
+        it("should inject component instance, variable name, and component name", () => {
             const myComp = new TestComponent();
             CuboMX.component("myComp", myComp);
             document.body.innerHTML = `
@@ -42,11 +43,12 @@ describe("mx-item: Injected Metadata (TS)", () => {
             // The injected component should be the proxy, which is what CuboMX.myComp is
             expect(item.component).toBe(CuboMX.myComp);
             expect(item.variable).toBe("items");
+            expect(item.componentName).toBe("myComp");
         });
     });
 
     describe("With Class-based Factory", () => {
-        it("should inject component instance and variable name", () => {
+        it("should inject component instance, variable name, and component name", () => {
             CuboMX.component("myFactory", () => new TestComponent());
             document.body.innerHTML = `
                 <div mx-data="myFactory()" mx-ref="instance1">
@@ -62,11 +64,12 @@ describe("mx-item: Injected Metadata (TS)", () => {
             expect(item.id).toBe(2);
             expect(item.component).toBe(CuboMX.instance1);
             expect(item.variable).toBe("items");
+            expect(item.componentName).toBe("instance1");
         });
     });
 
     describe("With Class-based Store", () => {
-        it("should inject store instance and variable name", () => {
+        it("should inject store instance, variable name, and component name", () => {
             const myStore = new TestStore();
             CuboMX.store("myStore", myStore);
             document.body.innerHTML = `
@@ -80,6 +83,7 @@ describe("mx-item: Injected Metadata (TS)", () => {
             expect(item.id).toBe(3);
             expect(item.component).toBe(CuboMX.myStore);
             expect(item.variable).toBe("products");
+            expect(item.componentName).toBe("myStore");
         });
     });
 });

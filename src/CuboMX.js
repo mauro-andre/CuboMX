@@ -1277,6 +1277,7 @@ const CuboMX = (() => {
                 {
                     component: componentOwner,
                     variable: key,
+                    componentName: ownerName,
                 },
                 el,
                 fullPath
