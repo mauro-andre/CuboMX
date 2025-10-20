@@ -65,27 +65,37 @@ declare module 'cubomx' {
         /**
          * Adds a new item to the end of the list and updates the DOM.
          * @param {ItemData<T>} itemData The plain data object for the new item.
+         * @returns {Promise<T | null>} A promise that resolves with the newly created item proxy.
          */
-        add: (itemData: ItemData<T>) => void;
+        add: (itemData: ItemData<T>) => Promise<T | null>;
 
         /**
          * Adds a new item to the beginning of the list and updates the DOM.
          * @param {ItemData<T>} itemData The plain data object for the new item.
+         * @returns {Promise<T | null>} A promise that resolves with the newly created item proxy.
          */
-        prepend: (itemData: ItemData<T>) => void;
+        prepend: (itemData: ItemData<T>) => Promise<T | null>;
 
         /**
          * Inserts a new item at a specific index and updates the DOM.
          * @param {ItemData<T>} itemData The plain data object for the new item.
          * @param {number} index The index at which to insert the item.
+         * @returns {Promise<T | null>} A promise that resolves with the newly created item proxy.
          */
-        insert: (itemData: ItemData<T>, index: number) => void;
+        insert: (itemData: ItemData<T>, index: number) => Promise<T | null>;
 
         /**
          * Removes the item at the specified index and updates the DOM.
          * @param {number} index The index of the item to remove.
+         * @returns {Promise<T | null>} A promise that resolves with the deleted item proxy.
          */
-        delete: (index: number) => void;
+        delete: (index: number) => Promise<T | null>;
+
+        /**
+         * Removes all items from the list and updates the DOM.
+         * @returns {Promise<void>} A promise that resolves when the operation is complete.
+         */
+        clear: () => Promise<void>;
     };
 
     /**
@@ -196,6 +206,20 @@ declare module 'cubomx' {
     }
 
     /**
+     * Describes a `clear` mutation.
+     * @template T The type of the items that were in the array.
+     */
+    export interface MxArrayClearMutation<T> {
+        type: 'clear';
+        /** The array of item objects that were removed. */
+        clearedItems: T[];
+        /** The name of the array property on the component. */
+        arrayName: string;
+        /** The name of the component where the mutation occurred. */
+        componentName: string;
+    }
+
+    /**
      * A discriminated union representing any possible array mutation.
      * The `type` property can be used to determine the specific kind of mutation.
      * @template T The type of the items in the array being watched.
@@ -203,7 +227,8 @@ declare module 'cubomx' {
     export type MxArrayMutation<T> =
         | MxArrayAddMutation<T>
         | MxArrayDeleteMutation<T>
-        | MxArrayUpdateMutation<T>;
+        | MxArrayUpdateMutation<T>
+        | MxArrayClearMutation<T>;
 
     /**
      * Describes the `this` context within a component's methods, including
@@ -286,6 +311,14 @@ declare module 'cubomx' {
          * @param {function} callback A function to execute when the property changes.
          */
         watch(path: string, callback: (newValue: any, oldValue: any) => void): void;
+
+        /**
+         * @summary Watches an item array on any global store or component for mutations.
+         * @template T The type of items in the array, extending ItemProxy.
+         * @param {string} path A string path to the array (e.g., 'componentName.arrayName').
+         * @param {(mutation: MxArrayMutation<T>) => void} callback A function to execute when the array is mutated.
+         */
+        watchArrayItems<T extends ItemProxy>(path: string, callback: (mutation: MxArrayMutation<T>) => void): void;
 
         /**
          * @summary Initializes the framework, scanning the DOM and activating components.
@@ -406,6 +439,23 @@ declare module 'cubomx' {
         reset(): void;
 
         /**
+         * @summary Establishes a persistent Server-Sent Events (SSE) connection.
+         * @description Connects to an SSE endpoint for real-time, one-way communication from the server.
+         * The function can operate in two modes: Client-Decide (with listeners) or Server-Commands (without listeners).
+         * @param {object} config The configuration for the stream.
+         * @param {string} config.url The URL of the SSE endpoint.
+         * @param {Array<{event: string, strategies: object[]}>} [config.listeners] An array of listeners to handle named events from the server.
+         * @returns {EventSource} The underlying EventSource instance, allowing you to close the connection via `.close()`.
+         */
+        stream(config: {
+            url: string;
+            listeners?: Array<{
+                event: string;
+                strategies: object[];
+            }>;
+        }): EventSource;
+
+        /**
          * @summary Attaches an event listener to an element and provides CuboMX's magic variables to the callback.
          * @description This is a programmatic alternative to the `mx-on` directive. It ensures the callback receives
          * the element (`el`), the browser event (`event`), and the associated `mx-item` data (`item`),
@@ -431,8 +481,22 @@ declare module 'cubomx' {
         on<T extends ItemProxy = ItemProxy>(
             element: HTMLElement, 
             eventName: CuboEventNames, 
-            callback: (this: MxComponent, el: HTMLElement, event: Event, item?: T) => void
+            callback: (this: MxComponent, el: HTMLElement, event: Event, item: T | null) => void
         ): void;
+
+        /**
+         * @summary Retrieves the reactive item proxy associated with a given DOM element.
+         * @template T The specific type of the item proxy to be returned.
+         * @param {HTMLElement} element The DOM element that might have an `mx-item` context.
+         * @returns {T | null} The reactive item proxy, or `null` if the element is not an item.
+         * @example
+         * const li = document.querySelector('#my-item-li');
+         * const item = CuboMX.getItem<MyItemType>(li);
+         * if (item) {
+         *   console.log(item.name); // Access reactive properties with type safety
+         * }
+         */
+        getItem<T extends ItemProxy>(element: HTMLElement | null | undefined): T | null;
     }
 
     /**

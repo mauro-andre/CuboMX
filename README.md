@@ -293,10 +293,11 @@ class TodoList extends MxComponent {
 
 The `ItemArrayProxy<T>` type includes:
 - All standard array methods (`map`, `filter`, `forEach`, etc.)
-- `.add(itemData)` - Append item to end
-- `.prepend(itemData)` - Add item to beginning
-- `.insert(itemData, index)` - Insert at specific position
-- `.delete(index)` - Remove item at index
+- `async .add(itemData)` - Appends an item and returns a `Promise` that resolves with the new item proxy.
+- `async .prepend(itemData)` - Prepends an item and returns a `Promise` that resolves with the new item proxy.
+- `async .insert(itemData, index)` - Inserts an item and returns a `Promise` that resolves with the new item proxy.
+- `async .delete(index)` - Removes an item and returns a `Promise` that resolves with the deleted item proxy.
+- `async .clear()` - Removes all items and returns a `Promise<void>`.
 
 ##### `ClassListProxy`
 
@@ -1063,7 +1064,7 @@ This powerful pattern allows you to keep your HTML semantic and structured logic
 
 ### Dynamic List Manipulation with Array Proxies
 
-A major advantage of using `mx-item` is that the hydrated array in your component is automatically converted into a powerful **proxy object**. This proxy comes with a set of methods that allow you to easily add, insert, and remove items from the list, letting CuboMX handle the DOM manipulation and state synchronization for you.
+A major advantage of using `mx-item` is that the hydrated array in your component is automatically converted into a powerful **proxy object**. This proxy comes with a set of asynchronous methods that allow you to easily add, insert, and remove items from the list, letting CuboMX handle the complex, underlying DOM manipulation and state synchronization for you.
 
 This abstracts away the manual work of rendering templates and swapping HTML.
 
@@ -1073,17 +1074,21 @@ Behind the scenes, CuboMX automatically creates a template from the first item e
 1.  Uses the stored template and the data you provide to create a new HTML element in memory.
 2.  Injects this new element into the correct position in the DOM.
 3.  Lets its reactive `MutationObserver` detect the new element and hydrate it, adding it to your state array automatically and in the correct position.
+4.  Resolves the `Promise` you are awaiting, returning the newly created (or deleted) item proxy.
 
 **Available Methods**
 
--   `.add(itemData)`: Adds a new item to the end of the list.
--   `.prepend(itemData)`: Adds a new item to the beginning of the list.
--   `.insert(itemData, index)`: Inserts a new item at a specific index.
--   `.delete(index)`: Removes the item at the specified index.
+All manipulation methods are `async` and return a `Promise`.
 
-**Example: A Simple To-Do List**
+-   `async .add(itemData)`: Adds a new item to the end of the list. The promise resolves with the new item proxy.
+-   `async .prepend(itemData)`: Adds a new item to the beginning of the list. The promise resolves with the new item proxy.
+-   `async .insert(itemData, index)`: Inserts a new item at a specific index. The promise resolves with the new item proxy.
+-   `async .delete(index)`: Removes the item at the specified index. The promise resolves with the item proxy that was just removed.
+-   `async .clear()`: Removes all items from the list. The promise resolves when the operation is complete.
 
-Let's see how easy it is to build a dynamic to-do list.
+**Example: A Simple To-Do List with `async/await`**
+
+Using `await` simplifies your code by allowing you to be certain that the list and DOM are fully updated before the next line of code executes.
 
 **HTML:**
 ```html
@@ -1095,7 +1100,7 @@ Let's see how easy it is to build a dynamic to-do list.
         <!-- This `li` serves as the template for all new items -->
         <li mx-item="todos">
             <span ::text="text"></span>
-            <button mx-on:click="$item.delete()">Remove</button>
+            <button mx-on:click="removeTodo($item)">Remove</button>
         </li>
     </ul>
 </div>
@@ -1106,18 +1111,29 @@ Let's see how easy it is to build a dynamic to-do list.
 CuboMX.component('todoApp', {
     todos: [],
     newTodoText: '',
-    addTodo() {
+    async addTodo() {
         if (!this.newTodoText.trim()) return;
 
-        // Simply call .add() on the array proxy!
-        this.todos.add({ text: this.newTodoText });
+        // Use await to ensure the operation is complete before continuing.
+        const newItem = await this.todos.add({ text: this.newTodoText });
+
+        // On this line, the DOM is updated, `this.todos` has the new item,
+        // and `newItem` is the reactive proxy for it.
+        console.log('Added item:', newItem);
 
         this.newTodoText = ''; // Clear the input
+    },
+    async removeTodo(itemToRemove) {
+        const index = this.todos.indexOf(itemToRemove);
+        if (index > -1) {
+            await this.todos.delete(index);
+            console.log('List is now:', this.todos);
+        }
     }
 });
 CuboMX.start();
 ```
-In this example, calling `this.todos.add()` triggers the entire process of creating a new `<li>`, adding it to the `<ul>`, and updating the underlying state array, all with a single, intuitive method call. Notice also how we can call `.delete()` on the `$item` itself to remove it.
+In this example, calling `await this.todos.add()` triggers the entire process of creating a new `<li>`, adding it to the `<ul>`, and updating the state array. Because we use `await`, we can immediately and safely work with the returned `newItem` and the fully updated `todos` array.
 
 #### Advanced: Synchronizing Sub-Arrays
 
@@ -1747,10 +1763,49 @@ This pattern is especially useful for:
 -   **`CuboMX.store(name, object)`**: Registers a global store.
 -   **`CuboMX.addParser(name, parserObject)`**: Registers a custom parser.
 -   **`CuboMX.start()`**: Starts the framework.
--   **`CuboMX.watch(path, callback)`**: Watches a property on any global store or component (e.g., `'theme.mode'`).
+    -   **`CuboMX.watch(path, callback)`**: Watches a property on any global store or component (e.g., `'theme.mode'`).
+
+-   **`CuboMX.watchArrayItems(path, callback)`**: Watches an `mx-item` array on any global store or component for mutations (`add`, `delete`, `update`, `clear`). This is the global equivalent of the component-level `this.$watchArrayItems`.
+    -   `path` (string): The full path to the array (e.g., `'componentRef.arrayName'`).
+    -   `callback(mutation)`: A function that receives a detailed object describing the mutation. The structure of the `mutation` object is the same as for `$watchArrayItems`.
+
+    **Example:**
+
+    ```javascript
+    import { CuboMX } from 'cubomx';
+
+    // A component with an array of items
+    CuboMX.component('taskManager', {
+        tasks: [],
+        addTask(text) {
+            this.tasks.add({ text, completed: false });
+        }
+    });
+
+    // Register a global watcher BEFORE starting the app
+    CuboMX.watchArrayItems('taskManager.tasks', (mutation) => {
+        console.log('A change occurred in the tasks list!');
+        console.log('Type:', mutation.type);
+        if (mutation.type === 'add') {
+            console.log('Added item:', mutation.item);
+        }
+    });
+
+    // Start the framework
+    CuboMX.start();
+
+    // Later, when an action triggers addTask...
+    // CuboMX.taskManager.addTask('New task from event');
+    // ...the console will log the mutation details.
+    ```
+
 -   **`CuboMX.render(templateString, data)`**: Renders a template string with data.
 -   **`CuboMX.renderTemplate(templateName, data)`**: Renders a pre-registered template.
--   **`CuboMX.getTemplate(templateName)`**: Retrieves a pre-registered template, returning an object `{ template: string, data: object }` which contains the raw template HTML and any metadata extracted from its attributes.
+-   `CuboMX.getTemplate(templateName)`: Retrieves a pre-registered template, returning an object `{ template: string, data: object }` which contains the raw template HTML and any metadata extracted from its attributes.
+
+-   **`CuboMX.getItem(element)`**: Retrieves the reactive item proxy associated with a given DOM element.
+    -   `element`: The DOM element that is expected to be an `mx-item`.
+    -   Returns the reactive `ItemProxy` object or `null` if the element is not an item. This is the official, safe way to get an item's data from its DOM element, for example, inside a component's `init()` method.
 
 -   **`CuboMX.on(element, eventName, callback)`**: A programmatic way to attach an event listener that automatically receives CuboMX's "magic variables". This is the JavaScript equivalent of the `mx-on` directive.
     -   `element`: The DOM element to attach the listener to.

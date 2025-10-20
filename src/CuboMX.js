@@ -153,11 +153,9 @@ const CuboMX = (() => {
         const watchersList = arrayWatchers[path];
         if (!watchersList || watchersList.length === 0) return;
 
-        setTimeout(() => {
-            watchersList.forEach(({ callback }) => {
-                callback(eventData);
-            });
-        }, 0);
+        watchersList.forEach(({ callback }) => {
+            callback(eventData);
+        });
     };
 
     const createItemArrayProxy = (targetArray, templateInfo) => {
@@ -167,115 +165,117 @@ const CuboMX = (() => {
 
                 if (prop === "add") {
                     return (itemData) => {
-                        const preHydratedHtml = preHydrateTemplate(
-                            templateInfo.template,
-                            itemData
-                        );
-                        if (!templateInfo.parent.id) {
-                            templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
-                        }
-                        const targetSelector = `#${templateInfo.parent.id}:beforeend`;
-                        const index = target.length;
-
-                        publicAPI.swapHTML(preHydratedHtml, [
-                            { select: "this", target: targetSelector },
-                        ]);
-
-                        setTimeout(() => {
-                            const addedItem = target[index];
-                            if (addedItem) {
-                                const arrayPath = templateInfo.key;
-                                notifyArrayWatchers(arrayPath, {
-                                    type: "add",
-                                    item: addedItem,
-                                    index: index,
-                                    arrayName: arrayPath.split(".")[1],
-                                    componentName: arrayPath.split(".")[0],
-                                });
-                            }
-                        }, 0);
-                    };
-                }
-                if (prop === "prepend") {
-                    return (itemData) => {
-                        const preHydratedHtml = preHydrateTemplate(
-                            templateInfo.template,
-                            itemData
-                        );
-                        if (!templateInfo.parent.id) {
-                            templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
-                        }
-                        const targetSelector = `#${templateInfo.parent.id}:afterbegin`;
-
-                        publicAPI.swapHTML(preHydratedHtml, [
-                            { select: "this", target: targetSelector },
-                        ]);
-
-                        setTimeout(() => {
-                            const prependedItem = target[0];
-                            if (prependedItem) {
-                                const arrayPath = templateInfo.key;
-                                notifyArrayWatchers(arrayPath, {
-                                    type: "prepend",
-                                    item: prependedItem,
-                                    index: 0,
-                                    arrayName: arrayPath.split(".")[1],
-                                    componentName: arrayPath.split(".")[0],
-                                });
-                            }
-                        }, 0);
-                    };
-                }
-                if (prop === "insert") {
-                    return (itemData, index) => {
-                        if (index < 0 || index > target.length) {
-                            return;
-                        }
-
-                        const preHydratedHtml = preHydrateTemplate(
-                            templateInfo.template,
-                            itemData
-                        );
-
-                        // Handle insert at end
-                        if (index === target.length) {
+                        return new Promise((resolve) => {
+                            const preHydratedHtml = preHydrateTemplate(
+                                templateInfo.template,
+                                itemData
+                            );
                             if (!templateInfo.parent.id) {
                                 templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
                             }
                             const targetSelector = `#${templateInfo.parent.id}:beforeend`;
+                            const index = target.length;
 
                             publicAPI.swapHTML(preHydratedHtml, [
                                 { select: "this", target: targetSelector },
                             ]);
 
                             setTimeout(() => {
-                                const insertedItem = target[index];
-                                if (insertedItem) {
+                                const addedItem = target[index];
+                                if (addedItem) {
                                     const arrayPath = templateInfo.key;
                                     notifyArrayWatchers(arrayPath, {
-                                        type: "insert",
-                                        item: insertedItem,
+                                        type: "add",
+                                        item: addedItem,
                                         index: index,
                                         arrayName: arrayPath.split(".")[1],
                                         componentName: arrayPath.split(".")[0],
                                     });
+                                    resolve(addedItem);
+                                } else {
+                                    resolve(null);
                                 }
                             }, 0);
-                            return;
-                        }
-
-                        // Handle insert in the middle
-                        const targetItem = target[index];
-                        if (targetItem && targetItem.__el) {
-                            const targetEl = targetItem.__el;
-                            if (!targetEl.id) {
-                                targetEl.id = `cubo-item-el-${anonCounter++}`;
+                        });
+                    };
+                }
+                if (prop === "prepend") {
+                    return (itemData) => {
+                        return new Promise((resolve) => {
+                            const preHydratedHtml = preHydrateTemplate(
+                                templateInfo.template,
+                                itemData
+                            );
+                            if (!templateInfo.parent.id) {
+                                templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
                             }
-                            const targetSelector = `#${targetEl.id}:beforebegin`;
+                            const targetSelector = `#${templateInfo.parent.id}:afterbegin`;
 
                             publicAPI.swapHTML(preHydratedHtml, [
                                 { select: "this", target: targetSelector },
                             ]);
+
+                            setTimeout(() => {
+                                const prependedItem = target[0];
+                                if (prependedItem) {
+                                    const arrayPath = templateInfo.key;
+                                    notifyArrayWatchers(arrayPath, {
+                                        type: "prepend",
+                                        item: prependedItem,
+                                        index: 0,
+                                        arrayName: arrayPath.split(".")[1],
+                                        componentName: arrayPath.split(".")[0],
+                                    });
+                                    resolve(prependedItem);
+                                } else {
+                                    resolve(null);
+                                }
+                            }, 0);
+                        });
+                    };
+                }
+                if (prop === "insert") {
+                    return (itemData, index) => {
+                        return new Promise((resolve) => {
+                            if (index < 0 || index > target.length) {
+                                return resolve(null);
+                            }
+
+                            const preHydratedHtml = preHydrateTemplate(
+                                templateInfo.template,
+                                itemData
+                            );
+
+                            // Handle insert at end
+                            if (index === target.length) {
+                                if (!templateInfo.parent.id) {
+                                    templateInfo.parent.id = `cubo-item-parent-${anonCounter++}`;
+                                }
+                                const targetSelector = `#${templateInfo.parent.id}:beforeend`;
+
+                                publicAPI.swapHTML(preHydratedHtml, [
+                                    { select: "this", target: targetSelector },
+                                ]);
+                            } else {
+                                // Handle insert in the middle
+                                const targetItem = target[index];
+                                if (targetItem && targetItem.__el) {
+                                    const targetEl = targetItem.__el;
+                                    if (!targetEl.id) {
+                                        targetEl.id = `cubo-item-el-${anonCounter++}`;
+                                    }
+                                    const targetSelector = `#${targetEl.id}:beforebegin`;
+
+                                    publicAPI.swapHTML(preHydratedHtml, [
+                                        {
+                                            select: "this",
+                                            target: targetSelector,
+                                        },
+                                    ]);
+                                } else {
+                                    return resolve(null);
+                                }
+                            }
 
                             setTimeout(() => {
                                 const insertedItem = target[index];
@@ -288,32 +288,63 @@ const CuboMX = (() => {
                                         arrayName: arrayPath.split(".")[1],
                                         componentName: arrayPath.split(".")[0],
                                     });
+                                    resolve(insertedItem);
+                                } else {
+                                    resolve(null);
                                 }
                             }, 0);
-                        }
+                        });
+                    };
+                }
+                if (prop === "clear") {
+                    return () => {
+                        return new Promise((resolve) => {
+                            const itemsToRemove = [...target];
+                            itemsToRemove.forEach((item) => {
+                                if (item && item.__el) {
+                                    item.__el.remove();
+                                }
+                            });
+
+                            setTimeout(() => {
+                                notifyArrayWatchers(templateInfo.key, {
+                                    type: "clear",
+                                    clearedItems: itemsToRemove,
+                                    arrayName: templateInfo.key.split(".")[1],
+                                    componentName:
+                                        templateInfo.key.split(".")[0],
+                                });
+                                resolve();
+                            }, 0);
+                        });
                     };
                 }
                 if (prop === "delete") {
                     return (index) => {
-                        if (index < 0 || index >= target.length) {
-                            return;
-                        }
-                        const item = target[index];
-                        const arrayPath = templateInfo.key;
+                        return new Promise((resolve) => {
+                            if (index < 0 || index >= target.length) {
+                                return resolve(null);
+                            }
+                            const item = target[index];
+                            const arrayPath = templateInfo.key;
 
-                        if (item && item.__el) {
-                            item.__el.remove();
+                            if (item && item.__el) {
+                                item.__el.remove();
 
-                            setTimeout(() => {
-                                notifyArrayWatchers(arrayPath, {
-                                    type: "delete",
-                                    item: item,
-                                    index: index,
-                                    arrayName: arrayPath.split(".")[1],
-                                    componentName: arrayPath.split(".")[0],
-                                });
-                            }, 0);
-                        }
+                                setTimeout(() => {
+                                    notifyArrayWatchers(arrayPath, {
+                                        type: "delete",
+                                        item: item,
+                                        index: index,
+                                        arrayName: arrayPath.split(".")[1],
+                                        componentName: arrayPath.split(".")[0],
+                                    });
+                                    resolve(item);
+                                }, 0);
+                            } else {
+                                resolve(null);
+                            }
+                        });
                     };
                 }
                 const value = Reflect.get(target, prop);
@@ -479,7 +510,7 @@ const CuboMX = (() => {
         const parentItemEl = el.closest("[mx-item]");
         const itemData = parentItemEl
             ? parentItemEl.__cubo_item_object__
-            : undefined;
+            : null;
 
         if (expression.startsWith("$")) {
             const globalExpression = expression.substring(1);
@@ -915,7 +946,7 @@ const CuboMX = (() => {
             const parentItemEl = $el.closest("[mx-item]");
             const $item = parentItemEl
                 ? parentItemEl.__cubo_item_object__
-                : undefined;
+                : null;
 
             if (typeof action === "string") {
                 evaluateEventExpression(action, el, event);
@@ -1195,13 +1226,23 @@ const CuboMX = (() => {
         },
         "mx-item": (el, expression) => {
             const { context, key } = getContextForExpression(expression, el);
-            const component = findComponentProxyFor(el);
-            const componentName = component
-                ? Object.keys(activeProxies).find(
-                      (k) => activeProxies[k] === component
-                  )
-                : "global";
-            const templateRegistryKey = `${componentName}.${key}`;
+
+            const isGlobal = expression.startsWith("$");
+            let ownerName;
+            let componentOwner;
+
+            if (isGlobal) {
+                ownerName = expression.substring(1).split(".")[0];
+                componentOwner = activeProxies[ownerName];
+            } else {
+                componentOwner = findComponentProxyFor(el);
+                ownerName = Object.keys(activeProxies).find(
+                    (k) => activeProxies[k] === componentOwner
+                );
+            }
+
+            const arrayName = expression.split(".").pop();
+            const templateRegistryKey = `${ownerName}.${arrayName}`;
 
             if (
                 context[key] === undefined ||
@@ -1228,21 +1269,9 @@ const CuboMX = (() => {
                     `[CuboMX] mx-item target '${expression}' is not an array.`
                 );
             }
-            const arrayName = expression.startsWith("$")
-                ? expression.substring(1)
-                : expression;
-            const basePath = `${componentName}.${arrayName}`;
 
+            const basePath = `${ownerName}.${arrayName}`;
             const fullPath = `${basePath}[${context[key].length}]`;
-
-            const isGlobal = expression.startsWith("$");
-            let componentOwner;
-            if (isGlobal) {
-                const storeName = expression.substring(1).split(".")[0];
-                componentOwner = activeProxies[storeName];
-            } else {
-                componentOwner = findComponentProxyFor(el);
-            }
 
             const itemObject = enhanceObjectWithElementProxy(
                 {
@@ -1658,6 +1687,11 @@ const CuboMX = (() => {
                         delete watchers[path];
                     }
                 }
+                for (const path in arrayWatchers) {
+                    if (path.startsWith(watcherPrefix)) {
+                        delete arrayWatchers[path];
+                    }
+                }
             }
         });
 
@@ -1669,13 +1703,14 @@ const CuboMX = (() => {
         outsideClickListeners = outsideClickListeners.filter(
             ({ el, handler }) => {
                 if (allRemovedChildren.includes(el)) {
-                    document.removeEventListener("click", handler, true);
+                    if (typeof document !== "undefined") {
+                        document.removeEventListener("click", handler, true);
+                    }
                     return false;
                 }
                 return true;
             }
         );
-
         bindings = bindings.filter((b) => !allRemovedChildren.includes(b.el));
     };
 
@@ -1781,9 +1816,11 @@ const CuboMX = (() => {
         anonCounter = 0;
         loadIdCounter = 0;
         bindings = [];
-        outsideClickListeners.forEach(({ handler }) =>
-            document.removeEventListener("click", handler, true)
-        );
+        if (typeof document !== "undefined") {
+            outsideClickListeners.forEach(({ handler }) =>
+                document.removeEventListener("click", handler, true)
+            );
+        }
         outsideClickListeners = [];
         isInitialLoad = true;
         templates = {};
@@ -1818,6 +1855,16 @@ const CuboMX = (() => {
             (registeredComponents[kebabToCamel(name)] = def),
         addParser,
         watch,
+        watchArrayItems(path, callback) {
+            if (!arrayWatchers[path]) {
+                arrayWatchers[path] = [];
+            }
+            const componentName = path.split(".")[0];
+            arrayWatchers[path].push({
+                callback,
+                componentName: componentName,
+            });
+        },
         start,
         reset,
         request: (...args) => a(...args, activeProxies),
@@ -1898,6 +1945,10 @@ const CuboMX = (() => {
                 return;
             }
             attachCuboListener(element, eventNameWithModifiers, userCallback);
+        },
+        getItem(element) {
+            if (!element) return null;
+            return element.__cubo_item_object__ || null;
         },
     };
 

@@ -203,15 +203,13 @@ describe('Directive: mx-item Array Proxy', () => {
         expect(CuboMX.manager.products[0].name).toBe('Product 0');
     });
 
-    it('should return undefined when trying to delete an out-of-bounds index', async () => {
+    it('should return null when trying to delete an out-of-bounds index', async () => {
         setupBasicList();
         CuboMX.start();
-        await vi.runAllTimersAsync();
 
-        const result = CuboMX.listManager.items.delete(99);
-        await vi.runAllTimersAsync();
+        const result = await CuboMX.listManager.items.delete(99);
 
-        expect(result).toBeUndefined();
+        expect(result).toBeNull();
         expect(document.querySelectorAll('#item-list li')).toHaveLength(2);
         expect(CuboMX.listManager.items.length).toBe(2);
     });
