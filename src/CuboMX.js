@@ -319,32 +319,44 @@ const CuboMX = (() => {
                         });
                     };
                 }
+                const deleteByIndex = (index) => {
+                    return new Promise((resolve) => {
+                        if (index < 0 || index >= target.length) {
+                            return resolve(null);
+                        }
+                        const item = target[index];
+                        const arrayPath = templateInfo.key;
+
+                        if (item && item.__el) {
+                            item.__el.remove();
+
+                            setTimeout(() => {
+                                notifyArrayWatchers(arrayPath, {
+                                    type: "delete",
+                                    item: item,
+                                    index: index,
+                                    arrayName: arrayPath.split(".")[1],
+                                    componentName: arrayPath.split(".")[0],
+                                });
+                                resolve(item);
+                            }, 0);
+                        } else {
+                            resolve(null);
+                        }
+                    });
+                };
+
                 if (prop === "delete") {
-                    return (index) => {
-                        return new Promise((resolve) => {
-                            if (index < 0 || index >= target.length) {
-                                return resolve(null);
-                            }
-                            const item = target[index];
-                            const arrayPath = templateInfo.key;
+                    return deleteByIndex;
+                }
 
-                            if (item && item.__el) {
-                                item.__el.remove();
-
-                                setTimeout(() => {
-                                    notifyArrayWatchers(arrayPath, {
-                                        type: "delete",
-                                        item: item,
-                                        index: index,
-                                        arrayName: arrayPath.split(".")[1],
-                                        componentName: arrayPath.split(".")[0],
-                                    });
-                                    resolve(item);
-                                }, 0);
-                            } else {
-                                resolve(null);
-                            }
-                        });
+                if (prop === "remove") {
+                    return (itemToRemove) => {
+                        const index = target.indexOf(itemToRemove);
+                        if (index > -1) {
+                            return deleteByIndex(index);
+                        }
+                        return Promise.resolve(null);
                     };
                 }
                 const value = Reflect.get(target, prop);

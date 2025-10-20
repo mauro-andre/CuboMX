@@ -1040,7 +1040,7 @@ CuboMX.start();
 
 **Resulting State & Injected Metadata:**
 
-After hydration, `CuboMX.cart.items` will contain a reactive object for each `<tr>`. In addition to the properties you define with `::`, CuboMX automatically injects two powerful metadata properties: `component` and `variable`.
+After hydration, `CuboMX.cart.items` will contain a reactive object for each `<tr>`. In addition to the properties you define with `::`, CuboMX automatically injects three powerful metadata properties: `component`, `variable`, and `componentName`.
 
 The resulting object for the first item will look like this:
 ```javascript
@@ -1054,7 +1054,8 @@ The resulting object for the first item will look like this:
 
         // --- Injected Metadata ---
         component: proxyForCart, // A direct reference to the `cart` component proxy
-        variable: "items"        // The name of the array this item belongs to
+        variable: "items",       // The name of the array this item belongs to
+        componentName: "cart"    // The string name of the component
     }
 ]
 ```
@@ -1084,6 +1085,7 @@ All manipulation methods are `async` and return a `Promise`.
 -   `async .prepend(itemData)`: Adds a new item to the beginning of the list. The promise resolves with the new item proxy.
 -   `async .insert(itemData, index)`: Inserts a new item at a specific index. The promise resolves with the new item proxy.
 -   `async .delete(index)`: Removes the item at the specified index. The promise resolves with the item proxy that was just removed.
+-   `async .remove(item)`: Removes a specific item by its object reference. This is often more convenient than `delete(index)`. The promise resolves with the item proxy that was just removed.
 -   `async .clear()`: Removes all items from the list. The promise resolves when the operation is complete.
 
 **Example: A Simple To-Do List with `async/await`**
@@ -1124,11 +1126,18 @@ CuboMX.component('todoApp', {
         this.newTodoText = ''; // Clear the input
     },
     async removeTodo(itemToRemove) {
+        // Option 1: Use the new .remove() method for a cleaner implementation
+        await this.todos.remove(itemToRemove);
+
+        // Option 2: Find the index and use .delete()
+        /*
         const index = this.todos.indexOf(itemToRemove);
         if (index > -1) {
             await this.todos.delete(index);
-            console.log('List is now:', this.todos);
         }
+        */
+       
+        console.log('List is now:', this.todos);
     }
 });
 CuboMX.start();

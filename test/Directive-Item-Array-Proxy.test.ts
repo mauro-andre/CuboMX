@@ -1,18 +1,40 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { CuboMX } from '../src/CuboMX.js';
+import { CuboMX, MxComponent, ItemArrayProxy, ItemProxy } from '../src/CuboMX.js';
 
-describe('Directive: mx-item Array Proxy', () => {
+// Type definitions for components and items
+interface TestItem extends ItemProxy {
+    id: number | string;
+    name: string;
+}
+
+class ListManagerComponent extends MxComponent {
+    items!: ItemArrayProxy<TestItem>;
+}
+
+class ManagerComponent extends MxComponent {
+    users!: ItemArrayProxy<TestItem>;
+    products!: ItemArrayProxy<TestItem>;
+}
+
+class OuterComponent extends MxComponent {
+    items!: ItemArrayProxy<TestItem>;
+}
+
+class InnerComponent extends MxComponent {
+    items!: ItemArrayProxy<TestItem>;
+}
+
+
+describe('Directive: mx-item Array Proxy (TS)', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
         CuboMX.reset();
     });
 
     const setupBasicList = () => {
-        CuboMX.component('listManager', {
-            items: [],
-        });
+        CuboMX.component('listManager', () => new ListManagerComponent());
         document.body.innerHTML = `
-            <div mx-data="listManager">
+            <div mx-data="listManager()" mx-ref="listManager">
                 <ul id="item-list">
                     <li mx-item="items" ::data-id="id" data-id="1">
                         <span ::text="name">Item 1</span>
@@ -29,7 +51,7 @@ describe('Directive: mx-item Array Proxy', () => {
         setupBasicList();
         CuboMX.start();
 
-        const itemsProxy = CuboMX.listManager.items;
+        const itemsProxy = (CuboMX.listManager as ListManagerComponent).items;
 
         // Assert initial hydration is correct
         expect(itemsProxy.length).toBe(2);
@@ -48,16 +70,16 @@ describe('Directive: mx-item Array Proxy', () => {
         CuboMX.start();
 
         // Act
-        await CuboMX.listManager.items.add({ id: 3, name: 'Item 3' });
+        await (CuboMX.listManager as ListManagerComponent).items.add({ id: 3, name: 'Item 3' });
 
         // Assert DOM
         const listItems = document.querySelectorAll('#item-list li');
         expect(listItems).toHaveLength(3);
         expect(listItems[2].getAttribute('data-id')).toBe('3');
-        expect(listItems[2].querySelector('span').textContent).toBe('Item 3');
+        expect(listItems[2].querySelector('span')!.textContent).toBe('Item 3');
 
         // Assert State
-        const stateItems = CuboMX.listManager.items;
+        const stateItems = (CuboMX.listManager as ListManagerComponent).items;
         expect(stateItems.length).toBe(3);
         expect(stateItems[2].name).toBe('Item 3');
     });
@@ -67,16 +89,16 @@ describe('Directive: mx-item Array Proxy', () => {
         CuboMX.start();
 
         // Act
-        await CuboMX.listManager.items.prepend({ id: 0, name: 'Item 0' });
+        await (CuboMX.listManager as ListManagerComponent).items.prepend({ id: 0, name: 'Item 0' });
 
         // Assert DOM
         const listItems = document.querySelectorAll('#item-list li');
         expect(listItems).toHaveLength(3);
         expect(listItems[0].getAttribute('data-id')).toBe('0');
-        expect(listItems[0].querySelector('span').textContent).toBe('Item 0');
+        expect(listItems[0].querySelector('span')!.textContent).toBe('Item 0');
 
         // Assert State
-        const stateItems = CuboMX.listManager.items;
+        const stateItems = (CuboMX.listManager as ListManagerComponent).items;
         expect(stateItems.length).toBe(3);
         expect(stateItems[0].name).toBe('Item 0');
     });
@@ -86,16 +108,16 @@ describe('Directive: mx-item Array Proxy', () => {
         CuboMX.start();
 
         // Act
-        await CuboMX.listManager.items.insert({ id: '1.5', name: 'Item 1.5' }, 1);
+        await (CuboMX.listManager as ListManagerComponent).items.insert({ id: '1.5', name: 'Item 1.5' }, 1);
 
         // Assert DOM
         const listItems = document.querySelectorAll('#item-list li');
         expect(listItems).toHaveLength(3);
         expect(listItems[1].getAttribute('data-id')).toBe('1.5');
-        expect(listItems[1].querySelector('span').textContent).toBe('Item 1.5');
+        expect(listItems[1].querySelector('span')!.textContent).toBe('Item 1.5');
 
         // Assert State
-        const stateItems = CuboMX.listManager.items;
+        const stateItems = (CuboMX.listManager as ListManagerComponent).items;
         expect(stateItems.length).toBe(3);
         expect(stateItems[1].name).toBe('Item 1.5');
         expect(stateItems[0].name).toBe('Item 1');
@@ -106,12 +128,13 @@ describe('Directive: mx-item Array Proxy', () => {
         setupBasicList();
         CuboMX.start();
 
+        const items = (CuboMX.listManager as ListManagerComponent).items;
         // Initial state
         expect(document.querySelectorAll('#item-list li')).toHaveLength(2);
-        expect(CuboMX.listManager.items.length).toBe(2);
+        expect(items.length).toBe(2);
 
         // Act
-        await CuboMX.listManager.items.delete(0);
+        await items.delete(0);
 
         // Assert DOM
         const listItems = document.querySelectorAll('#item-list li');
@@ -119,38 +142,39 @@ describe('Directive: mx-item Array Proxy', () => {
         expect(listItems[0].getAttribute('data-id')).toBe('2'); // The second item is now the first
 
         // Assert State
-        const stateItems = CuboMX.listManager.items;
-        expect(stateItems.length).toBe(1);
-        expect(stateItems[0].name).toBe('Item 2');
+        expect(items.length).toBe(1);
+        expect(items[0].name).toBe('Item 2');
     });
 
     it('should create fully reactive items when using proxy methods', async () => {
         setupBasicList();
         CuboMX.start();
 
+        const items = (CuboMX.listManager as ListManagerComponent).items;
+
         // Act: Add a new item
-        await CuboMX.listManager.items.add({ id: 99, name: 'Reactive Item' });
+        await items.add({ id: 99, name: 'Reactive Item' });
 
         // Assert length after add
-        expect(CuboMX.listManager.items.length).toBe(3);
+        expect(items.length).toBe(3);
 
         // Get the newly added item from the state
-        const newItem = CuboMX.listManager.items[2];
+        const newItem = items[2];
         expect(newItem.name).toBe('Reactive Item');
 
         // Act: Change a property on the new item
         newItem.name = 'Changed Reactively';
-        
+
         // Assert: The DOM should update after a tick
         await new Promise(resolve => setTimeout(resolve, 0));
         const listItems = document.querySelectorAll('#item-list li');
-        expect(listItems[2].querySelector('span').textContent).toBe('Changed Reactively');
+        expect(listItems[2].querySelector('span')!.textContent).toBe('Changed Reactively');
     });
 
     it('should handle multiple item arrays independently', async () => {
-        CuboMX.component('manager', { users: [], products: [] });
+        CuboMX.component('manager', () => new ManagerComponent());
         document.body.innerHTML = `
-            <div mx-data="manager">
+            <div mx-data="manager()" mx-ref="manager">
                 <ul id="user-list">
                     <li mx-item="users" ::data-id="id" data-id="u1">
                         <span ::text="name">User 1</span>
@@ -165,46 +189,49 @@ describe('Directive: mx-item Array Proxy', () => {
         `;
         CuboMX.start();
 
+        const manager = CuboMX.manager as ManagerComponent;
+
         // --- Test User List ---
-        await CuboMX.manager.users.add({ id: 'u2', name: 'User 2' });
+        await manager.users.add({ id: 'u2', name: 'User 2' });
 
         expect(document.querySelectorAll('#user-list li')).toHaveLength(2);
         expect(document.querySelectorAll('#product-list li')).toHaveLength(1);
-        expect(CuboMX.manager.users.length).toBe(2);
-        expect(CuboMX.manager.products.length).toBe(1);
-        expect(CuboMX.manager.users[1].name).toBe('User 2');
+        expect(manager.users.length).toBe(2);
+        expect(manager.products.length).toBe(1);
+        expect(manager.users[1].name).toBe('User 2');
 
         // --- Test Product List ---
-        await CuboMX.manager.products.prepend({ id: 'p0', name: 'Product 0' });
+        await manager.products.prepend({ id: 'p0', name: 'Product 0' });
 
         expect(document.querySelectorAll('#user-list li')).toHaveLength(2);
         expect(document.querySelectorAll('#product-list li')).toHaveLength(2);
-        expect(CuboMX.manager.users.length).toBe(2);
-        expect(CuboMX.manager.products.length).toBe(2);
-        expect(CuboMX.manager.products[0].name).toBe('Product 0');
+        expect(manager.users.length).toBe(2);
+        expect(manager.products.length).toBe(2);
+        expect(manager.products[0].name).toBe('Product 0');
     });
 
     it('should return null when trying to delete an out-of-bounds index', async () => {
         setupBasicList();
         CuboMX.start();
 
-        const result = await CuboMX.listManager.items.delete(99);
+        const result = await (CuboMX.listManager as ListManagerComponent).items.delete(99);
 
         expect(result).toBeNull();
         expect(document.querySelectorAll('#item-list li')).toHaveLength(2);
-        expect(CuboMX.listManager.items.length).toBe(2);
+        expect((CuboMX.listManager as ListManagerComponent).items.length).toBe(2);
     });
 
     it('should remove an item from the list by its object reference using remove()', async () => {
         setupBasicList();
         CuboMX.start();
 
-        const itemToRemove = CuboMX.listManager.items[0];
+        const items = (CuboMX.listManager as ListManagerComponent).items;
+        const itemToRemove = items[0];
         expect(document.querySelectorAll('#item-list li')).toHaveLength(2);
-        expect(CuboMX.listManager.items.length).toBe(2);
+        expect(items.length).toBe(2);
 
         // Act
-        const deletedItem = await CuboMX.listManager.items.remove(itemToRemove);
+        const deletedItem = await items.remove(itemToRemove);
 
         // Assert DOM
         const listItems = document.querySelectorAll('#item-list li');
@@ -212,28 +239,23 @@ describe('Directive: mx-item Array Proxy', () => {
         expect(listItems[0].getAttribute('data-id')).toBe('2'); // The second item is now the first
 
         // Assert State
-        const stateItems = CuboMX.listManager.items;
-        expect(stateItems.length).toBe(1);
-        expect(stateItems[0].name).toBe('Item 2');
+        expect(items.length).toBe(1);
+        expect(items[0].name).toBe('Item 2');
 
         // Assert return value
         expect(deletedItem).toBe(itemToRemove);
     });
 });
 
-describe('Directive: mx-item Array Proxy with Nested Components', () => {
+describe('Directive: mx-item Array Proxy with Nested Components (TS)', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
         CuboMX.reset();
 
         // Outer component is a singleton
-        CuboMX.component('outerComp', {
-            items: [],
-        });
+        CuboMX.component('outerComp', new OuterComponent());
         // Inner component is a factory to get its own instance
-        CuboMX.component('innerComp', () => ({
-            items: [],
-        }));
+        CuboMX.component('innerComp', () => new InnerComponent());
         document.body.innerHTML = `
             <div mx-data="outerComp">
                 <div mx-data="innerComp()" mx-ref="inner">
@@ -249,8 +271,8 @@ describe('Directive: mx-item Array Proxy with Nested Components', () => {
     });
 
     it('should hydrate items into the nearest component scope (inner)', async () => {
-        const outerItems = CuboMX.outerComp.items; // Access singleton by name
-        const innerItems = CuboMX.inner.items;   // Access factory by ref
+        const outerItems = (CuboMX.outerComp as OuterComponent).items; // Access singleton by name
+        const innerItems = (CuboMX.inner as InnerComponent).items;   // Access factory by ref
 
         // Assert that the item was added to the inner component's array
         expect(innerItems.length).toBe(1);
@@ -258,44 +280,48 @@ describe('Directive: mx-item Array Proxy with Nested Components', () => {
         expect(innerItems[0].id).toBe('nested-1');
 
         // Assert that the outer component's array was NOT affected
-        expect(outerItems.length).toBe(0);
+        expect(outerItems).toBeFalsy(); // It's not even initialized as a proxy
 
         // Assert proxy methods exist on the correct array
         expect(typeof innerItems.add).toBe('function');
-        // The outer array was never converted to a proxy because no mx-item pointed to it
-        expect(outerItems.add).toBeUndefined();
     });
 
     it('should add a new item to the inner component list using add()', async () => {
+        const inner = CuboMX.inner as InnerComponent;
+        const outer = CuboMX.outerComp as OuterComponent;
+
         // Act
-        await CuboMX.inner.items.add({ id: 'nested-2', name: 'Nested Item 2' });
+        await inner.items.add({ id: 'nested-2', name: 'Nested Item 2' });
 
         // Assert DOM
         const listItems = document.querySelectorAll('#nested-item-list li');
         expect(listItems).toHaveLength(2);
         expect(listItems[1].getAttribute('data-id')).toBe('nested-2');
-        expect(listItems[1].querySelector('span').textContent).toBe('Nested Item 2');
+        expect(listItems[1].querySelector('span')!.textContent).toBe('Nested Item 2');
 
         // Assert State
-        expect(CuboMX.inner.items.length).toBe(2);
-        expect(CuboMX.inner.items[1].name).toBe('Nested Item 2');
-        expect(CuboMX.outerComp.items.length).toBe(0); // Outer scope remains untouched
+        expect(inner.items.length).toBe(2);
+        expect(inner.items[1].name).toBe('Nested Item 2');
+        expect(outer.items).toBeFalsy(); // Outer scope remains untouched
     });
 
     it('should remove an item from the inner component list using delete()', async () => {
+        const inner = CuboMX.inner as InnerComponent;
+        const outer = CuboMX.outerComp as OuterComponent;
+
         // Initial state
         expect(document.querySelectorAll('#nested-item-list li')).toHaveLength(1);
-        expect(CuboMX.inner.items.length).toBe(1);
+        expect(inner.items.length).toBe(1);
 
         // Act
-        await CuboMX.inner.items.delete(0);
+        await inner.items.delete(0);
 
         // Assert DOM
         const listItems = document.querySelectorAll('#nested-item-list li');
         expect(listItems).toHaveLength(0);
 
         // Assert State
-        expect(CuboMX.inner.items.length).toBe(0);
-        expect(CuboMX.outerComp.items.length).toBe(0); // Outer scope remains untouched
+        expect(inner.items.length).toBe(0);
+        expect(outer.items).toBeFalsy(); // Outer scope remains untouched
     });
 });

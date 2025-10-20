@@ -92,6 +92,13 @@ declare module 'cubomx' {
         delete: (index: number) => Promise<T | null>;
 
         /**
+         * Removes a specific item from the list by its object reference.
+         * @param {T} itemToRemove The item proxy object to remove.
+         * @returns {Promise<T | null>} A promise that resolves with the deleted item proxy, or null if the item was not found.
+         */
+        remove: (itemToRemove: T) => Promise<T | null>;
+
+        /**
          * Removes all items from the list and updates the DOM.
          * @returns {Promise<void>} A promise that resolves when the operation is complete.
          */
