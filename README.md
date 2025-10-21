@@ -1200,6 +1200,82 @@ When `addItems()` is called:
 
 This synchronization happens automatically, ensuring the generated DOM is a perfect representation of the data you provide.
 
+#### Reactive Sub-Arrays: Continuous Synchronization
+
+Sub-arrays created with `::prop.array` are not just synchronized during initial creation—they remain **fully reactive** throughout the lifetime of the item. Any mutation you make to a sub-array using native JavaScript array methods will automatically update the DOM.
+
+**Reactive Array Methods:**
+
+All native array mutation methods trigger automatic DOM synchronization:
+- `.push(item)` - Adds elements to the DOM
+- `.pop()` - Removes the last element from the DOM
+- `.splice(start, deleteCount, ...items)` - Updates multiple elements
+- `.shift()` - Removes the first element
+- `.unshift(item)` - Adds to the beginning
+- `.sort()` - Reorders elements
+- `.reverse()` - Reverses element order
+- Direct assignment (`item.tags = ['A', 'B']`) - Replaces all elements
+
+**Example: Dynamic Tag Management**
+
+```javascript
+// After hydration, the item's tags array is reactive
+const item = this.items[0];
+
+// Add a new tag - creates a new <span> in the DOM
+item.tags.push('NewTag');
+
+// Remove the last tag - removes the <span> from the DOM
+item.tags.pop();
+
+// Replace all tags - synchronizes the entire list
+item.tags = ['Urgent', 'Important', 'Review'];
+
+// Clear all tags - removes all <span> elements
+item.tags.length = 0;
+```
+
+**Converting to Plain Arrays with `.toArray()`:**
+
+Sometimes you need to work with a non-reactive copy of the array, for example, when passing data to other components or APIs. The `.toArray()` method creates a plain JavaScript array that is completely decoupled from the DOM.
+
+```javascript
+// Get a plain array (non-reactive copy)
+const plainTags = item.tags.toArray();
+
+// Mutations to the plain array do NOT affect the DOM
+plainTags.push('X'); // DOM unchanged
+plainTags.pop();     // DOM unchanged
+
+// The original reactive array is unaffected
+console.log(item.tags); // Still ['Tag1', 'Tag2']
+
+// Useful for passing data to new items
+this.items.add({
+    name: 'Copy of Item',
+    tags: item.tags.toArray() // Pass a clean copy
+});
+```
+
+**TypeScript Support:**
+
+For TypeScript users, sub-arrays are typed as `SubArrayProxy<T>`, which extends `Array<T>` and includes the `.toArray()` method:
+
+```typescript
+import { ItemProxy, SubArrayProxy } from 'cubomx';
+
+interface Task extends ItemProxy {
+    title: string;
+    tags: SubArrayProxy<string>;     // Reactive sub-array
+    categories: SubArrayProxy<string>;
+}
+
+// Full type safety
+const task: Task = this.tasks[0];
+task.tags.push('urgent');           // ✓ Type-safe and reactive
+const copy = task.tags.toArray();   // ✓ Returns string[]
+```
+
 ### Hydration Rules
 
 -   **Attributes to Properties:** HTML attributes are converted to properties on the object.

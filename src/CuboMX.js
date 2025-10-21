@@ -366,6 +366,128 @@ const CuboMX = (() => {
         return proxy;
     };
 
+    const createSubArrayProxy = (
+        targetArray,
+        itemElement,
+        propertyName,
+        propToBind,
+        parserName
+    ) => {
+        const MUTATION_METHODS = [
+            "push",
+            "pop",
+            "splice",
+            "shift",
+            "unshift",
+            "sort",
+            "reverse",
+        ];
+        let isHydrating = true; // Flag to prevent sync during initial hydration
+        let templateNode = null; // Store template reference permanently
+        let parentNode = null;
+
+        const syncSubArrayToDOM = () => {
+            if (isHydrating) return; // Skip sync during hydration
+
+            // Find all elements with ::propToBind.array="propertyName" inside this item
+            const attrName = `::${camelToKebab(propToBind)}.array`;
+            const elements = [];
+
+            const allElements = itemElement.querySelectorAll("*");
+            for (const el of allElements) {
+                if (el.getAttribute(attrName) === propertyName) {
+                    elements.push(el);
+                }
+            }
+
+            // Store template reference on first run
+            if (!templateNode && elements.length > 0) {
+                templateNode = elements[0].cloneNode(true);
+                parentNode = elements[0].parentElement;
+            }
+
+            // If we still don't have a template, we can't sync
+            if (!templateNode || !parentNode) return;
+
+            const parent = parentNode;
+
+            // Synchronize: add, update, or remove elements
+            const maxLength = Math.max(targetArray.length, elements.length);
+
+            for (let i = 0; i < maxLength; i++) {
+                const node = elements[i];
+                const data = targetArray[i];
+
+                if (data !== undefined && node) {
+                    // Update existing element
+                    setDOMValue(node, propToBind, data, parserName);
+                } else if (data !== undefined && !node) {
+                    // Add new element - always use the stored template
+                    const newNode = templateNode.cloneNode(true);
+                    setDOMValue(newNode, propToBind, data, parserName);
+
+                    // Mark as already processed to prevent MutationObserver from re-hydrating
+                    newNode.__cubo_subarray_processed__ = true;
+
+                    parent.appendChild(newNode);
+                } else if (data === undefined && node) {
+                    // Remove element from DOM
+                    node.remove();
+                }
+            }
+        };
+
+        const proxy = new Proxy(targetArray, {
+            get(target, prop) {
+                // Special internal method to finish hydration
+                if (prop === "__finishHydration") {
+                    return () => {
+                        isHydrating = false;
+                    };
+                }
+
+                // Special internal method to force sync
+                if (prop === "__forceSync") {
+                    return () => {
+                        syncSubArrayToDOM();
+                    };
+                }
+
+                // Public method to convert to plain array
+                if (prop === "toArray") {
+                    return () => {
+                        return [...target];
+                    };
+                }
+
+                const value = Reflect.get(target, prop);
+
+                if (
+                    typeof value === "function" &&
+                    MUTATION_METHODS.includes(prop)
+                ) {
+                    return function (...args) {
+                        const result = value.apply(target, args);
+                        syncSubArrayToDOM();
+                        return result;
+                    };
+                }
+
+                return typeof value === "function" ? value.bind(target) : value;
+            },
+            set(target, prop, value) {
+                const result = Reflect.set(target, prop, value);
+                // Handle array.length = 0 (clearing the array)
+                if (prop === "length") {
+                    syncSubArrayToDOM();
+                }
+                return result;
+            },
+        });
+
+        return proxy;
+    };
+
     const transition = (el, name, type, originalDisplay) => {
         const enterStartClass = `${name}-enter-start`;
         const enterEndClass = `${name}-enter-end`;
@@ -813,6 +935,14 @@ const CuboMX = (() => {
     };
 
     const enhanceObjectWithElementProxy = (obj, el, basePath) => {
+        // Store metadata about sub-arrays (non-enumerable)
+        Object.defineProperty(obj, "__cubo_subarray_metadata__", {
+            value: {},
+            writable: true,
+            enumerable: false,
+            configurable: true,
+        });
+
         const onClassMutation = basePath
             ? (oldValue, newValue) => {
                   const pathParts = basePath.match(/^(.+?)\.(.+?)\[(\d+)\]$/);
@@ -861,6 +991,42 @@ const CuboMX = (() => {
                 return getDOMValue(el, camelToKebab(prop));
             },
             set(target, prop, value) {
+                // Check if this property is a registered sub-array
+                const metadata = target.__cubo_subarray_metadata__;
+                if (metadata && metadata[prop] && Array.isArray(value)) {
+                    // Convert plain array to SubArrayProxy
+                    const {
+                        itemElement,
+                        propertyName,
+                        propToBind,
+                        parserName,
+                    } = metadata[prop];
+                    const proxy = createSubArrayProxy(
+                        value,
+                        itemElement,
+                        propertyName,
+                        propToBind,
+                        parserName
+                    );
+
+                    // Mark as already hydrated (no need to wait)
+                    if (typeof proxy.__finishHydration === "function") {
+                        proxy.__finishHydration();
+                    }
+
+                    // Set the proxy
+                    Reflect.set(target, prop, proxy);
+
+                    // Force sync to DOM
+                    if (typeof proxy.__forceSync === "function") {
+                        setTimeout(() => {
+                            proxy.__forceSync();
+                        }, 0);
+                    }
+
+                    return true;
+                }
+
                 const oldValue = getDOMValue(el, camelToKebab(prop));
                 const success = Reflect.set(target, prop, value);
 
@@ -1337,14 +1503,75 @@ const CuboMX = (() => {
             const propertyName = attr.value;
 
             if (modifiers.includes("array")) {
+                // Skip elements that were created dynamically by SubArrayProxy
+                if (el.__cubo_subarray_processed__) {
+                    return;
+                }
+
                 const valueToPush = getDOMValue(el, propToBind, parserName);
 
                 if (!Object.hasOwnProperty.call(itemObject, propertyName)) {
-                    itemObject[propertyName] = [];
+                    // First time: create a reactive SubArrayProxy
+                    const rawArray = [];
+
+                    // Count total elements with this array directive to know when hydration finishes
+                    const attrName = `::${camelToKebab(propToBind)}.array`;
+                    let totalElements = 0;
+                    const allElements = parentItemEl.querySelectorAll("*");
+                    for (const elem of allElements) {
+                        if (
+                            elem.getAttribute(attrName) === propertyName &&
+                            !elem.__cubo_subarray_processed__
+                        ) {
+                            totalElements++;
+                        }
+                    }
+
+                    const proxy = createSubArrayProxy(
+                        rawArray,
+                        parentItemEl,
+                        propertyName,
+                        propToBind,
+                        parserName
+                    );
+
+                    itemObject[propertyName] = proxy;
+
+                    // Store metadata for future array assignments
+                    if (itemObject.__cubo_subarray_metadata__) {
+                        itemObject.__cubo_subarray_metadata__[propertyName] = {
+                            itemElement: parentItemEl,
+                            propertyName: propertyName,
+                            propToBind: propToBind,
+                            parserName: parserName,
+                        };
+                    }
+
+                    // Store total count for hydration detection (non-enumerable)
+                    Object.defineProperty(proxy, "__expectedLength", {
+                        value: totalElements,
+                        writable: false,
+                        enumerable: false,
+                        configurable: false,
+                    });
                 }
 
                 if (Array.isArray(itemObject[propertyName])) {
                     itemObject[propertyName].push(valueToPush);
+
+                    // Check if hydration is complete
+                    const proxy = itemObject[propertyName];
+                    if (
+                        proxy.__expectedLength &&
+                        proxy.length === proxy.__expectedLength
+                    ) {
+                        // All elements have been hydrated, finish hydration on next tick
+                        setTimeout(() => {
+                            if (typeof proxy.__finishHydration === "function") {
+                                proxy.__finishHydration();
+                            }
+                        }, 0);
+                    }
                 } else {
                     console.error(
                         `[CuboMX] property '${propertyName}' was configured as an array but it is not an array.`

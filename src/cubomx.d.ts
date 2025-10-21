@@ -138,13 +138,62 @@ declare module 'cubomx' {
     };
 
     /**
+     * Represents a reactive proxy for a sub-array within an item created with `mx-item`.
+     * It extends the standard Array and automatically synchronizes with the DOM when mutated.
+     * All native array methods (push, pop, splice, shift, unshift, sort, reverse) trigger
+     * automatic DOM updates.
+     *
+     * **Type compatibility:** You can assign regular arrays to SubArrayProxy properties.
+     * At runtime, the framework automatically converts them to reactive proxies.
+     *
+     * @template T The type of elements in the sub-array.
+     *
+     * @example
+     * interface MyItem extends ItemProxy {
+     *   tags: SubArrayProxy<string>;
+     *   categories: SubArrayProxy<string>;
+     * }
+     *
+     * // All mutations automatically update the DOM:
+     * item.tags.push('NewTag');      // Creates new <span> in DOM
+     * item.tags.pop();               // Removes last <span> from DOM
+     * item.tags = ['A', 'B', 'C'];   // Replaces all elements in DOM (auto-converted to proxy)
+     *
+     * // Convert to plain array (non-reactive):
+     * const plainTags = item.tags.toArray?.();
+     * plainTags?.push('X');          // Does NOT update DOM
+     */
+    export type SubArrayProxy<T> = Array<T> & {
+        /**
+         * Converts the reactive SubArrayProxy to a plain JavaScript array.
+         * The returned array is not reactive - mutations will not update the DOM.
+         *
+         * @returns {T[]} A shallow copy of the array as a plain JavaScript array.
+         *
+         * @example
+         * const tags = item.tags.toArray();  // Plain array
+         * tags.push('X');                     // Does NOT update DOM
+         *
+         * // Useful for passing data to other components:
+         * items.add({
+         *   name: 'New Item',
+         *   tags: item.tags.toArray()  // Pass plain array
+         * });
+         */
+        toArray(): T[];
+    };
+
+    /**
      * A utility type that converts an ItemProxy type `T` into a plain data object
      * suitable for passing to methods like `.add()` or `.prepend()`.
-     * It correctly maps proxy types (like `ClassListProxy`) to their plain data
-     * counterparts (like `string[]`).
+     * It correctly maps proxy types (like `ClassListProxy` and `SubArrayProxy<U>`)
+     * to their plain data counterparts (like `string[]` and `U[]`).
      */
     export type ItemData<T> = Partial<{
-        [P in keyof Omit<T, 'component' | 'variable'>]: T[P] extends ClassListProxy ? string[] : T[P];
+        [P in keyof Omit<T, 'component' | 'variable' | 'componentName'>]:
+            T[P] extends ClassListProxy ? string[] :
+            T[P] extends SubArrayProxy<infer U> ? U[] :
+            T[P];
     }>;
 
     export interface ItemProxy<TOwner = object> {
