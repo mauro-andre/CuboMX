@@ -20,7 +20,8 @@
     "prepublishOnly": "npm run build",
     "test": "vitest run test/",
     "test:refactor": "vitest run test-refactor",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "tsc:refactor": "tsc --project tsconfig.refactor.json"
   },
   "repository": {
     "type": "git",

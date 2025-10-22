@@ -6,6 +6,13 @@ type MxElProxy = MxProxy & {
     $el: HTMLElement
 }
 
+type PublicAPI = {
+    reset: () => void
+    start: () => void
+    component: (name: string, def: object | Function) => void
+    store: (name: string, def: object) => void
+}
+
 
 interface MxElement extends HTMLElement {
     __doNotProcessNode__?: boolean
@@ -43,7 +50,6 @@ const CuboMX = (() => {
     })
 
     const bindMxData = (el: MxElement) => {
-        console.log("Resolvendo o MX-DATA")
         let componentName = el.getAttribute("mx-data")
         const isFactory = componentName?.endsWith("()")
         if (isFactory && componentName) {
@@ -55,14 +61,14 @@ const CuboMX = (() => {
             return
         }
 
-        const mxRef = el.getAttribute("mx-ref")
-        const proxyName = mxRef ?? componentName
-
-        console.log(proxyName, isFactory)
+        const componentDef = registeredComponents[componentName]
+        let obj = isFactory ? (componentDef as Function)() : componentDef
+        const proxy = createProxy(obj, el) as MxElProxy
+        el.__mxProxy__ = proxy
     }
 
     const bindDirectives = (node: MxElement) => {
-        const mxData = node.querySelectorAll<MxElement>("[mx-data]")
+        const mxData = Array.from(node.querySelectorAll<MxElement>("[mx-data]"))
         for (const el of mxData) {
             bindMxData(el)
         }
@@ -74,7 +80,7 @@ const CuboMX = (() => {
 
     const resolveStores = () => {
         for (const [name, obj] of Object.entries(registeredStores)) {
-            activeMxProxies[name] = createProxy(obj, null)
+            activeMxProxies[name] = createProxy(obj, null) as MxProxy
         }
     }
 
@@ -83,7 +89,7 @@ const CuboMX = (() => {
         resolveNode(document.body)
         observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
-                for (const node of mutation.addedNodes) {
+                for (const node of Array.from(mutation.addedNodes)) {
                     if (node.nodeType === 1) {
                         if ((node as MxElement).__doNotProcessNode__) {
                             continue
@@ -92,9 +98,9 @@ const CuboMX = (() => {
                     }
                 }
 
-                for (const node of mutation.removedNodes) {
+                for (const node of Array.from(mutation.removedNodes)) {
                     if (node.nodeType === 1) { // Node.ELEMENT_NODE
-                        console.log("REMOVE NODE")
+                        // console.log("REMOVE NODE")
                     }
                 }
             }
@@ -110,12 +116,25 @@ const CuboMX = (() => {
         registeredStores[name] = def
     }
 
-    return {
+    const publicAPI: PublicAPI = {
         reset,
         start,
         component,
         store
-    };
+    }
+
+    return new Proxy(publicAPI, {
+        get(target, prop) {
+            if (prop in target) return Reflect.get(target, prop)
+
+            if (prop in activeMxProxies) {
+                return activeMxProxies[prop as string]
+            }
+
+            const el = document.querySelector<MxElement>(`[mx-data="${prop as string}"], [mx-ref="${prop as string}"]`)
+            return el?.__mxProxy__
+        }
+    }) as PublicAPI & Record<string, any>
 })();
 
 export { CuboMX, MxElement };
