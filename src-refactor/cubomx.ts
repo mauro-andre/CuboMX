@@ -1,31 +1,85 @@
+type MxProxy = Record<string, any> & {
+    $watch?: Function
+}
+
+type MxElProxy = MxProxy & {
+    $el: HTMLElement
+}
+
+
 interface MxElement extends HTMLElement {
     __doNotProcessNode__?: boolean
+    __mxProxy__?: MxElProxy
 }
 
 const CuboMX = (() => {
-    let registeredComponents: Record<string, object> = {};
-    // let registeredStores = {};
-    let activeProxies = {};
+    let registeredComponents: Record<string, object | Function> = {};
+    let registeredStores: Record<string, object> = {}
+    let activeMxProxies: Record<string, MxProxy> = {};
     let observer: MutationObserver | null = null
 
     const reset = () => {
         registeredComponents = {};
-        // registeredStores = {};
-        activeProxies = {};
+        registeredStores = {};
+        activeMxProxies = {};
         if (observer) {
             observer.disconnect();
             observer = null;
         }
     };
 
+    const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => new Proxy(obj, {
+        get(target, prop) {
+            if (prop === "$el") {
+                return el
+            }
+            return target[prop]
+        },
+
+        set(target, prop, value) {
+            target[prop] = value
+            return true
+        }
+    })
+
+    const bindMxData = (el: MxElement) => {
+        console.log("Resolvendo o MX-DATA")
+        let componentName = el.getAttribute("mx-data")
+        const isFactory = componentName?.endsWith("()")
+        if (isFactory && componentName) {
+            componentName = componentName.split("()")[0]
+        }
+
+        if (!componentName || !registeredComponents[componentName]) {
+            console.warn(`[CuboMX] Component "${componentName}" not registered`)
+            return
+        }
+
+        const mxRef = el.getAttribute("mx-ref")
+        const proxyName = mxRef ?? componentName
+
+        console.log(proxyName, isFactory)
+    }
+
+    const bindDirectives = (node: MxElement) => {
+        const mxData = node.querySelectorAll<MxElement>("[mx-data]")
+        for (const el of mxData) {
+            bindMxData(el)
+        }
+    }
+
     const resolveNode = (node: MxElement) => {
-        console.log("*************************************")
-        console.log(node.outerHTML)
-        console.log("*************************************")
+        bindDirectives(node)
+    }
+
+    const resolveStores = () => {
+        for (const [name, obj] of Object.entries(registeredStores)) {
+            activeMxProxies[name] = createProxy(obj, null)
+        }
     }
 
     const start = () => {
-        console.log("Start")
+        resolveStores()
         resolveNode(document.body)
         observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
@@ -40,23 +94,20 @@ const CuboMX = (() => {
 
                 for (const node of mutation.removedNodes) {
                     if (node.nodeType === 1) { // Node.ELEMENT_NODE
-                        // node as MxElement
                         console.log("REMOVE NODE")
                     }
                 }
             }
         })
         observer.observe(document.body, { childList: true, subtree: true });
-        
     }
 
     const component = (name: string, def: object | Function) => {
-        // console.log("Cadastrando componente");
-        // console.log(typeof(def))
+        registeredComponents[name] = def
     };
 
     const store = (name: string, def: object) => {
-        registeredComponents[name] = def
+        registeredStores[name] = def
     }
 
     return {
