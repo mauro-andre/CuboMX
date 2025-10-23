@@ -30,6 +30,19 @@ const parseAttrToBind = (attr: Attr, prefixes: Array<string>) => {
     }
 };
 
+const getComponentNameAttr = (attr: Attr) => {
+    let componentName: string | null = null;
+    let componentAttr: string | null = null;
+    if (attr.value.startsWith("$")) {
+        const value = attr.value.split(".");
+        componentName = value[0].substring(1);
+        componentAttr = value[1];
+    } else {
+        componentAttr = attr.value;
+    }
+    return { componentName, componentAttr };
+};
+
 const getProxyInfo = (el: MxElement, attr: Attr, publicAPI: PublicAPI) => {
     let componentName: string | null = null;
     let componentAttr: string | null = null;
@@ -52,7 +65,7 @@ const parseAttrValue = (el: MxElement, attrToBind: string) => {
     if (attrToBind == "class") {
         return el.getAttribute(attrToBind)?.split(" ");
     } else if (attrToBind == "text") {
-        return el.innerHTML;
+        return el.textContent?.trim() ?? "";
     } else if (attrToBind == "html") {
         return el.innerHTML;
     } else {
@@ -64,7 +77,7 @@ const assignValue = (
     obj: any,
     attrToAssign: string,
     valueToAssign: any,
-    modifier: string | undefined
+    modifier: string | undefined | null
 ) => {
     if (modifier) {
         modifier = modifier.toLowerCase();
@@ -112,4 +125,47 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
     }
 };
 
-export { resolveMXBind };
+const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
+    const mainAttr = el.getAttributeNode("mx-item");
+    if (!mainAttr) return;
+    const { proxy, componentName, componentAttr } = getProxyInfo(
+        el,
+        mainAttr,
+        publicAPI
+    );
+
+    if (!proxy) {
+        if (componentName) {
+            console.error(
+                `[CuboMX] mx-item directive failed: Component "${componentName}" not found`
+            );
+        } else {
+            console.error(
+                `[CuboMX] mx-item directive failed: No mx-data component found in element or ancestors`
+            );
+        }
+        return;
+    }
+
+    const newItem = {};
+
+    const allElementsInScope = [
+        el,
+        ...Array.from(el.querySelectorAll<MxElement>("*")),
+    ];
+
+    for (const element of allElementsInScope) {
+        for (const attr of Array.from(element.attributes)) {
+            const parsed = parseAttrToBind(attr, ["mx-item:", "::"]);
+            if (!parsed) continue;
+            const { attrToBind, modifier } = parsed;
+            const component = getComponentNameAttr(attr);
+            const value = parseAttrValue(element, attrToBind);
+            assignValue(newItem, component.componentAttr, value, modifier);
+        }
+    }
+
+    assignValue(proxy, componentAttr, newItem, "array");
+};
+
+export { resolveMXBind, resolveMXItem };

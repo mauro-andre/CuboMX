@@ -7,11 +7,11 @@ describe("Directive mx-data singletons", () => {
         document.body.innerHTML = `
             <div mx-data="listComp">
                 <ul id="list">
-                    <li mx-item="items" ::text="name">Item 1</li>
-                    <li mx-item="items" ::text="name">Item 2</li>
-                    <li mx-item="items" ::text="name">Item 3</li>
-                    <li mx-item="items" ::text="name">Item 4</li>
-                    <li mx-item="items" ::text="name">Item 5</li>
+                    <li>Item 1</li>
+                    <li>Item 2</li>
+                    <li>Item 3</li>
+                    <li>Item 4</li>
+                    <li>Item 5</li>
                 </ul>
             </div>
         `;
@@ -72,11 +72,11 @@ describe("Directive mx-data factory", () => {
         document.body.innerHTML = `
             <div mx-data="listComp()">
                 <ul id="list">
-                    <li mx-item="items" ::text="name">Item 1</li>
-                    <li mx-item="items" ::text="name">Item 2</li>
-                    <li mx-item="items" ::text="name">Item 3</li>
-                    <li mx-item="items" ::text="name">Item 4</li>
-                    <li mx-item="items" ::text="name">Item 5</li>
+                    <li>Item 1</li>
+                    <li>Item 2</li>
+                    <li>Item 3</li>
+                    <li>Item 4</li>
+                    <li>Item 5</li>
                 </ul>
             </div>
         `;
@@ -127,11 +127,11 @@ describe("Directive mx-data factory with mx-ref", () => {
         document.body.innerHTML = `
             <div mx-data="listComp()" mx-ref="listCompRef1">
                 <ul id="list">
-                    <li mx-item="items" ::text="name">Item 1</li>
-                    <li mx-item="items" ::text="name">Item 2</li>
-                    <li mx-item="items" ::text="name">Item 3</li>
-                    <li mx-item="items" ::text="name">Item 4</li>
-                    <li mx-item="items" ::text="name">Item 5</li>
+                    <li>Item 1</li>
+                    <li>Item 2</li>
+                    <li>Item 3</li>
+                    <li>Item 4</li>
+                    <li>Item 5</li>
                 </ul>
             </div>
         `;

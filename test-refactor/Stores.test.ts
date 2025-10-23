@@ -7,11 +7,11 @@ describe("Stores", () => {
         document.body.innerHTML = `
             <div">
                 <ul id="list">
-                    <li mx-item="items" ::text="name">Item 1</li>
-                    <li mx-item="items" ::text="name">Item 2</li>
-                    <li mx-item="items" ::text="name">Item 3</li>
-                    <li mx-item="items" ::text="name">Item 4</li>
-                    <li mx-item="items" ::text="name">Item 5</li>
+                    <li>Item 1</li>
+                    <li>Item 2</li>
+                    <li>Item 3</li>
+                    <li>Item 4</li>
+                    <li>Item 5</li>
                 </ul>
             </div>
         `;

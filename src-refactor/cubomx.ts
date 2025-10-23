@@ -1,7 +1,7 @@
 import { MxProxy, MxComponent, PublicAPI, MxElement } from "./types";
 import { createProxy } from "./proxies";
 import { resolveMXData } from "./mx-data";
-import { resolveMXBind } from "./mx-bind-and-mx-item";
+import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 
 const CuboMX = (() => {
     let registeredComponents: Record<string, object | Function> = {};
@@ -28,22 +28,22 @@ const CuboMX = (() => {
             resolveMXData(el, registeredComponents);
         }
 
-        // const mxBind = allElements.filter((el) => {
-        //     return Array.from(el.attributes).some(
-        //         (attr) =>
-        //             attr.name.startsWith("mx-bind:") ||
-        //             (attr.name.startsWith(":") && !attr.name.startsWith("::"))
-        //     );
-        // });
         const mxBind = allElements.filter((el) =>
             Array.from(el.attributes).some(
                 (attr) =>
-                    attr.name.startsWith("mx-bind") ||
+                    attr.name.startsWith("mx-bind:") ||
                     (attr.name.startsWith(":") && !attr.name.startsWith("::"))
             )
         );
         for (const el of mxBind) {
             resolveMXBind(el, publicAPIProxy);
+        }
+
+        const mxItem = allElements.filter((el) =>
+            Array.from(el.attributes).some((attr) => attr.name === "mx-item")
+        );
+        for (const el of mxItem) {
+            resolveMXItem(el, publicAPIProxy);
         }
     };
 
