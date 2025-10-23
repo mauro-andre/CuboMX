@@ -22,7 +22,10 @@ const parseValue = (value: string | null): any => {
 const parseAttrToBind = (attr: Attr, prefixes: Array<string>) => {
     for (const prefix of prefixes) {
         if (attr.name.startsWith(prefix)) {
-            return attr.name.replace(prefix, "");
+            const attrSplit = attr.name.replace(prefix, "").split(".");
+            const attrToBind = attrSplit[0];
+            const modifier = attrSplit[1];
+            return { attrToBind, modifier };
         }
     }
 };
@@ -57,9 +60,35 @@ const parseAttrValue = (el: MxElement, attrToBind: string) => {
     }
 };
 
+const assignValue = (
+    obj: any,
+    attrToAssign: string,
+    valueToAssign: any,
+    modifier: string | undefined
+) => {
+    if (modifier) {
+        modifier = modifier.toLowerCase();
+        if (modifier === "array") {
+            if (!obj[attrToAssign]) {
+                obj[attrToAssign] = [valueToAssign];
+            } else {
+                obj[attrToAssign].push(valueToAssign);
+            }
+        } else {
+            console.error(
+                `[CuboMX] The bind modifier "${modifier}" is unknown`
+            );
+        }
+    } else {
+        obj[attrToAssign] = valueToAssign;
+    }
+};
+
 const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
     for (const attr of Array.from(el.attributes)) {
-        const attrToBind = parseAttrToBind(attr, ["mx-bind:", ":"]);
+        const parsed = parseAttrToBind(attr, ["mx-bind:", ":"]);
+        if (!parsed) continue;
+        const { attrToBind, modifier } = parsed;
         if (!attrToBind || attrToBind.startsWith(":")) continue;
         const { proxy, componentName, componentAttr } = getProxyInfo(
             el,
@@ -79,7 +108,7 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
             continue;
         }
         const value = parseAttrValue(el, attrToBind);
-        proxy[componentAttr] = value;
+        assignValue(proxy, componentAttr, value, modifier);
     }
 };
 
