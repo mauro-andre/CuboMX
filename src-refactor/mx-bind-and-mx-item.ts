@@ -1,5 +1,6 @@
 import { MxElement, MxElProxy, MxProxy } from "./types";
-import { PublicAPI } from "./types";
+import { PublicAPI, Reaction } from "./types";
+import { reactionsSymbol } from "./proxies";
 
 const parseValue = (value: string | null): any => {
     const num = Number(value);
@@ -97,6 +98,23 @@ const assignValue = (
     }
 };
 
+const addReaction = (
+    proxy: MxElProxy | MxProxy,
+    propName: string,
+    reaction: Reaction
+) => {
+    const reactionMap = proxy[reactionsSymbol as any] as Map<
+        string,
+        Array<Reaction>
+    >;
+
+    if (!reactionMap.has(propName)) {
+        reactionMap.set(propName, []);
+    }
+
+    reactionMap.get(propName)?.push(reaction);
+};
+
 const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
     for (const attr of Array.from(el.attributes)) {
         const parsed = parseAttrToBind(attr, ["mx-bind:", ":"]);
@@ -120,8 +138,24 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
             }
             continue;
         }
+
         const value = parseAttrValue(el, attrToBind);
         assignValue(proxy, componentAttr, value, modifier);
+
+        const reaction: Reaction = {
+            element: el,
+            attrName:
+                attrToBind === "text" || attrToBind === "html"
+                    ? undefined
+                    : attrToBind,
+            type:
+                attrToBind === "text"
+                    ? "text"
+                    : attrToBind === "html"
+                    ? "html"
+                    : "attribute",
+        };
+        addReaction(proxy, componentAttr, reaction);
     }
 };
 

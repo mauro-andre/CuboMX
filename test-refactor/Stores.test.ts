@@ -5,7 +5,7 @@ describe("Stores", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = `
-            <div">
+            <div>
                 <ul id="list">
                     <li>Item 1</li>
                     <li>Item 2</li>

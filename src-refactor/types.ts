@@ -19,6 +19,13 @@ interface MxElement extends HTMLElement {
     __mxProxy__?: MxElProxy;
 }
 
+interface Reaction {
+    element: MxElement;
+    type: "text" | "html" | "attribute" | "class" | "item";
+    attrName?: string;
+    template?: string;
+}
+
 class MxComponent {
     $el!: HTMLElement;
     $watch!: <K extends keyof this>(
@@ -27,4 +34,4 @@ class MxComponent {
     ) => void;
 }
 
-export { MxProxy, MxElProxy, MxComponent, PublicAPI, MxElement };
+export { MxProxy, MxElProxy, MxComponent, PublicAPI, MxElement, Reaction };
