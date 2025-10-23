@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { CuboMX } from "../src-refactor/cubomx";
+import { CuboMX, MxComponent } from "../src-refactor/cubomx";
 
 describe("Stores", () => {
     beforeEach(() => {
@@ -40,7 +40,7 @@ describe("Stores", () => {
     });
 
     it("should create store with class", () => {
-        class Theme {
+        class Theme extends MxComponent {
             mode: string = "dark"
         }
         const theme = new Theme()
