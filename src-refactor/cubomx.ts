@@ -1,7 +1,7 @@
 import { MxProxy, MxComponent, PublicAPI, MxElement } from "./types";
 import { createProxy } from "./proxies";
 import { resolveMXData } from "./mx-data";
-import { resolveMXBind } from "./mx-bind";
+import { resolveMXBind } from "./mx-bind-and-mx-item";
 
 const CuboMX = (() => {
     let registeredComponents: Record<string, object | Function> = {};
