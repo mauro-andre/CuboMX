@@ -1,4 +1,5 @@
 import { MxElement, MxElProxy, MxProxy, Reaction } from "./types";
+import { resolveReactions } from "./reactions";
 
 const reactionsSymbol = Symbol("reactions");
 
@@ -17,7 +18,7 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
 
         set(target, prop, value) {
             const oldValue = target[prop];
-            // console.log(target);
+            target[prop] = value;
             const reactionMap = target[reactionsSymbol] as Map<
                 string,
                 Array<Reaction>
@@ -26,12 +27,9 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
 
             if (reactions && reactions.length > 0) {
                 for (const reaction of reactions) {
-                    console.log("EXECUTAR REAÇÃO");
-                    console.log(reaction);
+                    resolveReactions(reaction, value, oldValue);
                 }
             }
-
-            target[prop] = value;
             return true;
         },
     });

@@ -66,7 +66,7 @@ const parseAttrValue = (el: MxElement, attrToBind: string) => {
     if (attrToBind == "class") {
         return el.getAttribute(attrToBind)?.split(" ");
     } else if (attrToBind == "text") {
-        return el.textContent?.trim() ?? "";
+        return parseValue(el.textContent?.trim() ?? "");
     } else if (attrToBind == "html") {
         return el.innerHTML;
     } else {
