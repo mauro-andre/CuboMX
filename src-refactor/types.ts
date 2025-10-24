@@ -14,6 +14,14 @@ type PublicAPI = {
     [key: string]: any;
 };
 
+type ArrayItems<T = any> = Array<MxElProxy> & {
+    add(item: T): MxElProxy;
+    prepend(item: T): MxElProxy;
+    delete(index: number): void;
+    clear(): void;
+    replace(index: number, item: T): MxElProxy;
+};
+
 interface MxElement extends HTMLElement {
     __doNotProcessNode__?: boolean;
     __mxProxy__?: MxElProxy;
@@ -34,4 +42,12 @@ class MxComponent {
     ) => void;
 }
 
-export { MxProxy, MxElProxy, MxComponent, PublicAPI, MxElement, Reaction };
+export {
+    MxProxy,
+    MxElProxy,
+    MxComponent,
+    PublicAPI,
+    MxElement,
+    Reaction,
+    ArrayItems,
+};

@@ -391,3 +391,131 @@ describe("Edge Cases", () => {
     });
 });
 
+describe("Array Reactions (add/push)", () => {
+    beforeEach(() => {
+        // O HTML agora contém o estado inicial
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul id="item-list">
+                    <li mx-item="items">
+                        <span ::text="name">Initial Item</span>
+                    </li>
+                </ul>
+            </div>
+        `;
+
+        // O componente é inicializado com array vazio
+        CuboMX.component("listComp", {
+            items: [],
+        });
+    });
+
+    it("should add a new element to the DOM when .add() is called", () => {
+        CuboMX.start();
+
+        // Verifica o estado após a hidratação
+        const list = document.querySelector("#item-list");
+        expect(list?.children.length).toBe(1);
+        expect(list?.firstElementChild?.textContent?.trim()).toBe("Initial Item");
+        expect(CuboMX.listComp.items.length).toBe(1);
+        expect(CuboMX.listComp.items[0].name).toBe("Initial Item");
+
+        // Act
+        CuboMX.listComp.items.add({ name: "Second Item" });
+
+        // Assert
+        expect(list?.children.length).toBe(2);
+        expect(list?.lastElementChild?.textContent?.trim()).toBe("Second Item");
+        expect(CuboMX.listComp.items.length).toBe(2);
+        expect(CuboMX.listComp.items[1].name).toBe("Second Item");
+    });
+
+    it("should add a new element to the DOM when .push() is called", () => {
+        CuboMX.start();
+
+        // Verifica o estado após a hidratação
+        const list = document.querySelector("#item-list");
+        expect(list?.children.length).toBe(1);
+        expect(CuboMX.listComp.items.length).toBe(1);
+
+        // Act
+        CuboMX.listComp.items.push({ name: "Pushed Item" });
+
+        // Assert
+        expect(list?.children.length).toBe(2);
+        expect(list?.lastElementChild?.textContent?.trim()).toBe("Pushed Item");
+        expect(CuboMX.listComp.items.length).toBe(2);
+        expect(CuboMX.listComp.items[1].name).toBe("Pushed Item");
+    });
+
+    it("should add a new element at the beginning when .prepend() is called", () => {
+        CuboMX.start();
+
+        const list = document.querySelector("#item-list");
+        expect(list?.children.length).toBe(1);
+
+        // Act
+        CuboMX.listComp.items.prepend({ name: "First Item" });
+
+        // Assert - Deve ser o primeiro elemento
+        expect(list?.children.length).toBe(2);
+        expect(list?.firstElementChild?.textContent?.trim()).toBe("First Item");
+        expect(CuboMX.listComp.items.length).toBe(2);
+        expect(CuboMX.listComp.items[0].name).toBe("First Item");
+        expect(CuboMX.listComp.items[1].name).toBe("Initial Item");
+    });
+
+    it("should add a new element at the beginning when .unshift() is called", () => {
+        CuboMX.start();
+
+        const list = document.querySelector("#item-list");
+
+        // Act
+        CuboMX.listComp.items.unshift({ name: "Unshifted Item" });
+
+        // Assert
+        expect(list?.children.length).toBe(2);
+        expect(list?.firstElementChild?.textContent?.trim()).toBe("Unshifted Item");
+        expect(CuboMX.listComp.items[0].name).toBe("Unshifted Item");
+    });
+
+    it("should remove an element from the DOM when .delete() is called", () => {
+        CuboMX.start();
+
+        // Adicionar mais itens primeiro
+        CuboMX.listComp.items.add({ name: "Second Item" });
+        CuboMX.listComp.items.add({ name: "Third Item" });
+
+        const list = document.querySelector("#item-list");
+        expect(list?.children.length).toBe(3);
+
+        // Act - Remover o item do meio (índice 1)
+        CuboMX.listComp.items.delete(1);
+
+        // Assert
+        expect(list?.children.length).toBe(2);
+        expect(CuboMX.listComp.items.length).toBe(2);
+        expect(CuboMX.listComp.items[0].name).toBe("Initial Item");
+        expect(CuboMX.listComp.items[1].name).toBe("Third Item");
+
+        // Verificar que "Second Item" não está mais no DOM
+        const allText = list?.textContent?.trim();
+        expect(allText).not.toContain("Second Item");
+    });
+
+    it("should handle delete with invalid index gracefully", () => {
+        CuboMX.start();
+
+        const list = document.querySelector("#item-list");
+        const initialLength = list?.children.length;
+
+        // Act - Tentar remover índice inválido
+        CuboMX.listComp.items.delete(999);
+        CuboMX.listComp.items.delete(-1);
+
+        // Assert - Nada deve mudar
+        expect(list?.children.length).toBe(initialLength);
+        expect(CuboMX.listComp.items.length).toBe(1);
+    });
+});
+
