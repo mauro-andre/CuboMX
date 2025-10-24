@@ -517,5 +517,70 @@ describe("Array Reactions (add/push)", () => {
         expect(list?.children.length).toBe(initialLength);
         expect(CuboMX.listComp.items.length).toBe(1);
     });
+
+    it("should remove all items from DOM when .clear() is called", () => {
+        CuboMX.start();
+
+        // Adicionar mais itens
+        CuboMX.listComp.items.add({ name: "Second Item" });
+        CuboMX.listComp.items.add({ name: "Third Item" });
+
+        const list = document.querySelector("#item-list");
+        expect(list?.children.length).toBe(3);
+
+        // Act
+        CuboMX.listComp.items.clear();
+
+        // Assert
+        expect(list?.children.length).toBe(0);
+        expect(CuboMX.listComp.items.length).toBe(0);
+    });
+
+    it("should allow adding items after clear() using saved template", () => {
+        CuboMX.start();
+
+        const list = document.querySelector("#item-list");
+
+        // Clear todos os items
+        CuboMX.listComp.items.clear();
+        expect(list?.children.length).toBe(0);
+        expect(CuboMX.listComp.items.length).toBe(0);
+
+        // Act - Adicionar novo item (deve usar template salvo)
+        CuboMX.listComp.items.add({ name: "New Item After Clear" });
+
+        // Assert
+        expect(list?.children.length).toBe(1);
+        expect(list?.firstElementChild?.textContent?.trim()).toBe("New Item After Clear");
+        expect(CuboMX.listComp.items.length).toBe(1);
+        expect(CuboMX.listComp.items[0].name).toBe("New Item After Clear");
+    });
+
+    it("should replace an item at specific index", () => {
+        CuboMX.start();
+
+        // Adicionar mais itens
+        CuboMX.listComp.items.add({ name: "Second Item" });
+        CuboMX.listComp.items.add({ name: "Third Item" });
+
+        const list = document.querySelector("#item-list");
+        expect(list?.children.length).toBe(3);
+
+        // Act - Substituir o item do meio
+        CuboMX.listComp.items.replace(1, { name: "Replaced Item" });
+
+        // Assert
+        expect(list?.children.length).toBe(3);
+        expect(CuboMX.listComp.items.length).toBe(3);
+        expect(CuboMX.listComp.items[0].name).toBe("Initial Item");
+        expect(CuboMX.listComp.items[1].name).toBe("Replaced Item");
+        expect(CuboMX.listComp.items[2].name).toBe("Third Item");
+
+        // Verificar DOM
+        const names = list?.querySelectorAll("span");
+        expect(names?.[0].textContent).toBe("Initial Item");
+        expect(names?.[1].textContent).toBe("Replaced Item");
+        expect(names?.[2].textContent).toBe("Third Item");
+    });
 });
 
