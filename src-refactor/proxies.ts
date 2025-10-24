@@ -99,6 +99,8 @@ const createArrayProxy = <T = any>(arr: Array<any>): ArrayItems<T> => {
                 prop === "prepend" ||
                 prop === "unshift" ||
                 prop === "delete" ||
+                prop === "pop" ||
+                prop === "shift" ||
                 prop === "clear" ||
                 prop === "replace" ||
                 prop === "_hydrateAdd"
@@ -188,6 +190,24 @@ const createArrayProxy = <T = any>(arr: Array<any>): ArrayItems<T> => {
                     const itemProxy = target[index];
                     itemProxy.$el.remove();
                     target.splice(index, 1);
+                };
+            }
+
+            if (prop === "pop") {
+                return (): void => {
+                    if (target.length === 0) {
+                        return;
+                    }
+                    (proxy as any).delete(target.length - 1);
+                };
+            }
+
+            if (prop === "shift") {
+                return (): void => {
+                    if (target.length === 0) {
+                        return;
+                    }
+                    (proxy as any).delete(0);
                 };
             }
 

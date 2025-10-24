@@ -518,6 +518,72 @@ describe("Array Reactions (add/push)", () => {
         expect(CuboMX.listComp.items.length).toBe(1);
     });
 
+    it("should remove last element from DOM when .pop() is called", () => {
+        CuboMX.start();
+
+        // Adicionar mais itens
+        CuboMX.listComp.items.add({ name: "Second Item" });
+        CuboMX.listComp.items.add({ name: "Third Item" });
+
+        const list = document.querySelector("#item-list");
+        expect(list?.children.length).toBe(3);
+
+        // Act
+        CuboMX.listComp.items.pop();
+
+        // Assert
+        expect(list?.children.length).toBe(2);
+        expect(CuboMX.listComp.items.length).toBe(2);
+        expect(CuboMX.listComp.items[0].name).toBe("Initial Item");
+        expect(CuboMX.listComp.items[1].name).toBe("Second Item");
+
+        // Verificar que "Third Item" não está mais no DOM
+        const allText = list?.textContent?.trim();
+        expect(allText).not.toContain("Third Item");
+    });
+
+    it("should remove first element from DOM when .shift() is called", () => {
+        CuboMX.start();
+
+        // Adicionar mais itens
+        CuboMX.listComp.items.add({ name: "Second Item" });
+        CuboMX.listComp.items.add({ name: "Third Item" });
+
+        const list = document.querySelector("#item-list");
+        expect(list?.children.length).toBe(3);
+
+        // Act
+        CuboMX.listComp.items.shift();
+
+        // Assert
+        expect(list?.children.length).toBe(2);
+        expect(CuboMX.listComp.items.length).toBe(2);
+        expect(CuboMX.listComp.items[0].name).toBe("Second Item");
+        expect(CuboMX.listComp.items[1].name).toBe("Third Item");
+
+        // Verificar que "Initial Item" não está mais no DOM
+        const allText = list?.textContent?.trim();
+        expect(allText).not.toContain("Initial Item");
+    });
+
+    it("should handle pop and shift on empty array gracefully", () => {
+        CuboMX.start();
+
+        const list = document.querySelector("#item-list");
+
+        // Clear array
+        CuboMX.listComp.items.clear();
+        expect(list?.children.length).toBe(0);
+
+        // Act - Tentar pop e shift em array vazio
+        CuboMX.listComp.items.pop();
+        CuboMX.listComp.items.shift();
+
+        // Assert - Nada deve mudar
+        expect(list?.children.length).toBe(0);
+        expect(CuboMX.listComp.items.length).toBe(0);
+    });
+
     it("should remove all items from DOM when .clear() is called", () => {
         CuboMX.start();
 

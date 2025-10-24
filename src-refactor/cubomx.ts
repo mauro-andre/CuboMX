@@ -6,14 +6,14 @@ import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 const CuboMX = (() => {
     let registeredComponents: Record<string, object | Function> = {};
     let registeredStores: Record<string, object> = {};
-    let activeMxProxies: Record<string, MxProxy> = {};
+    let activeStoreProxies: Record<string, MxProxy> = {};
     let observer: MutationObserver | null = null;
     let publicAPIProxy: PublicAPI & Record<string, any>;
 
     const reset = () => {
         registeredComponents = {};
         registeredStores = {};
-        activeMxProxies = {};
+        activeStoreProxies = {};
         if (observer) {
             observer.disconnect();
             observer = null;
@@ -53,7 +53,7 @@ const CuboMX = (() => {
 
     const resolveStores = () => {
         for (const [name, obj] of Object.entries(registeredStores)) {
-            activeMxProxies[name] = createProxy(obj, null) as MxProxy;
+            activeStoreProxies[name] = createProxy(obj, null) as MxProxy;
         }
     };
 
@@ -101,8 +101,8 @@ const CuboMX = (() => {
         get(target, prop) {
             if (prop in target) return Reflect.get(target, prop);
 
-            if (prop in activeMxProxies) {
-                return activeMxProxies[prop as string];
+            if (prop in activeStoreProxies) {
+                return activeStoreProxies[prop as string];
             }
 
             const el = document.querySelector<MxElement>(

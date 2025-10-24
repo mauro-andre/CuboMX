@@ -18,6 +18,8 @@ type ArrayItems<T = any> = Array<MxElProxy> & {
     add(item: T): MxElProxy;
     prepend(item: T): MxElProxy;
     delete(index: number): void;
+    pop(): void;
+    shift(): void;
     clear(): void;
     replace(index: number, item: T): MxElProxy;
 };
