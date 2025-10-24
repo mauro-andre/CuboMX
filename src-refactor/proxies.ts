@@ -4,7 +4,7 @@ import { resolveReactions } from "./reactions";
 const reactionsSymbol = Symbol("reactions");
 
 const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
-    obj[reactionsSymbol] = new Map<string, Array<Reaction>>();
+    obj[reactionsSymbol] = new Map<string, Reaction[]>();
     const proxy = new Proxy(obj, {
         get(target, prop) {
             if (prop === "$el") {
@@ -19,9 +19,10 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
         set(target, prop, value) {
             const oldValue = target[prop];
             target[prop] = value;
+
             const reactionMap = target[reactionsSymbol] as Map<
                 string,
-                Array<Reaction>
+                Reaction[]
             >;
             const reactions = reactionMap.get(prop as string);
 

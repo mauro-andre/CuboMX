@@ -118,12 +118,6 @@ describe("parseValue data types", () => {
                 :html="htmlValue"
             >
                 <span>Inner <strong>HTML</strong></span>
-                <ul>
-                    <li :text.array="arrayValue">li 1</li>
-                    <li :text.array="arrayValue">li 2</li>
-                    <li :text.array="arrayValue">li 3</li>
-                    <li :text.array="arrayValue">li 4</li>
-                </ul>
             </div>
         `;
     });
@@ -141,7 +135,6 @@ describe("parseValue data types", () => {
             undefinedValue: null,
             stringValue: null,
             htmlValue: null,
-            arrayValue: null,
         };
 
         CuboMX.component("dataTypes", dataTypes);
@@ -167,7 +160,6 @@ describe("parseValue data types", () => {
             undefinedValue: null,
             stringValue: null,
             htmlValue: null,
-            arrayValue: null,
         };
 
         CuboMX.component("dataTypes", dataTypes);
@@ -193,7 +185,6 @@ describe("parseValue data types", () => {
             undefinedValue: null,
             stringValue: null,
             htmlValue: null,
-            arrayValue: null,
         };
 
         CuboMX.component("dataTypes", dataTypes);
@@ -220,7 +211,6 @@ describe("parseValue data types", () => {
             undefinedValue: null,
             stringValue: null,
             htmlValue: null,
-            arrayValue: null,
         };
 
         CuboMX.component("dataTypes", dataTypes);
@@ -242,7 +232,6 @@ describe("parseValue data types", () => {
             undefinedValue: null,
             stringValue: null,
             htmlValue: null,
-            arrayValue: null,
         };
 
         CuboMX.component("dataTypes", dataTypes);
@@ -251,31 +240,6 @@ describe("parseValue data types", () => {
         // Test html binding (innerHTML)
         expect(CuboMX.dataTypes.htmlValue).toContain("Inner");
         expect(CuboMX.dataTypes.htmlValue).toContain("<strong>HTML</strong>");
-    });
-
-    it("should parse array correctly", () => {
-        const dataTypes = {
-            numInt: null,
-            numFloat: null,
-            boolTrue: null,
-            boolFalse: null,
-            nullValue: null,
-            noneValue: null,
-            undefinedValue: null,
-            stringValue: null,
-            htmlValue: null,
-            arrayValue: null,
-        };
-
-        CuboMX.component("dataTypes", dataTypes);
-        CuboMX.start();
-
-        expect(CuboMX.dataTypes.arrayValue).toEqual([
-            "li 1",
-            "li 2",
-            "li 3",
-            "li 4",
-        ]);
     });
 });
 
@@ -304,12 +268,6 @@ describe("parseValue data types with class", () => {
                 :html="htmlValue"
             >
                 <span>Inner <strong>HTML</strong></span>
-                <ul>
-                    <li :text.array="arrayValue">li 1</li>
-                    <li :text.array="arrayValue">li 2</li>
-                    <li :text.array="arrayValue">li 3</li>
-                    <li :text.array="arrayValue">li 4</li>
-                </ul>
             </div>
         `;
     });
@@ -327,7 +285,6 @@ describe("parseValue data types with class", () => {
             undefinedValue = null;
             stringValue = null;
             htmlValue = null;
-            arrayValue = null;
         }
 
         const dataTypes = new DataTypes();
@@ -354,7 +311,6 @@ describe("parseValue data types with class", () => {
             undefinedValue = null;
             stringValue = null;
             htmlValue = null;
-            arrayValue = null;
         }
 
         const dataTypes = new DataTypes();
@@ -381,7 +337,6 @@ describe("parseValue data types with class", () => {
             undefinedValue = null;
             stringValue = null;
             htmlValue = null;
-            arrayValue = null;
         }
 
         const dataTypes = new DataTypes();
@@ -409,7 +364,6 @@ describe("parseValue data types with class", () => {
             undefinedValue = null;
             stringValue = null;
             htmlValue = null;
-            arrayValue = null;
         }
 
         const dataTypes = new DataTypes();
@@ -432,7 +386,6 @@ describe("parseValue data types with class", () => {
             undefinedValue = null;
             stringValue = null;
             htmlValue = null;
-            arrayValue = null;
         }
 
         const dataTypes = new DataTypes();
@@ -442,31 +395,5 @@ describe("parseValue data types with class", () => {
         // Test html binding (innerHTML)
         expect(CuboMX.dataTypes.htmlValue).toContain("Inner");
         expect(CuboMX.dataTypes.htmlValue).toContain("<strong>HTML</strong>");
-    });
-
-    it("should parse array correctly", () => {
-        class DataTypes extends MxComponent {
-            numInt = null;
-            numFloat = null;
-            boolTrue = null;
-            boolFalse = null;
-            nullValue = null;
-            noneValue = null;
-            undefinedValue = null;
-            stringValue = null;
-            htmlValue = null;
-            arrayValue = null;
-        }
-
-        const dataTypes = new DataTypes();
-        CuboMX.component("dataTypes", dataTypes);
-        CuboMX.start();
-
-        expect(CuboMX.dataTypes.arrayValue).toEqual([
-            "li 1",
-            "li 2",
-            "li 3",
-            "li 4",
-        ]);
     });
 });

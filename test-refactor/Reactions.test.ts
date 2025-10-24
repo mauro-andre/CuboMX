@@ -117,7 +117,9 @@ describe("Attribute Reactions - Normal Attributes", () => {
         CuboMX.myComp.imgAlt = "User Avatar";
 
         const imgEl = document.querySelector("#avatar");
-        expect(imgEl?.getAttribute("src")).toBe("https://example.com/avatar.png");
+        expect(imgEl?.getAttribute("src")).toBe(
+            "https://example.com/avatar.png"
+        );
         expect(imgEl?.getAttribute("alt")).toBe("User Avatar");
     });
 
@@ -132,7 +134,9 @@ describe("Attribute Reactions - Normal Attributes", () => {
         CuboMX.start();
 
         CuboMX.myComp.tooltip = "Click to submit";
-        expect(document.querySelector("#btn")?.getAttribute("title")).toBe("Click to submit");
+        expect(document.querySelector("#btn")?.getAttribute("title")).toBe(
+            "Click to submit"
+        );
     });
 });
 
@@ -197,7 +201,9 @@ describe("Attribute Reactions - Checkbox Checked", () => {
         CuboMX.component("myComp", { value: null });
         CuboMX.start();
 
-        const checkboxEl = document.querySelector("#toggle") as HTMLInputElement;
+        const checkboxEl = document.querySelector(
+            "#toggle"
+        ) as HTMLInputElement;
 
         CuboMX.myComp.value = 1;
         expect(checkboxEl.checked).toBe(true);
@@ -250,6 +256,107 @@ describe("Global Store Reactions", () => {
     });
 });
 
+describe("Class Reactions (:class)", () => {
+    it("should update classes from array", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class="initial old"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: [] });
+        CuboMX.start();
+
+        CuboMX.myComp.boxClasses = ["btn", "primary"];
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("btn primary");
+    });
+
+    it("should update classes from string", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class=""></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: "" });
+        CuboMX.start();
+
+        CuboMX.myComp.boxClasses = "btn primary active";
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("btn primary active");
+    });
+
+    it("should replace all classes (not merge)", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class="old existing"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: [] });
+        CuboMX.start();
+
+        CuboMX.myComp.boxClasses = ["new"];
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("new");
+        expect(boxEl?.classList.contains("old")).toBe(false);
+        expect(boxEl?.classList.contains("existing")).toBe(false);
+    });
+
+    it("should filter out falsy values in array", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class=""></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: [] });
+        CuboMX.start();
+
+        CuboMX.myComp.boxClasses = [
+            "btn",
+            null,
+            "primary",
+            undefined,
+            "",
+            "active",
+        ];
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("btn primary active");
+    });
+
+    it("should clear classes when set to empty array", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class="btn primary"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: [] });
+        CuboMX.start();
+
+        CuboMX.myComp.boxClasses = [];
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("");
+    });
+
+    it("should clear classes when set to empty string", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class="btn primary"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: "" });
+        CuboMX.start();
+
+        CuboMX.myComp.boxClasses = "";
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("");
+    });
+});
+
 describe("Edge Cases", () => {
     it("should not trigger reactions during hydration", () => {
         document.body.innerHTML = `
@@ -283,3 +390,4 @@ describe("Edge Cases", () => {
         expect(document.querySelector("#value")?.textContent).toBe("3");
     });
 });
+

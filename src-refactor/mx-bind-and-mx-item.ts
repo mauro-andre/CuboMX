@@ -1,6 +1,6 @@
 import { MxElement, MxElProxy, MxProxy } from "./types";
 import { PublicAPI, Reaction } from "./types";
-import { reactionsSymbol } from "./proxies";
+import { reactionsSymbol, createProxy } from "./proxies";
 
 const parseValue = (value: string | null): any => {
     const num = Number(value);
@@ -82,17 +82,7 @@ const assignValue = (
 ) => {
     if (modifier) {
         modifier = modifier.toLowerCase();
-        if (modifier === "array") {
-            if (!obj[attrToAssign]) {
-                obj[attrToAssign] = [valueToAssign];
-            } else {
-                obj[attrToAssign].push(valueToAssign);
-            }
-        } else {
-            console.error(
-                `[CuboMX] The bind modifier "${modifier}" is unknown`
-            );
-        }
+        console.error(`[CuboMX] The bind modifier "${modifier}" is unknown`);
     } else {
         obj[attrToAssign] = valueToAssign;
     }
@@ -105,7 +95,7 @@ const addReaction = (
 ) => {
     const reactionMap = proxy[reactionsSymbol as any] as Map<
         string,
-        Array<Reaction>
+        Reaction[]
     >;
 
     if (!reactionMap.has(propName)) {
@@ -145,7 +135,9 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
         const reaction: Reaction = {
             element: el,
             attrName:
-                attrToBind === "text" || attrToBind === "html"
+                attrToBind === "text" ||
+                attrToBind === "html" ||
+                attrToBind === "class"
                     ? undefined
                     : attrToBind,
             type:
@@ -153,6 +145,8 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
                     ? "text"
                     : attrToBind === "html"
                     ? "html"
+                    : attrToBind === "class"
+                    ? "class"
                     : "attribute",
         };
         addReaction(proxy, componentAttr, reaction);
@@ -181,7 +175,7 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
         return;
     }
 
-    const newItem = {};
+    const itemProxy = createProxy({}, el);
 
     const allElementsInScope = [
         el,
@@ -192,14 +186,41 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
         for (const attr of Array.from(element.attributes)) {
             const parsed = parseAttrToBind(attr, ["mx-item:", "::"]);
             if (!parsed) continue;
+
             const { attrToBind, modifier } = parsed;
             const component = getComponentNameAttr(attr);
+            const propName = component.componentAttr;
             const value = parseAttrValue(element, attrToBind);
-            assignValue(newItem, component.componentAttr, value, modifier);
+
+            assignValue(itemProxy, propName, value, modifier);
+
+            const reaction: Reaction = {
+                element: element,
+                attrName:
+                    attrToBind === "text" ||
+                    attrToBind === "html" ||
+                    attrToBind === "class"
+                        ? undefined
+                        : attrToBind,
+                type:
+                    attrToBind === "text"
+                        ? "text"
+                        : attrToBind === "html"
+                        ? "html"
+                        : attrToBind === "class"
+                        ? "class"
+                        : "attribute",
+            };
+            addReaction(itemProxy, propName, reaction);
         }
     }
 
-    assignValue(proxy, componentAttr, newItem, "array");
+    const currentArray = proxy[componentAttr];
+    if (!currentArray || !Array.isArray(currentArray)) {
+        proxy[componentAttr] = [itemProxy];
+    } else {
+        currentArray.push(itemProxy);
+    }
 };
 
 export { resolveMXBind, resolveMXItem };

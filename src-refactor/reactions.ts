@@ -35,10 +35,22 @@ const attributeReaction = (reaction: ReactionHandler) => {
     }
 };
 
+const classReaction = (reaction: ReactionHandler) => {
+    const { element, newValue } = reaction;
+    element.className = "";
+
+    if (Array.isArray(newValue)) {
+        element.classList.add(...newValue.filter(Boolean));
+    } else if (typeof newValue === "string") {
+        element.className = newValue;
+    }
+};
+
 const reactionsTypeMap = new Map<string, (reaction: ReactionHandler) => void>([
     ["text", (reaction: ReactionHandler) => textReaction(reaction)],
     ["html", (reaction: ReactionHandler) => htmlReaction(reaction)],
     ["attribute", (reaction: ReactionHandler) => attributeReaction(reaction)],
+    ["class", (reaction: ReactionHandler) => classReaction(reaction)],
 ]);
 
 const resolveReactions = (reaction: Reaction, newValue: any, oldValue: any) => {

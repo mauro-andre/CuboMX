@@ -40,14 +40,12 @@ describe("Directive mx-item with Singleton", () => {
         document.body.innerHTML = `
             <div mx-data="listComponent">
                 <ul>
-                    <li mx-item="items" 
+                    <li mx-item="items"
                         ::data-id="id" data-id="10"
                         ::data-active="active" data-active="true"
                         ::data-price="price" data-price="99.99"
-                        ::data-tags.array="tags" data-tags="js"
                         >
                         <span ::text="name">First Item</span>
-                        <em ::text.array="tags">ts</em>
                     </li>
                 </ul>
             </div>
@@ -65,7 +63,6 @@ describe("Directive mx-item with Singleton", () => {
         expect(item.id).toBe(10);
         expect(item.active).toBe(true);
         expect(item.price).toBe(99.99);
-        expect(item.tags).toEqual(["js", "ts"]);
     });
 
     it("should handle multiple item properties on the same element", () => {
