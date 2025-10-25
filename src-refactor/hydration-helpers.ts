@@ -62,7 +62,12 @@ const getProxyInfo = (el: MxElement, attr: Attr, publicAPI: PublicAPI) => {
 
 const parseAttrValue = (el: MxElement, attrToBind: string) => {
     if (attrToBind == "class") {
-        return el.getAttribute(attrToBind)?.split(" ");
+        return (
+            el
+                .getAttribute(attrToBind)
+                ?.split(" ")
+                .filter((c) => c.trim() !== "") ?? []
+        );
     } else if (attrToBind == "text") {
         return parseValue(el.textContent?.trim() ?? "");
     } else if (attrToBind == "html") {

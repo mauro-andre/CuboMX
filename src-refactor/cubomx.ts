@@ -1,5 +1,5 @@
 import { MxProxy, MxComponent, PublicAPI, MxElement } from "./types";
-import { createProxy } from "./proxies";
+import { createProxy } from "./proxy-component";
 import { resolveMXData } from "./mx-data";
 import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 

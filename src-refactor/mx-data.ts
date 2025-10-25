@@ -1,4 +1,4 @@
-import { createProxy } from "./proxies";
+import { createProxy } from "./proxy-component";
 import { MxElProxy, MxElement } from "./types";
 
 const resolveMXData = (

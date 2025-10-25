@@ -24,6 +24,14 @@ type ArrayItems<T = any> = Array<MxElProxy> & {
     replace(index: number, item: T): MxElProxy;
 };
 
+type ClassList = Array<string> & {
+    add(...classNames: string[]): void;
+    remove(...classNames: string[]): void;
+    toggle(className: string, force?: boolean): boolean;
+    contains(className: string): boolean;
+    replace(oldClass: string, newClass: string): boolean;
+};
+
 interface MxElement extends HTMLElement {
     __doNotProcessNode__?: boolean;
     __mxProxy__?: MxElProxy;
@@ -52,4 +60,5 @@ export {
     MxElement,
     Reaction,
     ArrayItems,
+    ClassList,
 };

@@ -1,13 +1,14 @@
 import { MxElement, MxElProxy, MxProxy } from "./types";
 import { PublicAPI, Reaction } from "./types";
-import { reactionsSymbol, createProxy, createArrayProxy } from "./proxies";
+import { reactionsSymbol, createProxy } from "./proxy-component";
+import { createArrayProxy } from "./proxy-array-item";
 import {
     parseAttrToBind,
     getComponentNameAttr,
     getProxyInfo,
-    parseAttrValue,
     assignValue,
     createReaction,
+    parseAttrValue,
 } from "./hydration-helpers";
 
 const addReaction = (
@@ -53,11 +54,11 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
             continue;
         }
 
-        const value = parseAttrValue(el, attrToBind);
-        assignValue(proxy, componentAttr, value, modifier);
-
         const reaction = createReaction(el, attrToBind);
         addReaction(proxy, componentAttr, reaction);
+
+        const value = parseAttrValue(el, attrToBind);
+        assignValue(proxy, componentAttr, value, modifier);
     }
 };
 
@@ -100,11 +101,12 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
             const { attrToBind, modifier } = parsed;
             const component = getComponentNameAttr(attr);
             const propName = component.componentAttr;
-            const value = parseAttrValue(element, attrToBind);
 
-            assignValue(itemProxy, propName, value, modifier);
             const reaction = createReaction(element, attrToBind);
             addReaction(itemProxy, propName, reaction);
+
+            const value = parseAttrValue(element, attrToBind);
+            assignValue(itemProxy, propName, value, modifier);
         }
     }
 

@@ -357,6 +357,332 @@ describe("Class Reactions (:class)", () => {
     });
 });
 
+describe("ClassList Methods", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+        document.body.innerHTML = "";
+    });
+
+    it("should add classes using .add() method", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class="btn"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: ["btn"] });
+        CuboMX.start();
+
+        CuboMX.myComp.boxClasses.add("active");
+
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("btn active");
+        expect(CuboMX.myComp.boxClasses.contains("active")).toBe(true);
+    });
+
+    it("should remove classes using .remove() method", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class="btn active"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: ["btn", "active"] });
+        CuboMX.start();
+
+        CuboMX.myComp.boxClasses.remove("active");
+
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("btn");
+    });
+
+    it("should toggle class with .toggle()", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class="btn"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: ["btn"] });
+        CuboMX.start();
+
+        const result = CuboMX.myComp.boxClasses.toggle("active");
+
+        expect(result).toBe(true);
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("btn active");
+    });
+
+    it("should check if class exists with .contains()", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class="btn active"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: ["btn", "active"] });
+        CuboMX.start();
+
+        expect(CuboMX.myComp.boxClasses.contains("active")).toBe(true);
+        expect(CuboMX.myComp.boxClasses.contains("primary")).toBe(false);
+    });
+
+    it("should replace class with .replace()", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box" :class="boxClasses" class="btn active"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: ["btn", "active"] });
+        CuboMX.start();
+
+        const result = CuboMX.myComp.boxClasses.replace("active", "disabled");
+
+        expect(result).toBe(true);
+        const boxEl = document.querySelector("#box");
+        expect(boxEl?.className).toBe("btn disabled");
+    });
+
+    it("should update all elements with same class binding", () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="box1" :class="boxClasses" class="btn"></div>
+                <div id="box2" :class="boxClasses" class="btn"></div>
+            </div>
+        `;
+
+        CuboMX.component("myComp", { boxClasses: ["btn"] });
+        CuboMX.start();
+
+        CuboMX.myComp.boxClasses.add("active");
+
+        const box1El = document.querySelector("#box1");
+        const box2El = document.querySelector("#box2");
+        expect(box1El?.className).toBe("btn active");
+        expect(box2El?.className).toBe("btn active");
+    });
+});
+
+describe("ClassList Methods with mx-item", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+        document.body.innerHTML = "";
+    });
+
+    it("should add classes to specific item using .add()", () => {
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul id="list">
+                    <li mx-item="items" ::text="name" ::class="classes" class="item"></li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.component("listComp", { items: [] });
+        CuboMX.start();
+
+        CuboMX.listComp.items.add({ name: "Item 1", classes: ["item"] });
+        CuboMX.listComp.items.add({ name: "Item 2", classes: ["item"] });
+
+        // Act - adicionar classe apenas no primeiro item
+        CuboMX.listComp.items[0].classes.add("active");
+
+        // Assert
+        const list = document.querySelector("#list");
+        expect(list?.children[0].className).toBe("item active");
+        expect(list?.children[1].className).toBe("item");
+    });
+
+    it("should toggle classes independently for each item", () => {
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul id="list">
+                    <li mx-item="items" ::text="name" ::class="classes" class="item"></li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.component("listComp", { items: [] });
+        CuboMX.start();
+
+        CuboMX.listComp.items.add({ name: "Item 1", classes: ["item"] });
+        CuboMX.listComp.items.add({ name: "Item 2", classes: ["item"] });
+        CuboMX.listComp.items.add({ name: "Item 3", classes: ["item"] });
+
+        // Act
+        CuboMX.listComp.items[0].classes.toggle("active");
+        CuboMX.listComp.items[2].classes.toggle("active");
+
+        // Assert
+        const list = document.querySelector("#list");
+        expect(list?.children[0].className).toBe("item active");
+        expect(list?.children[1].className).toBe("item");
+        expect(list?.children[2].className).toBe("item active");
+    });
+
+    it("should remove classes from specific item", () => {
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul id="list">
+                    <li mx-item="items" ::text="name" ::class="classes" class="item active"></li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.component("listComp", { items: [] });
+        CuboMX.start();
+
+        CuboMX.listComp.items.add({
+            name: "Item 1",
+            classes: ["item", "active"],
+        });
+        CuboMX.listComp.items.add({
+            name: "Item 2",
+            classes: ["item", "active"],
+        });
+
+        // Act
+        CuboMX.listComp.items[1].classes.remove("active");
+
+        // Assert
+        const list = document.querySelector("#list");
+        expect(list?.children[0].className).toBe("item active");
+        expect(list?.children[1].className).toBe("item");
+    });
+
+    it("should check .contains() on item classes", () => {
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul id="list">
+                    <li mx-item="items" ::text="name" ::class="classes" class="item">Item 1</li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.component("listComp", { items: [] });
+        CuboMX.start();
+
+        CuboMX.listComp.items.add({
+            name: "Item 2",
+            classes: ["item", "active"],
+        });
+        CuboMX.listComp.items.add({ name: "Item 3", classes: ["item"] });
+
+        // Assert
+        expect(CuboMX.listComp.items[0].classes.contains("active")).toBe(false);
+        expect(CuboMX.listComp.items[1].classes.contains("active")).toBe(true);
+        expect(CuboMX.listComp.items[2].classes.contains("active")).toBe(false);
+    });
+
+    it("should replace classes on item", () => {
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul id="list">
+                    <li mx-item="items" ::text="name" ::class="classes" class="item active"></li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.component("listComp", { items: [] });
+        CuboMX.start();
+
+        CuboMX.listComp.items.add({
+            name: "Item 1",
+            classes: ["item", "active"],
+        });
+
+        // Act
+        const result = CuboMX.listComp.items[0].classes.replace(
+            "active",
+            "disabled"
+        );
+
+        // Assert
+        expect(result).toBe(true);
+        const list = document.querySelector("#list");
+        expect(list?.children[0].className).toBe("item disabled");
+    });
+
+    it("should maintain independent ClassLists when adding multiple items", () => {
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul id="list">
+                    <li mx-item="items" ::text="name" ::class="classes" class="item">Item 1</li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.component("listComp", { items: [] });
+        CuboMX.start();
+
+        CuboMX.listComp.items.add({ name: "Item 2", classes: ["item", "red"] });
+        CuboMX.listComp.items.add({
+            name: "Item 3",
+            classes: ["item", "blue"],
+        });
+        CuboMX.listComp.items.add({
+            name: "Item 4",
+            classes: ["item", "green"],
+        });
+
+        // Act - modificar apenas o item do meio
+        CuboMX.listComp.items[1].classes.add("active");
+        CuboMX.listComp.items[1].classes.remove("red");
+
+        // Assert
+        const list = document.querySelector("#list");
+        expect(list?.children[0].className).toBe("item");
+        expect(list?.children[1].className).toBe("item active");
+        expect(list?.children[2].className).toBe("item blue");
+        expect(list?.children[3].className).toBe("item green");
+    });
+
+    it("should toggle classes on dynamically added items", () => {
+        document.body.innerHTML = `
+            <div mx-data="listComp">
+                <ul id="list">
+                    <li mx-item="items" ::text="name" ::class="classes" class="item"></li>
+                </ul>
+            </div>
+        `;
+
+        CuboMX.component("listComp", { items: [] });
+        CuboMX.start();
+
+        // Clear template
+        CuboMX.listComp.items.clear();
+
+        // Add items
+        CuboMX.listComp.items.add({ name: "Item 1", classes: ["item"] });
+        CuboMX.listComp.items.add({ name: "Item 2", classes: ["item"] });
+        CuboMX.listComp.items.add({ name: "Item 3", classes: ["item"] });
+
+        const list = document.querySelector("#list");
+
+        // Act - toggle on first item
+        let result1 = CuboMX.listComp.items[0].classes.toggle("active");
+        expect(result1).toBe(true);
+        expect(list?.children[0].className).toBe("item active");
+        expect(CuboMX.listComp.items[0].classes.contains("active")).toBe(true);
+
+        // Toggle off
+        let result2 = CuboMX.listComp.items[0].classes.toggle("active");
+        expect(result2).toBe(false);
+        expect(list?.children[0].className).toBe("item");
+        expect(CuboMX.listComp.items[0].classes.contains("active")).toBe(false);
+
+        // Toggle on multiple items
+        CuboMX.listComp.items[0].classes.toggle("selected");
+        CuboMX.listComp.items[2].classes.toggle("selected");
+
+        // Assert
+        expect(list?.children[0].className).toBe("item selected");
+        expect(list?.children[1].className).toBe("item");
+        expect(list?.children[2].className).toBe("item selected");
+    });
+});
+
 describe("Edge Cases", () => {
     it("should not trigger reactions during hydration", () => {
         document.body.innerHTML = `
@@ -416,7 +742,9 @@ describe("Array Reactions (add/push)", () => {
         // Verifica o estado após a hidratação
         const list = document.querySelector("#item-list");
         expect(list?.children.length).toBe(1);
-        expect(list?.firstElementChild?.textContent?.trim()).toBe("Initial Item");
+        expect(list?.firstElementChild?.textContent?.trim()).toBe(
+            "Initial Item"
+        );
         expect(CuboMX.listComp.items.length).toBe(1);
         expect(CuboMX.listComp.items[0].name).toBe("Initial Item");
 
@@ -475,7 +803,9 @@ describe("Array Reactions (add/push)", () => {
 
         // Assert
         expect(list?.children.length).toBe(2);
-        expect(list?.firstElementChild?.textContent?.trim()).toBe("Unshifted Item");
+        expect(list?.firstElementChild?.textContent?.trim()).toBe(
+            "Unshifted Item"
+        );
         expect(CuboMX.listComp.items[0].name).toBe("Unshifted Item");
     });
 
@@ -617,7 +947,9 @@ describe("Array Reactions (add/push)", () => {
 
         // Assert
         expect(list?.children.length).toBe(1);
-        expect(list?.firstElementChild?.textContent?.trim()).toBe("New Item After Clear");
+        expect(list?.firstElementChild?.textContent?.trim()).toBe(
+            "New Item After Clear"
+        );
         expect(CuboMX.listComp.items.length).toBe(1);
         expect(CuboMX.listComp.items[0].name).toBe("New Item After Clear");
     });
@@ -649,4 +981,3 @@ describe("Array Reactions (add/push)", () => {
         expect(names?.[2].textContent).toBe("Third Item");
     });
 });
-
