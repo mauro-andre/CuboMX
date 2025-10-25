@@ -414,6 +414,71 @@ describe("Directive mx-on or @", () => {
         expect(CuboMX.taskManager.tasks[0].completed).toBe(false);
     });
 
+    it("should allow $item to modify its own properties with class object", () => {
+        document.body.innerHTML = `
+            <div mx-data="taskManager">
+                <ul>
+                    <li mx-item="tasks" ::completed="completed" completed="false">
+                        <span ::text="name">Write tests</span>
+                        <span ::text="completed">false</span>
+                        <button @click="toggleTask($item)">Toggle</button>
+                    </li>
+                    <li mx-item="tasks" ::completed="completed" completed="false">
+                        <span ::text="name">Review code</span>
+                        <span ::text="completed">false</span>
+                        <button @click="toggleTask($item)">Toggle</button>
+                    </li>
+                </ul>
+            </div>
+        `;
+
+        interface Item {
+            completed: boolean;
+            name: string;
+        }
+
+        class taskManager extends MxComponent {
+            tasks!: Item[];
+            toggleTask(item: any) {
+                item.completed = !item.completed;
+            }
+        }
+
+        CuboMX.component("taskManager", new taskManager());
+        CuboMX.start();
+
+        const buttons = document.querySelectorAll("button");
+        const [task1Spans, task2Spans] = [
+            document.querySelectorAll("li")[0].querySelectorAll("span"),
+            document.querySelectorAll("li")[1].querySelectorAll("span"),
+        ];
+
+        // Initially both tasks are not completed
+        expect(task1Spans[1].textContent).toBe("false");
+        expect(task2Spans[1].textContent).toBe("false");
+        expect(CuboMX.taskManager.tasks[0].completed).toBe(false);
+        expect(CuboMX.taskManager.tasks[1].completed).toBe(false);
+
+        // Toggle first task
+        buttons[0].click();
+        expect(task1Spans[1].textContent).toBe("true");
+        expect(CuboMX.taskManager.tasks[0].completed).toBe(true);
+        expect(task2Spans[1].textContent).toBe("false");
+        expect(CuboMX.taskManager.tasks[1].completed).toBe(false);
+
+        // Toggle second task
+        buttons[1].click();
+        expect(task1Spans[1].textContent).toBe("true");
+        expect(CuboMX.taskManager.tasks[0].completed).toBe(true);
+        expect(task2Spans[1].textContent).toBe("true");
+        expect(CuboMX.taskManager.tasks[1].completed).toBe(true);
+
+        // Toggle first task back
+        buttons[0].click();
+        expect(task1Spans[1].textContent).toBe("false");
+        expect(CuboMX.taskManager.tasks[0].completed).toBe(false);
+    });
+
     it("should allow $item to call component methods with item data", () => {
         document.body.innerHTML = `
             <div mx-data="shoppingCart">
