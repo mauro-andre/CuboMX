@@ -1,12 +1,9 @@
 import {
     MxElement,
     MxElProxy,
-    MxProxy,
     Reaction,
     ArrayItems,
-    ClassList,
 } from "./types";
-import { resolveReactions } from "./reactions";
 import {
     parseAttrToBind,
     getComponentNameAttr,

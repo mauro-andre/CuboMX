@@ -2,6 +2,7 @@ import { MxProxy, MxComponent, PublicAPI, MxElement } from "./types";
 import { createProxy } from "./proxy-component";
 import { resolveMXData } from "./mx-data";
 import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
+import { resolveMXOn } from "./mx-on";
 
 const CuboMX = (() => {
     let registeredComponents: Record<string, object | Function> = {};
@@ -44,6 +45,16 @@ const CuboMX = (() => {
         );
         for (const el of mxItem) {
             resolveMXItem(el, publicAPIProxy);
+        }
+
+        const mxOn = allElements.filter((el) =>
+            Array.from(el.attributes).some(
+                (attr) =>
+                    attr.name.startsWith("mx-on") || attr.name.startsWith("@")
+            )
+        );
+        for (const el of mxOn) {
+            resolveMXOn(el, publicAPIProxy);
         }
     };
 

@@ -85,7 +85,7 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
         return;
     }
 
-    const itemProxy = createProxy({}, el);
+    el.__itemProxy__ = createProxy({}, el) as MxElProxy;
 
     const allElementsInScope = [
         el,
@@ -103,10 +103,10 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
             const propName = component.componentAttr;
 
             const reaction = createReaction(element, attrToBind);
-            addReaction(itemProxy, propName, reaction);
+            addReaction(el.__itemProxy__, propName, reaction);
 
             const value = parseAttrValue(element, attrToBind);
-            assignValue(itemProxy, propName, value, modifier);
+            assignValue(el.__itemProxy__, propName, value, modifier);
         }
     }
 
@@ -115,9 +115,9 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
         !currentArray ||
         (Array.isArray(currentArray) && !("_hydrateAdd" in currentArray))
     ) {
-        proxy[componentAttr] = createArrayProxy([itemProxy]);
+        proxy[componentAttr] = createArrayProxy([el.__itemProxy__]);
     } else {
-        currentArray._hydrateAdd(itemProxy);
+        currentArray._hydrateAdd(el.__itemProxy__);
     }
 };
 

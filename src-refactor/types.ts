@@ -35,6 +35,7 @@ type ClassList = Array<string> & {
 interface MxElement extends HTMLElement {
     __doNotProcessNode__?: boolean;
     __mxProxy__?: MxElProxy;
+    __itemProxy__?: MxElProxy;
 }
 
 interface Reaction {
