@@ -1,6 +1,7 @@
 import { MxElement, PublicAPI, MxElProxy, MxProxy, Reaction } from "./types";
 
 const parseValue = (value: string | null): any => {
+    if (!value) return true; // cases where the attribute has no value
     const num = Number(value);
     const lowerValue = String(value).toLowerCase();
     if (!isNaN(num) && String(value).trim() !== "") {

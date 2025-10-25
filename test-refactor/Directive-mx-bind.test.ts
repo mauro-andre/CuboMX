@@ -243,6 +243,79 @@ describe("parseValue data types", () => {
     });
 });
 
+describe("parseValue attributes without value", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+        document.body.innerHTML = `
+            <div mx-data="emptyAttrs">
+                <div my-prop :my-prop="myProp"></div>
+                <input disabled :disabled="isDisabled" />
+                <button readonly :readonly="isReadonly"></button>
+            </div>
+        `;
+    });
+
+    afterEach(() => {});
+
+    it("should parse attributes without value as true", () => {
+        const emptyAttrs = {
+            myProp: null,
+            isDisabled: null,
+            isReadonly: null,
+        };
+
+        CuboMX.component("emptyAttrs", emptyAttrs);
+        CuboMX.start();
+
+        // Attributes without value should become true
+        expect(CuboMX.emptyAttrs.myProp).toBe(true);
+        expect(typeof CuboMX.emptyAttrs.myProp).toBe("boolean");
+
+        expect(CuboMX.emptyAttrs.isDisabled).toBe(true);
+        expect(typeof CuboMX.emptyAttrs.isDisabled).toBe("boolean");
+
+        expect(CuboMX.emptyAttrs.isReadonly).toBe(true);
+        expect(typeof CuboMX.emptyAttrs.isReadonly).toBe("boolean");
+    });
+});
+
+describe("parseValue attributes without value with class", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+        document.body.innerHTML = `
+            <div mx-data="emptyAttrs">
+                <div my-prop :my-prop="myProp"></div>
+                <input disabled :disabled="isDisabled" />
+                <button readonly :readonly="isReadonly"></button>
+            </div>
+        `;
+    });
+
+    afterEach(() => {});
+
+    it("should parse attributes without value as true with class instance", () => {
+        class EmptyAttrs extends MxComponent {
+            myProp = null;
+            isDisabled = null;
+            isReadonly = null;
+        }
+
+        const emptyAttrs = new EmptyAttrs();
+        CuboMX.component("emptyAttrs", emptyAttrs);
+        CuboMX.start();
+
+        // Attributes without value should become true
+        expect(CuboMX.emptyAttrs.myProp).toBe(true);
+        expect(typeof CuboMX.emptyAttrs.myProp).toBe("boolean");
+
+        expect(CuboMX.emptyAttrs.isDisabled).toBe(true);
+        expect(typeof CuboMX.emptyAttrs.isDisabled).toBe("boolean");
+
+        expect(CuboMX.emptyAttrs.isReadonly).toBe(true);
+        expect(typeof CuboMX.emptyAttrs.isReadonly).toBe("boolean");
+    });
+});
+
 describe("parseValue data types with class", () => {
     beforeEach(() => {
         CuboMX.reset();
