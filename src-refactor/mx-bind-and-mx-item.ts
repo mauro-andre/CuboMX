@@ -9,6 +9,7 @@ import {
     assignValue,
     createReaction,
     parseAttrValue,
+    twoWayBinding,
 } from "./hydration-helpers";
 
 const addReaction = (
@@ -59,6 +60,7 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
 
         const value = parseAttrValue(el, attrToBind);
         assignValue(proxy, componentAttr, value, modifier);
+        twoWayBinding(attrToBind, componentAttr, proxy as MxElProxy, el);
     }
 };
 
@@ -107,6 +109,7 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
 
             const value = parseAttrValue(element, attrToBind);
             assignValue(el.__itemProxy__, propName, value, modifier);
+            twoWayBinding(attrToBind, propName, el.__itemProxy__, element);
         }
     }
 

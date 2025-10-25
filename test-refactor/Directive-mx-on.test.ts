@@ -282,7 +282,7 @@ describe("Directive mx-on or @", () => {
         CuboMX.start();
 
         const button = document.querySelector("button")!;
-        const [pA, pB] = document.querySelectorAll("p");
+        const [pA, pB] = Array.from(document.querySelectorAll("p"));
 
         expect(pA.textContent).toBe("0");
         expect(pB.textContent).toBe("0");
@@ -326,12 +326,13 @@ describe("Directive mx-on or @", () => {
             </div>
         `;
 
-        let loggedItem: any = null;
+        // let loggedItem: any = null;
 
         const todoList = {
+            loggedItem: null,
             todos: [],
             logItem(item: any) {
-                loggedItem = item;
+                this.loggedItem = item;
             },
         };
 
@@ -342,16 +343,16 @@ describe("Directive mx-on or @", () => {
 
         // Click first button
         buttons[0].click();
-        expect(loggedItem).not.toBeNull();
-        expect(loggedItem.title).toBe("Task 1");
+        expect(CuboMX.todoList.loggedItem).not.toBeNull();
+        expect(CuboMX.todoList.loggedItem.title).toBe("Task 1");
 
         // Click second button
         buttons[1].click();
-        expect(loggedItem.title).toBe("Task 2");
+        expect(CuboMX.todoList.loggedItem.title).toBe("Task 2");
 
         // Click third button
         buttons[2].click();
-        expect(loggedItem.title).toBe("Task 3");
+        expect(CuboMX.todoList.loggedItem.title).toBe("Task 3");
     });
 
     it("should allow $item to modify its own properties", () => {

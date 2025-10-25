@@ -22,12 +22,16 @@ const attributeReaction = (reaction: ReactionHandler) => {
     const isHtmlInputElement = element instanceof HTMLInputElement;
     const hasValueProperty =
         element instanceof HTMLInputElement ||
-        element instanceof HTMLTextAreaElement;
+        element instanceof HTMLTextAreaElement ||
+        element instanceof HTMLSelectElement;
 
     if (attrName == "value" && hasValueProperty) {
-        (element as HTMLInputElement | HTMLTextAreaElement).value = String(
-            newValue ?? ""
-        );
+        (
+            element as
+                | HTMLInputElement
+                | HTMLTextAreaElement
+                | HTMLSelectElement
+        ).value = String(newValue ?? "");
     } else if (attrName === "checked" && isHtmlInputElement) {
         element.checked = Boolean(newValue);
     } else {

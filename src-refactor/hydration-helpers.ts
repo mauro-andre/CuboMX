@@ -69,6 +69,17 @@ const parseAttrValue = (el: MxElement, attrToBind: string) => {
                 ?.split(" ")
                 .filter((c) => c.trim() !== "") ?? []
         );
+    } else if (attrToBind == "value") {
+        if (
+            el instanceof HTMLInputElement ||
+            el instanceof HTMLTextAreaElement ||
+            el instanceof HTMLSelectElement
+        ) {
+            return el.value;
+        }
+        return parseValue(el.getAttribute(attrToBind));
+    } else if (attrToBind == "checked") {
+        return (el as any).checked;
     } else if (attrToBind == "text") {
         return parseValue(el.textContent?.trim() ?? "");
     } else if (attrToBind == "html") {
@@ -112,6 +123,23 @@ const createReaction = (el: MxElement, attrToBind: string): Reaction => {
     };
 };
 
+const twoWayBinding = (
+    attrToBind: string,
+    propName: string,
+    proxy: MxElProxy,
+    el: MxElement
+) => {
+    if (attrToBind === "value") {
+        el.addEventListener("input", () => {
+            proxy[propName] = (el as any).value;
+        });
+    } else if (attrToBind === "checked") {
+        el.addEventListener("change", () => {
+            proxy[propName] = (el as any).checked;
+        });
+    }
+};
+
 export {
     parseValue,
     parseAttrToBind,
@@ -120,4 +148,5 @@ export {
     parseAttrValue,
     assignValue,
     createReaction,
+    twoWayBinding,
 };
