@@ -1,9 +1,14 @@
 type MxProxy = Record<string, any> & {
-    $watch?: Function;
+    $watch?: <K extends string>(
+        property: K,
+        callback: (this: MxProxy, newValue: any, oldValue: any) => void
+    ) => void;
+    init?: (this: MxProxy) => void;
 };
 
 type MxElProxy = MxProxy & {
     $el: HTMLElement;
+    destroy?: (this: MxElProxy) => void;
 };
 
 type PublicAPI = {
@@ -53,9 +58,11 @@ interface Reaction {
 class MxComponent {
     $el!: HTMLElement;
     $watch!: <K extends keyof this>(
-        prop: string,
-        callback: (newValue: this[K], oldValue: this[K]) => void
+        prop: K,
+        callback: (this: this, newValue: this[K], oldValue: this[K]) => void
     ) => void;
+    init?(): void;
+    destroy?(): void;
 }
 
 export {

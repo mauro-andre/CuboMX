@@ -3,16 +3,39 @@ import { resolveReactions } from "./reactions";
 import { createClassListProxy } from "./proxy-class-list";
 
 const reactionsSymbol = Symbol("reactions");
+const watchersSymbol = Symbol("watchers");
+
+type WatchCallback = (newValue: any, oldValue: any) => void;
 
 const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
     obj[reactionsSymbol] = new Map<string, Reaction[]>();
+    obj[watchersSymbol] = new Map<string, WatchCallback[]>();
     const proxy = new Proxy(obj, {
         get(target, prop) {
             if (prop === "$el") {
                 return el;
             }
+
+            if (prop === "$watch") {
+                return (property: string, callback: WatchCallback) => {
+                    const watchers = target[watchersSymbol] as Map<
+                        string,
+                        WatchCallback[]
+                    >;
+
+                    if (!watchers.has(property)) {
+                        watchers.set(property, []);
+                    }
+                    watchers.get(property)!.push(callback);
+                };
+            }
+
             if (prop === reactionsSymbol) {
                 return target[reactionsSymbol];
+            }
+
+            if (prop === watchersSymbol) {
+                return target[watchersSymbol];
             }
             return target[prop];
         },
@@ -27,9 +50,13 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
 
                 if (typeof value === "string") {
                     // Aceita string e converte para array
-                    newClasses = value.split(" ").filter((c) => c.trim() !== "");
+                    newClasses = value
+                        .split(" ")
+                        .filter((c) => c.trim() !== "");
                 } else if (Array.isArray(value)) {
-                    newClasses = value.filter((c) => c && typeof c === "string" && c.trim() !== "");
+                    newClasses = value.filter(
+                        (c) => c && typeof c === "string" && c.trim() !== ""
+                    );
                 } else {
                     console.error(
                         `[CuboMX] ${String(
@@ -49,15 +76,24 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
                     Reaction[]
                 >;
                 const reactions = reactionMap.get(prop as string);
-                const hasClassReaction = reactions?.some((r) => r.type === "class");
+                const hasClassReaction = reactions?.some(
+                    (r) => r.type === "class"
+                );
 
-                if (hasClassReaction && (Array.isArray(value) || typeof value === "string")) {
+                if (
+                    hasClassReaction &&
+                    (Array.isArray(value) || typeof value === "string")
+                ) {
                     // Cria ClassListProxy
                     let classes: string[];
                     if (typeof value === "string") {
-                        classes = value.split(" ").filter((c) => c.trim() !== "");
+                        classes = value
+                            .split(" ")
+                            .filter((c) => c.trim() !== "");
                     } else {
-                        classes = value.filter((c) => c && typeof c === "string" && c.trim() !== "");
+                        classes = value.filter(
+                            (c) => c && typeof c === "string" && c.trim() !== ""
+                        );
                     }
 
                     target[prop] = createClassListProxy(
@@ -81,6 +117,20 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
                     resolveReactions(reaction, target[prop], oldValue);
                 }
             }
+
+            // Call watchers
+            const watchers = target[watchersSymbol] as Map<
+                string,
+                WatchCallback[]
+            >;
+            const watcherCallbacks = watchers.get(prop as string);
+
+            if (watcherCallbacks && watcherCallbacks.length > 0) {
+                for (const callback of watcherCallbacks) {
+                    callback.call(proxy, target[prop], oldValue);
+                }
+            }
+
             return true;
         },
     });
@@ -88,4 +138,4 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
     return proxy;
 };
 
-export { createProxy, reactionsSymbol };
+export { createProxy, reactionsSymbol, watchersSymbol };
