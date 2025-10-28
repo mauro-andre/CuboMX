@@ -1,5 +1,3 @@
-import { SwapBuilder } from "./swap";
-
 type MxProxy = Record<string, any> & {
     $watch?: Function;
 };
@@ -13,7 +11,11 @@ type PublicAPI = {
     start: () => void;
     component: (name: string, def: object | Function) => void;
     store: (name: string, def: object) => void;
-    swap: (html: string) => SwapBuilder;
+    swap: (
+        html: string,
+        swaps: Array<{ select?: string; target: string }>,
+        options?: { pushUrl: string; title: string }
+    ) => void;
     [key: string]: any;
 };
 

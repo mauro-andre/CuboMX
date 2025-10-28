@@ -1,79 +1,65 @@
 import { MxElement } from "./types";
 
 interface Selector {
-    el: MxElement;
+    cssSelector: string;
     mode: string;
 }
 
-class SwapBuilder {
-    private html: string;
-    private sourceSelector: Selector | null = null;
+const selectorMode = (selector: string): Selector => {
+    const sel = selector.split(":");
+    const cssSelector = sel[0];
+    const mode = sel[1] ?? "outerHTML";
+    return { cssSelector, mode };
+};
 
-    constructor(html: string) {
-        this.html = html;
-    }
+const swap = (
+    html: string,
+    swaps: Array<{ select?: string; target: string }>,
+    options?: { pushUrl: string; title: string }
+): void => {
+    const parser = new DOMParser();
 
-    select(
-        cssSelector: string,
-        mode: "innerHTML" | "outerHTML" = "outerHTML"
-    ): this {
-        const parser = new DOMParser();
-        const selectEl = parser
-            .parseFromString(this.html, "text/html")
-            .body.querySelector<MxElement>(cssSelector);
-
-        if (!selectEl) {
-            throw new Error(
-                `[CuboMX] Source element "${cssSelector}" not found in received HTML`
-            );
-        }
-
-        this.sourceSelector = { el: selectEl, mode: mode };
-        return this;
-    }
-
-    target(
-        cssSelector: string,
-        mode:
-            | "innerHTML"
-            | "outerHTML"
-            | "beforebegin"
-            | "afterbegin"
-            | "beforeend"
-            | "afterend" = "outerHTML"
-    ): this {
-        const targetEls = document.querySelectorAll<MxElement>(cssSelector);
+    for (const singleSwap of swaps) {
+        const target = selectorMode(singleSwap.target);
+        const targetEls = document.querySelectorAll<MxElement>(
+            target.cssSelector
+        );
 
         if (targetEls.length == 0) {
             console.error(
-                `[CuboMX] no elements found with css selector "${cssSelector}"`
+                `[CuboMX] no elements found in current DOM with css selector "${target.cssSelector}"`
             );
-            this.sourceSelector = null;
-            return this;
+            continue;
         }
 
-        if (!this.sourceSelector) {
-            const parser = new DOMParser();
-            const selectEl = parser.parseFromString(
-                this.html,
-                "text/html"
-            ).body;
-            this.sourceSelector = { el: selectEl, mode: "innerHTML" };
+        let select: Selector = { cssSelector: "body", mode: "innerHTML" };
+        let selectEl: MxElement | null = parser.parseFromString(
+            html,
+            "text/html"
+        ).body;
+        if (singleSwap.select) {
+            select = selectorMode(singleSwap.select);
+            selectEl = selectEl.querySelector<MxElement>(select.cssSelector);
+        }
+
+        if (!selectEl) {
+            console.error(
+                `[CuboMX] Source element "${select.cssSelector}" not found in received HTML`
+            );
+            continue;
         }
 
         for (const el of Array.from(targetEls)) {
             const fragment = document.createDocumentFragment();
-            if (this.sourceSelector.mode === "innerHTML") {
+            if (select.mode === "innerHTML") {
                 fragment.append(
-                    ...Array.from(
-                        this.sourceSelector.el.cloneNode(true).childNodes
-                    )
+                    ...Array.from(selectEl.cloneNode(true).childNodes)
                 );
             } else {
-                fragment.append(this.sourceSelector.el.cloneNode(true));
+                fragment.append(selectEl.cloneNode(true));
             }
 
-            switch (mode) {
+            switch (target.mode) {
                 case "innerHTML":
                     el.replaceChildren(fragment);
                     break;
@@ -94,10 +80,7 @@ class SwapBuilder {
                     break;
             }
         }
-
-        this.sourceSelector = null;
-        return this;
     }
-}
+};
 
-export { SwapBuilder };
+export { swap };

@@ -3,7 +3,7 @@ import { createProxy } from "./proxy-component";
 import { resolveMXData } from "./mx-data";
 import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 import { resolveMXOn } from "./mx-on";
-import { SwapBuilder } from "./swap";
+import { swap } from "./swap";
 
 const CuboMX = (() => {
     let registeredComponents: Record<string, object | Function> = {};
@@ -105,7 +105,7 @@ const CuboMX = (() => {
         registeredStores[name] = def;
     };
 
-    const swap = (html: string): SwapBuilder => new SwapBuilder(html);
+    // const swap = (html: string): SwapBuilder => new SwapBuilder(html);
 
     const publicAPI: PublicAPI = {
         reset,

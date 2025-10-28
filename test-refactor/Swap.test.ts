@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { CuboMX, MxComponent } from "../src-refactor/cubomx";
 
 describe("CuboMX.swap - Basic operations", () => {
@@ -14,7 +14,7 @@ describe("CuboMX.swap - Basic operations", () => {
 
         const htmlReceived = `<div id="container">New content</div>`;
 
-        CuboMX.swap(htmlReceived).target("#container", "outerHTML");
+        CuboMX.swap(htmlReceived, [{ target: "#container:outerHTML" }]);
 
         const container = document.querySelector("#container");
         expect(container?.textContent).toBe("New content");
@@ -25,9 +25,9 @@ describe("CuboMX.swap - Basic operations", () => {
 
         const htmlReceived = `<div id="widget">New widget</div>`;
 
-        CuboMX.swap(htmlReceived)
-            .select("#widget", "outerHTML")
-            .target("#widget", "outerHTML");
+        CuboMX.swap(htmlReceived, [
+            { select: "#widget:outerHTML", target: "#widget:outerHTML" },
+        ]);
 
         const widget = document.querySelector("#widget");
         expect(widget?.textContent).toBe("New widget");
@@ -41,9 +41,12 @@ describe("CuboMX.swap - Basic operations", () => {
 
         const htmlReceived = `<div id="new-content">Fresh content</div>`;
 
-        CuboMX.swap(htmlReceived)
-            .select("#new-content", "outerHTML")
-            .target("#target-area", "outerHTML");
+        CuboMX.swap(htmlReceived, [
+            {
+                select: "#new-content:outerHTML",
+                target: "#target-area:outerHTML",
+            },
+        ]);
 
         expect(document.querySelector("#target-area")).toBeNull();
         expect(document.querySelector("#new-content")?.textContent).toBe(
@@ -63,9 +66,9 @@ describe("CuboMX.swap - innerHTML vs outerHTML", () => {
 
         const htmlReceived = `<div id="source"><span>New content</span></div>`;
 
-        CuboMX.swap(htmlReceived)
-            .select("#source", "innerHTML")
-            .target("#container", "innerHTML");
+        CuboMX.swap(htmlReceived, [
+            { select: "#source:innerHTML", target: "#container:innerHTML" },
+        ]);
 
         const container = document.querySelector("#container");
         expect(container?.className).toBe("box"); // Container still exists
@@ -77,9 +80,12 @@ describe("CuboMX.swap - innerHTML vs outerHTML", () => {
 
         const htmlReceived = `<section id="new-container" class="card">New content</section>`;
 
-        CuboMX.swap(htmlReceived)
-            .select("#new-container", "outerHTML")
-            .target("#container", "outerHTML");
+        CuboMX.swap(htmlReceived, [
+            {
+                select: "#new-container:outerHTML",
+                target: "#container:outerHTML",
+            },
+        ]);
 
         expect(document.querySelector("#container")).toBeNull();
         expect(document.querySelector("#new-container")?.textContent).toBe(
@@ -95,9 +101,9 @@ describe("CuboMX.swap - innerHTML vs outerHTML", () => {
 
         const htmlReceived = `<div id="source"><strong>Bold text</strong></div>`;
 
-        CuboMX.swap(htmlReceived)
-            .select("#source", "outerHTML")
-            .target("#container", "innerHTML");
+        CuboMX.swap(htmlReceived, [
+            { select: "#source:outerHTML", target: "#container:innerHTML" },
+        ]);
 
         const container = document.querySelector("#container");
         expect(container?.innerHTML).toContain('<div id="source">');
@@ -121,7 +127,7 @@ describe("CuboMX.swap - Insertion modes", () => {
 
         const htmlReceived = `<li>Item 1</li>`;
 
-        CuboMX.swap(htmlReceived).target("#list", "afterbegin");
+        CuboMX.swap(htmlReceived, [{ target: "#list:afterbegin" }]);
 
         const list = document.querySelector("#list");
         const items = list?.querySelectorAll("li");
@@ -140,7 +146,7 @@ describe("CuboMX.swap - Insertion modes", () => {
 
         const htmlReceived = `<li>Item 3</li>`;
 
-        CuboMX.swap(htmlReceived).target("#list", "beforeend");
+        CuboMX.swap(htmlReceived, [{ target: "#list:beforeend" }]);
 
         const list = document.querySelector("#list");
         const items = list?.querySelectorAll("li");
@@ -158,7 +164,7 @@ describe("CuboMX.swap - Insertion modes", () => {
 
         const htmlReceived = `<h1>Main Title</h1>`;
 
-        CuboMX.swap(htmlReceived).target("#title", "beforebegin");
+        CuboMX.swap(htmlReceived, [{ target: "#title:beforebegin" }]);
 
         const container = document.querySelector("#container");
         const firstChild = container?.firstElementChild;
@@ -176,7 +182,7 @@ describe("CuboMX.swap - Insertion modes", () => {
 
         const htmlReceived = `<p>Second paragraph</p>`;
 
-        CuboMX.swap(htmlReceived).target("#first-paragraph", "afterend");
+        CuboMX.swap(htmlReceived, [{ target: "#first-paragraph:afterend" }]);
 
         const container = document.querySelector("#container");
         const paragraphs = container?.querySelectorAll("p");
@@ -204,13 +210,11 @@ describe("CuboMX.swap - Multiple operations", () => {
             <div id="new-footer">New Footer</div>
         `;
 
-        CuboMX.swap(htmlReceived)
-            .select("#new-header")
-            .target("#header", "outerHTML")
-            .select("#new-content")
-            .target("#content", "outerHTML")
-            .select("#new-footer")
-            .target("#footer", "outerHTML");
+        CuboMX.swap(htmlReceived, [
+            { select: "#new-header", target: "#header:outerHTML" },
+            { select: "#new-content", target: "#content:outerHTML" },
+            { select: "#new-footer", target: "#footer:outerHTML" },
+        ]);
 
         expect(document.querySelector("#new-header")?.textContent).toBe(
             "New Header"
@@ -236,11 +240,10 @@ describe("CuboMX.swap - Multiple operations", () => {
             <li class="notification">New alert</li>
         `;
 
-        CuboMX.swap(htmlReceived)
-            .select("#widget-content")
-            .target("#widget", "beforeend")
-            .select(".notification")
-            .target("#notifications", "beforeend");
+        CuboMX.swap(htmlReceived, [
+            { select: "#widget-content", target: "#widget:beforeend" },
+            { select: ".notification", target: "#notifications:beforeend" },
+        ]);
 
         const widget = document.querySelector("#widget");
         expect(widget?.querySelector("h2")).toBeTruthy();
@@ -266,7 +269,9 @@ describe("CuboMX.swap - Multiple targets (same selector)", () => {
 
         const htmlReceived = `<div class="card">Updated Card</div>`;
 
-        CuboMX.swap(htmlReceived).select(".card").target(".card", "outerHTML");
+        CuboMX.swap(htmlReceived, [
+            { select: ".card", target: ".card:outerHTML" },
+        ]);
 
         const cards = document.querySelectorAll(".card");
         expect(cards.length).toBe(3);
@@ -287,7 +292,7 @@ describe("CuboMX.swap - Multiple targets (same selector)", () => {
 
         const htmlReceived = `<li>New Item</li>`;
 
-        CuboMX.swap(htmlReceived).target(".list", "beforeend");
+        CuboMX.swap(htmlReceived, [{ target: ".list:beforeend" }]);
 
         const lists = document.querySelectorAll(".list");
         expect(lists[0].querySelectorAll("li").length).toBe(2);
@@ -305,40 +310,56 @@ describe("CuboMX.swap - Edge cases and errors", () => {
 
     it("should handle target not found gracefully", () => {
         document.body.innerHTML = `<div id="exists">Content</div>`;
-
         const htmlReceived = `<div id="new">New content</div>`;
 
-        // Should not throw
+        const consoleSpy = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+
         expect(() => {
-            CuboMX.swap(htmlReceived).select("#new").target("#does-not-exist");
+            CuboMX.swap(htmlReceived, [
+                { select: "#new", target: "#does-not-exist" },
+            ]);
         }).not.toThrow();
 
-        // Original content should remain
+        expect(consoleSpy).toHaveBeenCalledWith(
+            '[CuboMX] no elements found in current DOM with css selector "#does-not-exist"'
+        );
         expect(document.querySelector("#exists")?.textContent).toBe("Content");
+        consoleSpy.mockRestore();
     });
 
-    it("should throw error when source not found", () => {
+    it("should handle source not found gracefully", () => {
         document.body.innerHTML = `<div id="target">Original</div>`;
-
         const htmlReceived = `<div id="source">Content</div>`;
+        const consoleSpy = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
 
-        // Should throw error when select() doesn't find the source
+        // Should not throw, but log an error
         expect(() => {
-            CuboMX.swap(htmlReceived).select("#non-existent").target("#target");
-        }).toThrow(
+            CuboMX.swap(htmlReceived, [
+                { select: "#non-existent", target: "#target" },
+            ]);
+        }).not.toThrow();
+
+        expect(consoleSpy).toHaveBeenCalledWith(
             '[CuboMX] Source element "#non-existent" not found in received HTML'
         );
+        // Original content should remain
+        expect(document.querySelector("#target")?.textContent).toBe("Original");
+        consoleSpy.mockRestore();
     });
 
     it("should handle empty HTML", () => {
         document.body.innerHTML = `<div id="target">Content</div>`;
-
         const htmlReceived = ``;
 
-        // Should not throw
         expect(() => {
-            CuboMX.swap(htmlReceived).target("#target", "innerHTML");
+            CuboMX.swap(htmlReceived, [{ target: "#target:innerHTML" }]);
         }).not.toThrow();
+
+        expect(document.querySelector("#target")?.innerHTML).toBe("");
     });
 });
 
@@ -363,9 +384,9 @@ describe("CuboMX.swap - Complex HTML structures", () => {
             </div>
         `;
 
-        CuboMX.swap(htmlReceived)
-            .select(".level-1")
-            .target(".level-1", "outerHTML");
+        CuboMX.swap(htmlReceived, [
+            { select: ".level-1", target: ".level-1:outerHTML" },
+        ]);
 
         const level2 = document.querySelector(".level-2");
         expect(level2?.textContent).toBe("New content");
@@ -382,9 +403,9 @@ describe("CuboMX.swap - Complex HTML structures", () => {
 
         const htmlReceived = `<div id="new-content">New content</div>`;
 
-        CuboMX.swap(htmlReceived)
-            .select("#new-content")
-            .target("#replace-me", "outerHTML");
+        CuboMX.swap(htmlReceived, [
+            { select: "#new-content", target: "#replace-me:outerHTML" },
+        ]);
 
         expect(document.querySelector("#keep-me")?.textContent).toBe(
             "Keep this"
@@ -424,7 +445,7 @@ describe("CuboMX.swap - Integration with new components", () => {
         `;
 
         // 2. Act: Swap the new HTML into the container
-        CuboMX.swap(htmlReceived).target("#container", "innerHTML");
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }]);
 
         // Yield to the event loop to allow the MutationObserver to run
         await new Promise((resolve) => setTimeout(resolve, 0));
