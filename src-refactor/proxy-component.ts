@@ -118,7 +118,6 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
                 }
             }
 
-            // Call watchers
             const watchers = target[watchersSymbol] as Map<
                 string,
                 WatchCallback[]
