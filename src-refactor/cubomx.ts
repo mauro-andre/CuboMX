@@ -4,6 +4,7 @@ import { resolveMXData } from "./mx-data";
 import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 import { resolveMXOn } from "./mx-on";
 import { swap } from "./swap";
+import { restoreState } from "./history";
 
 const CuboMX = (() => {
     let registeredComponents: Record<string, object | Function> = {};
@@ -11,6 +12,8 @@ const CuboMX = (() => {
     let activeStoreProxies: Record<string, MxProxy> = {};
     let observer: MutationObserver | null = null;
     let publicAPIProxy: PublicAPI & Record<string, any>;
+    let popstateListener: ((this: Window, ev: PopStateEvent) => any) | null =
+        null;
 
     const reset = () => {
         registeredComponents = {};
@@ -19,6 +22,10 @@ const CuboMX = (() => {
         if (observer) {
             observer.disconnect();
             observer = null;
+        }
+        if (popstateListener) {
+            window.removeEventListener("popstate", popstateListener);
+            popstateListener = null;
         }
     };
 
@@ -95,6 +102,10 @@ const CuboMX = (() => {
             }
         });
         observer.observe(document.body, { childList: true, subtree: true });
+        popstateListener = (event: PopStateEvent) => {
+            restoreState(event.state);
+        };
+        window.addEventListener("popstate", popstateListener);
     };
 
     const component = (name: string, def: object | Function) => {

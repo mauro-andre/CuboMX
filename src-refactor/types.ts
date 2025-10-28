@@ -14,7 +14,7 @@ type PublicAPI = {
     swap: (
         html: string,
         swaps: Array<{ select?: string; target: string }>,
-        options?: { pushUrl: string; title: string }
+        options?: { pushUrl?: string; title?: string }
     ) => void;
     [key: string]: any;
 };

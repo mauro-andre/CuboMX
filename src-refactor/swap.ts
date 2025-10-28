@@ -1,8 +1,19 @@
 import { MxElement } from "./types";
+import { captureState } from "./history";
 
 interface Selector {
     cssSelector: string;
     mode: string;
+}
+
+interface Swap {
+    select?: string;
+    target: string;
+}
+
+interface Option {
+    pushUrl?: string;
+    title?: string;
 }
 
 const selectorMode = (selector: string): Selector => {
@@ -12,12 +23,25 @@ const selectorMode = (selector: string): Selector => {
     return { cssSelector, mode };
 };
 
-const swap = (
-    html: string,
-    swaps: Array<{ select?: string; target: string }>,
-    options?: { pushUrl: string; title: string }
-): void => {
+const swap = (html: string, swaps: Swap[], options?: Option): void => {
     const parser = new DOMParser();
+
+    const pushUrl = options?.pushUrl;
+    const targetSelectors = swaps.map(
+        (swap) => selectorMode(swap.target).cssSelector
+    );
+    const currentState = pushUrl ? captureState(targetSelectors) : null;
+
+    if (currentState) {
+        window.history.replaceState(
+            {
+                swaps: currentState,
+                title: document.title,
+            },
+            "",
+            window.location.href
+        );
+    }
 
     for (const singleSwap of swaps) {
         const target = selectorMode(singleSwap.target);
@@ -79,6 +103,15 @@ const swap = (
                     el.after(fragment);
                     break;
             }
+        }
+    }
+
+    const title = options?.title;
+    if (currentState) {
+        const newState = { swaps: [], title: title ?? document.title };
+        window.history.pushState(newState, title ?? document.title, pushUrl);
+        if (title) {
+            document.title = title;
         }
     }
 };
