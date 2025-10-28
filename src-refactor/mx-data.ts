@@ -4,7 +4,7 @@ import { MxElProxy, MxElement } from "./types";
 const resolveMXData = (
     el: MxElement,
     registeredComponents: Record<string, object | Function>
-) => {
+): MxElProxy | undefined => {
     let componentName = el.getAttribute("mx-data");
     const isFactory = componentName?.endsWith("()");
     if (isFactory && componentName) {
@@ -20,6 +20,7 @@ const resolveMXData = (
     let obj = isFactory ? (componentDef as Function)() : componentDef;
     const proxy = createProxy(obj, el) as MxElProxy;
     el.__mxProxy__ = proxy;
+    return el.__mxProxy__;
 };
 
 export { resolveMXData };

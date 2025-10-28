@@ -1,4 +1,4 @@
-import { MxProxy, MxComponent, PublicAPI, MxElement } from "./types";
+import { MxProxy, MxElProxy, MxComponent, PublicAPI, MxElement } from "./types";
 import { createProxy } from "./proxy-component";
 import { resolveMXData } from "./mx-data";
 import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
@@ -29,15 +29,17 @@ const CuboMX = (() => {
         }
     };
 
-    const bindDirectives = (node: MxElement) => {
+    const bindDirectives = (node: MxElement): MxElProxy[] => {
         const allElements = [
             node,
             ...Array.from(node.querySelectorAll<MxElement>("*")),
         ];
 
         const mxData = allElements.filter((el) => el.hasAttribute("mx-data"));
+        const proxies: MxElProxy[] = [];
         for (const el of mxData) {
-            resolveMXData(el, registeredComponents);
+            const proxy = resolveMXData(el, registeredComponents);
+            if (proxy) proxies.push(proxy);
         }
 
         const mxBind = allElements.filter((el) =>
@@ -67,16 +69,53 @@ const CuboMX = (() => {
         for (const el of mxOn) {
             resolveMXOn(el, publicAPIProxy);
         }
+
+        return proxies;
+    };
+
+    const processInit = (proxies: Array<MxElProxy | MxProxy>) => {
+        for (const proxy of proxies) {
+            if (typeof proxy.init === "function") {
+                proxy.init();
+            }
+        }
+    };
+
+    const processDestroy = (proxies: MxElProxy[]) => {
+        for (const proxy of proxies) {
+            if (typeof proxy.destroy === "function") {
+                proxy.destroy();
+            }
+        }
+    };
+
+    const resolveRemovedNode = (node: MxElement) => {
+        const mxData = [
+            node,
+            ...Array.from(node.querySelectorAll<MxElement>("[mx-data]")),
+        ];
+
+        const proxies: MxElProxy[] = [];
+        for (const el of mxData) {
+            const proxy = el.__mxProxy__;
+            if (proxy) proxies.push(proxy as MxElProxy);
+        }
+
+        processDestroy(proxies);
     };
 
     const resolveNode = (node: MxElement) => {
-        bindDirectives(node);
+        const proxies = bindDirectives(node);
+        processInit(proxies);
     };
 
     const resolveStores = () => {
+        const proxies: MxProxy[] = [];
         for (const [name, obj] of Object.entries(registeredStores)) {
             activeStoreProxies[name] = createProxy(obj, null) as MxProxy;
+            proxies.push(activeStoreProxies[name]);
         }
+        processInit(proxies);
     };
 
     const start = () => {
@@ -95,6 +134,7 @@ const CuboMX = (() => {
 
                 for (const node of Array.from(mutation.removedNodes)) {
                     if (node.nodeType === 1) {
+                        resolveRemovedNode(node as MxElement);
                         // Node.ELEMENT_NODE
                         // console.log("REMOVE NODE")
                     }
