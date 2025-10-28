@@ -3,6 +3,7 @@ import { createProxy } from "./proxy-component";
 import { resolveMXData } from "./mx-data";
 import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 import { resolveMXOn } from "./mx-on";
+import { SwapBuilder } from "./swap";
 
 const CuboMX = (() => {
     let registeredComponents: Record<string, object | Function> = {};
@@ -22,7 +23,10 @@ const CuboMX = (() => {
     };
 
     const bindDirectives = (node: MxElement) => {
-        const allElements = Array.from(node.querySelectorAll<MxElement>("*"));
+        const allElements = [
+            node,
+            ...Array.from(node.querySelectorAll<MxElement>("*")),
+        ];
 
         const mxData = allElements.filter((el) => el.hasAttribute("mx-data"));
         for (const el of mxData) {
@@ -101,11 +105,14 @@ const CuboMX = (() => {
         registeredStores[name] = def;
     };
 
+    const swap = (html: string): SwapBuilder => new SwapBuilder(html);
+
     const publicAPI: PublicAPI = {
         reset,
         start,
         component,
         store,
+        swap,
     };
 
     publicAPIProxy = new Proxy(publicAPI, {
