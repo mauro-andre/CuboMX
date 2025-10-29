@@ -63,11 +63,13 @@ interface MxElement extends HTMLElement {
     __doNotProcessNode__?: boolean;
     __mxProxy__?: MxElProxy;
     __itemProxy__?: MxElProxy;
+    __mx_transition_timeout__?: ReturnType<typeof setTimeout>;
+    __mx_transition_handler__?: (event: TransitionEvent) => void;
 }
 
 interface Reaction {
     element: MxElement;
-    type: "text" | "html" | "attribute" | "class" | "item";
+    type: "text" | "html" | "attribute" | "class" | "item" | "mx-show";
     attrName?: string;
     template?: string;
 }

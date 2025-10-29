@@ -1,6 +1,6 @@
 import { MxElement, MxElProxy, MxProxy } from "./types";
-import { PublicAPI, Reaction } from "./types";
-import { reactionsSymbol, createProxy } from "./proxy-component";
+import { PublicAPI } from "./types";
+import { createProxy } from "./proxy-component";
 import { createArrayProxy } from "./proxy-array-item";
 import {
     parseAttrToBind,
@@ -8,26 +8,10 @@ import {
     getProxyInfo,
     assignValue,
     createReaction,
+    addReaction,
     parseAttrValue,
     twoWayBinding,
 } from "./hydration-helpers";
-
-const addReaction = (
-    proxy: MxElProxy | MxProxy,
-    propName: string,
-    reaction: Reaction
-) => {
-    const reactionMap = proxy[reactionsSymbol as any] as Map<
-        string,
-        Reaction[]
-    >;
-
-    if (!reactionMap.has(propName)) {
-        reactionMap.set(propName, []);
-    }
-
-    reactionMap.get(propName)?.push(reaction);
-};
 
 const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
     el.__doNotProcessNode__ = true;

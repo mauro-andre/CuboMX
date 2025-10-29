@@ -11,6 +11,7 @@ import { createProxy } from "./proxy-component";
 import { resolveMXData } from "./mx-data";
 import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 import { resolveMXOn } from "./mx-on";
+import { resolveMXShow } from "./mx-show";
 import { swap } from "./swap";
 import { restoreState } from "./history";
 import { request } from "./request";
@@ -77,6 +78,15 @@ const CuboMX = (() => {
         );
         for (const el of mxOn) {
             resolveMXOn(el, publicAPIProxy);
+        }
+
+        const mxShow = allElements.filter((el) =>
+            Array.from(el.attributes).some((attr) =>
+                attr.name.startsWith("mx-show")
+            )
+        );
+        for (const el of mxShow) {
+            resolveMXShow(el, publicAPIProxy);
         }
 
         return proxies;
@@ -164,8 +174,6 @@ const CuboMX = (() => {
     const store = (name: string, def: object) => {
         registeredStores[name] = def;
     };
-
-    // const swap = (html: string): SwapBuilder => new SwapBuilder(html);
 
     const publicAPI: PublicAPI = {
         reset,

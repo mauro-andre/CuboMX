@@ -1,4 +1,5 @@
 import { MxElement, PublicAPI, MxElProxy, MxProxy, Reaction } from "./types";
+import { reactionsSymbol } from "./proxy-component";
 
 const parseValue = (value: string | null): any => {
     if (!value) return true; // cases where the attribute has no value
@@ -109,7 +110,8 @@ const createReaction = (el: MxElement, attrToBind: string): Reaction => {
         attrName:
             attrToBind === "text" ||
             attrToBind === "html" ||
-            attrToBind === "class"
+            attrToBind === "class" ||
+            attrToBind === "mx-show"
                 ? undefined
                 : attrToBind,
         type:
@@ -119,8 +121,27 @@ const createReaction = (el: MxElement, attrToBind: string): Reaction => {
                 ? "html"
                 : attrToBind === "class"
                 ? "class"
+                : attrToBind === "mx-show"
+                ? "mx-show"
                 : "attribute",
     };
+};
+
+const addReaction = (
+    proxy: MxElProxy | MxProxy,
+    propName: string,
+    reaction: Reaction
+) => {
+    const reactionMap = proxy[reactionsSymbol as any] as Map<
+        string,
+        Reaction[]
+    >;
+
+    if (!reactionMap.has(propName)) {
+        reactionMap.set(propName, []);
+    }
+
+    reactionMap.get(propName)?.push(reaction);
 };
 
 const twoWayBinding = (
@@ -148,5 +169,6 @@ export {
     parseAttrValue,
     assignValue,
     createReaction,
+    addReaction,
     twoWayBinding,
 };

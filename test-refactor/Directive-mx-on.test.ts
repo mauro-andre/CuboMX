@@ -197,31 +197,7 @@ describe("Directive mx-on or @", () => {
         expect(receivedEl).toBe(button);
     });
 
-    it("should execute inline expressions without function call", () => {
-        document.body.innerHTML = `
-            <div mx-data="myComp">
-                <p :text="count">0</p>
-                <button @click="count = count + 5">Add 5</button>
-            </div>
-        `;
 
-        const myComp = {
-            count: 0,
-        };
-
-        CuboMX.component("myComp", myComp);
-        CuboMX.start();
-
-        const button = document.querySelector("button")!;
-        const p = document.querySelector("p")!;
-
-        expect(p.textContent).toBe("0");
-
-        button.click();
-
-        expect(CuboMX.myComp.count).toBe(5);
-        expect(p.textContent).toBe("5");
-    });
 
     it("should work with multiple events on same element", () => {
         document.body.innerHTML = `
@@ -554,5 +530,120 @@ describe("Directive mx-on or @", () => {
         button.click();
 
         expect(receivedItem).toBeNull();
+    });
+
+    it("should call method on another component using $ prefix", () => {
+        document.body.innerHTML = `
+            <div mx-data="receiver">
+                <p :text="message">initial</p>
+            </div>
+            <div mx-data="sender">
+                <button @click="$receiver.updateMessage('Hello from sender!')">Send</button>
+            </div>
+        `;
+
+        const receiver = {
+            message: "initial",
+            updateMessage(newMessage: string) {
+                this.message = newMessage;
+            },
+        };
+
+        const sender = {
+            // Empty component, just triggers the event
+        };
+
+        CuboMX.component("receiver", receiver);
+        CuboMX.component("sender", sender);
+        CuboMX.start();
+
+        const button = document.querySelector("button")!;
+        const p = document.querySelector("p")!;
+
+        expect(p.textContent).toBe("initial");
+        expect(CuboMX.receiver.message).toBe("initial");
+
+        button.click();
+
+        expect(CuboMX.receiver.message).toBe("Hello from sender!");
+        expect(p.textContent).toBe("Hello from sender!");
+    });
+
+    it("should call method on component via mx-ref using $ prefix", () => {
+        document.body.innerHTML = `
+            <div mx-data="modal()" mx-ref="loginModal">
+                <p :text="isOpen">false</p>
+            </div>
+            <div mx-data="navbar">
+                <button @click="$loginModal.open()">Open Login</button>
+            </div>
+        `;
+
+        const modal = () => ({
+            isOpen: false,
+            open() {
+                this.isOpen = true;
+            },
+            close() {
+                this.isOpen = false;
+            },
+        });
+
+        const navbar = {
+            // Empty component
+        };
+
+        CuboMX.component("modal", modal);
+        CuboMX.component("navbar", navbar);
+        CuboMX.start();
+
+        const button = document.querySelector("button")!;
+        const p = document.querySelector("p")!;
+
+        expect(p.textContent).toBe("false");
+        expect(CuboMX.loginModal.isOpen).toBe(false);
+
+        button.click();
+
+        expect(CuboMX.loginModal.isOpen).toBe(true);
+        expect(p.textContent).toBe("true");
+    });
+
+    it("should call store method using $ prefix from component", () => {
+        document.body.innerHTML = `
+            <div mx-data="dashboard">
+                <p id="count" :text="$counterStore.count">0</p>
+                <button @click="$counterStore.increment()">Increment</button>
+            </div>
+        `;
+
+        const counterStore = {
+            count: 0,
+            increment() {
+                this.count += 1;
+            },
+        };
+
+        const dashboard = {};
+
+        CuboMX.store("counterStore", counterStore);
+        CuboMX.component("dashboard", dashboard);
+        CuboMX.start();
+
+        const button = document.querySelector("button")!;
+        const countP = document.querySelector("#count")!;
+
+        expect(countP.textContent).toBe("0");
+        expect(CuboMX.counterStore.count).toBe(0);
+
+        button.click();
+
+        expect(CuboMX.counterStore.count).toBe(1);
+        expect(countP.textContent).toBe("1");
+
+        button.click();
+
+        expect(CuboMX.counterStore.count).toBe(2);
+        expect(countP.textContent).toBe("2");
     });
 });

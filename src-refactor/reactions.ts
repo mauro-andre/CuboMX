@@ -1,4 +1,5 @@
 import { Reaction } from "./types";
+import { transition } from "./transition";
 
 interface ReactionHandler extends Reaction {
     newValue: any;
@@ -50,11 +51,31 @@ const classReaction = (reaction: ReactionHandler) => {
     }
 };
 
+const showReaction = (reaction: ReactionHandler) => {
+    const { element, newValue } = reaction;
+    const state = !!newValue; // Ensure boolean
+
+    const transitionName = element.getAttribute("mx-transition");
+
+    if (!transitionName) {
+        // No transition, just toggle display
+        element.style.display = state ? "" : "none";
+    } else {
+        // With transition
+        if (state) {
+            transition(element, transitionName, "enter");
+        } else {
+            transition(element, transitionName, "leave");
+        }
+    }
+};
+
 const reactionsTypeMap = new Map<string, (reaction: ReactionHandler) => void>([
     ["text", (reaction: ReactionHandler) => textReaction(reaction)],
     ["html", (reaction: ReactionHandler) => htmlReaction(reaction)],
     ["attribute", (reaction: ReactionHandler) => attributeReaction(reaction)],
     ["class", (reaction: ReactionHandler) => classReaction(reaction)],
+    ["mx-show", (reaction: ReactionHandler) => showReaction(reaction)], // Add mx-show reaction
 ]);
 
 const resolveReactions = (reaction: Reaction, newValue: any, oldValue: any) => {
