@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CuboMX } from "../src-refactor/cubomx";
 
 beforeEach(() => {
@@ -412,5 +412,35 @@ describe("mx-item Reactivity - Edge Cases", () => {
 
         item.isActive = true;
         expect(document.querySelector("#boolean")?.textContent).toBe("true");
+    });
+
+    it("should prevent direct assignment to ArrayItems", () => {
+        const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        CuboMX.component("list", {
+            items: [],
+        });
+
+        document.body.innerHTML = `
+            <div mx-data="list">
+                <div mx-item="items" ::text="name">Item 1</div>
+            </div>
+        `;
+        CuboMX.start();
+
+        // Try to replace the ArrayItems directly
+        (CuboMX as any).list.items = [{ name: "New" }];
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            expect.stringContaining(
+                "Cannot set property \"items\": it is an ArrayItems created by mx-item directive"
+            )
+        );
+
+        // The original array should not be replaced
+        expect((CuboMX as any).list.items.length).toBe(1);
+        expect((CuboMX as any).list.items[0].name).toBe("Item 1");
+
+        consoleErrorSpy.mockRestore();
     });
 });

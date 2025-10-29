@@ -1,10 +1,19 @@
-import { MxProxy, MxElProxy, MxComponent, PublicAPI, MxElement } from "./types";
+import {
+    MxProxy,
+    MxElProxy,
+    MxComponent,
+    PublicAPI,
+    MxElement,
+    ArrayItems,
+    ClassList,
+} from "./types";
 import { createProxy } from "./proxy-component";
 import { resolveMXData } from "./mx-data";
 import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 import { resolveMXOn } from "./mx-on";
 import { swap } from "./swap";
 import { restoreState } from "./history";
+import { request } from "./request";
 
 const CuboMX = (() => {
     let registeredComponents: Record<string, object | Function> = {};
@@ -164,6 +173,7 @@ const CuboMX = (() => {
         component,
         store,
         swap,
+        request,
     };
 
     publicAPIProxy = new Proxy(publicAPI, {
@@ -184,4 +194,5 @@ const CuboMX = (() => {
     return publicAPIProxy;
 })();
 
-export { CuboMX, MxElement, MxComponent };
+// Export developer-friendly types with clean names
+export { CuboMX, MxComponent, ArrayItems, ClassList };

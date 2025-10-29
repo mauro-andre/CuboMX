@@ -11,17 +11,15 @@ type MxElProxy = MxProxy & {
     destroy?: (this: MxElProxy) => void;
 };
 
-type PublicAPI = {
-    reset: () => void;
-    start: () => void;
-    component: (name: string, def: object | Function) => void;
-    store: (name: string, def: object) => void;
-    swap: (
-        html: string,
-        swaps: Array<{ select?: string; target: string }>,
-        options?: { pushUrl?: string; title?: string }
-    ) => void;
-    [key: string]: any;
+type RequestResponse = {
+    ok: boolean;
+    status: number;
+    statusText: string;
+    headers: Headers;
+    url: string;
+    redirected: boolean;
+    text: string;
+    json: any | null;
 };
 
 type ArrayItems<T = any> = Array<MxElProxy> & {
@@ -40,6 +38,25 @@ type ClassList = Array<string> & {
     toggle(className: string, force?: boolean): boolean;
     contains(className: string): boolean;
     replace(oldClass: string, newClass: string): boolean;
+};
+
+type PublicAPI = {
+    reset: () => void;
+    start: () => void;
+    component: (name: string, def: object | Function) => void;
+    store: (name: string, def: object) => void;
+    swap: (
+        html: string,
+        swaps: Array<{ select?: string; target: string }>,
+        options?: { pushUrl?: string; title?: string }
+    ) => void;
+    request: (config: {
+        url: string;
+        method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+        body?: Record<string, any> | FormData | null;
+        headers?: Record<string, string>;
+    }) => Promise<RequestResponse>;
+    [key: string]: any;
 };
 
 interface MxElement extends HTMLElement {
@@ -74,4 +91,5 @@ export {
     Reaction,
     ArrayItems,
     ClassList,
+    RequestResponse,
 };

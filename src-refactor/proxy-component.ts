@@ -43,6 +43,17 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
         set(target, prop, value) {
             const oldValue = target[prop];
 
+            // Verifica se já existe um ArrayItems proxy
+            if (Array.isArray(oldValue) && "_hydrateAdd" in oldValue) {
+                // is ArrayItems - não pode ser substituído diretamente
+                console.error(
+                    `[CuboMX] Cannot set property "${String(
+                        prop
+                    )}": it is an ArrayItems created by mx-item directive. Use .add(), .delete(), .clear() instead.`
+                );
+                return true; // Retorna true mas não faz a atribuição
+            }
+
             // Verifica se já existe um ClassListProxy
             if (Array.isArray(oldValue) && "toggle" in oldValue) {
                 // is ClassListProxy
