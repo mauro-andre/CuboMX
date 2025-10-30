@@ -1,3 +1,0 @@
-class MxComponent {
-}
-export { MxComponent };

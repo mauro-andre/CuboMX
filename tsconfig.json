@@ -16,7 +16,8 @@
     "baseUrl": ".",
     "paths": {
       "cubomx": ["./src/cubomx.ts"]
-    }
+    },
+    "noEmit": true,
   },
   "include": [
     "src/**/*",
