@@ -1,0 +1,3 @@
+class MxComponent {
+}
+export { MxComponent };
