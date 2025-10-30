@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { CuboMX } from "../src-refactor/cubomx";
+import { CuboMX } from "../src/cubomx";
 
 // Helper para simular o evento popstate
 const simulatePopstate = (state: any | null) => {

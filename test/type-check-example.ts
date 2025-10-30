@@ -1,12 +1,7 @@
 // This file only exists to check TypeScript typings
 // It is not executed as a test - only compiled to check types
 
-import {
-    CuboMX,
-    MxComponent,
-    ArrayItems,
-    ClassList,
-} from "../src-refactor/cubomx";
+import { CuboMX, MxComponent, ArrayItems, ClassList } from "../src/cubomx";
 
 // Example 1: TypeScript Class with ArrayItems and ClassList
 class MyComponent extends MxComponent {
@@ -67,4 +62,3 @@ const literalComponent = {
 
 // CuboMX will register and hydrate this normally
 CuboMX.component("literalComponent", literalComponent);
-

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { CuboMX, MxComponent } from "../src-refactor/cubomx";
+import { CuboMX, MxComponent } from "../src/cubomx";
 
 describe("CuboMX.swap - Basic operations", () => {
     beforeEach(() => {

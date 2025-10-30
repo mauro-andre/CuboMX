@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { CuboMX, MxComponent } from "../src-refactor/cubomx";
+import { CuboMX, MxComponent } from "../src/cubomx";
 
 describe("Two-way binding for input[type=text] with value", () => {
     beforeEach(() => {
@@ -86,7 +86,9 @@ describe("Two-way binding for textarea with value", () => {
         CuboMX.component("formData", formData);
         CuboMX.start();
 
-        const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
+        const textarea = document.querySelector(
+            "textarea"
+        ) as HTMLTextAreaElement;
         textarea.value = "Updated description";
         textarea.dispatchEvent(new Event("input", { bubbles: true }));
 
@@ -101,7 +103,9 @@ describe("Two-way binding for textarea with value", () => {
         CuboMX.component("formData", formData);
         CuboMX.start();
 
-        const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
+        const textarea = document.querySelector(
+            "textarea"
+        ) as HTMLTextAreaElement;
 
         CuboMX.formData.description = "Programmatic description";
 
@@ -140,7 +144,9 @@ describe("Two-way binding for checkbox with checked - initially checked", () => 
         CuboMX.component("formData", formData);
         CuboMX.start();
 
-        const checkbox = document.querySelector("input[type=checkbox]") as HTMLInputElement;
+        const checkbox = document.querySelector(
+            "input[type=checkbox]"
+        ) as HTMLInputElement;
         checkbox.checked = false;
         checkbox.dispatchEvent(new Event("change", { bubbles: true }));
 
@@ -155,7 +161,9 @@ describe("Two-way binding for checkbox with checked - initially checked", () => 
         CuboMX.component("formData", formData);
         CuboMX.start();
 
-        const checkbox = document.querySelector("input[type=checkbox]") as HTMLInputElement;
+        const checkbox = document.querySelector(
+            "input[type=checkbox]"
+        ) as HTMLInputElement;
 
         CuboMX.formData.isSubscribed = false;
         expect(checkbox.checked).toBe(false);
@@ -196,7 +204,9 @@ describe("Two-way binding for checkbox with checked - initially unchecked", () =
         CuboMX.component("formData", formData);
         CuboMX.start();
 
-        const checkbox = document.querySelector("input[type=checkbox]") as HTMLInputElement;
+        const checkbox = document.querySelector(
+            "input[type=checkbox]"
+        ) as HTMLInputElement;
         checkbox.checked = true;
         checkbox.dispatchEvent(new Event("change", { bubbles: true }));
 
@@ -211,7 +221,9 @@ describe("Two-way binding for checkbox with checked - initially unchecked", () =
         CuboMX.component("formData", formData);
         CuboMX.start();
 
-        const checkbox = document.querySelector("input[type=checkbox]") as HTMLInputElement;
+        const checkbox = document.querySelector(
+            "input[type=checkbox]"
+        ) as HTMLInputElement;
 
         CuboMX.formData.acceptTerms = true;
         expect(checkbox.checked).toBe(true);
@@ -269,7 +281,9 @@ describe("Two-way binding for radio buttons with mx-item", () => {
         CuboMX.component("formData", formData);
         CuboMX.start();
 
-        const radios = Array.from(document.querySelectorAll("input[type=radio]")) as HTMLInputElement[];
+        const radios = Array.from(
+            document.querySelectorAll("input[type=radio]")
+        ) as HTMLInputElement[];
 
         // Select the first radio (red)
         radios[0].checked = true;
@@ -286,7 +300,9 @@ describe("Two-way binding for radio buttons with mx-item", () => {
         CuboMX.component("formData", formData);
         CuboMX.start();
 
-        const radios = Array.from(document.querySelectorAll("input[type=radio]")) as HTMLInputElement[];
+        const radios = Array.from(
+            document.querySelectorAll("input[type=radio]")
+        ) as HTMLInputElement[];
 
         // Programmatically select the green option
         CuboMX.formData.options[2].isSelected = true;
@@ -391,9 +407,15 @@ describe("Two-way binding with MxComponent class", () => {
         expect(CuboMX.userForm.bio).toBe("Software developer");
 
         // Test DOM → State
-        const input = document.querySelector("input[type=text]") as HTMLInputElement;
-        const checkbox = document.querySelector("input[type=checkbox]") as HTMLInputElement;
-        const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
+        const input = document.querySelector(
+            "input[type=text]"
+        ) as HTMLInputElement;
+        const checkbox = document.querySelector(
+            "input[type=checkbox]"
+        ) as HTMLInputElement;
+        const textarea = document.querySelector(
+            "textarea"
+        ) as HTMLTextAreaElement;
 
         input.value = "Jane Smith";
         input.dispatchEvent(new Event("input", { bubbles: true }));

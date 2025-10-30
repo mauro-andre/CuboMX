@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { CuboMX } from "../src-refactor/cubomx";
+import { CuboMX } from "../src/cubomx";
 
 beforeEach(() => {
     CuboMX.reset();
@@ -415,7 +415,9 @@ describe("mx-item Reactivity - Edge Cases", () => {
     });
 
     it("should prevent direct assignment to ArrayItems", () => {
-        const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        const consoleErrorSpy = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
 
         CuboMX.component("list", {
             items: [],
@@ -433,7 +435,7 @@ describe("mx-item Reactivity - Edge Cases", () => {
 
         expect(consoleErrorSpy).toHaveBeenCalledWith(
             expect.stringContaining(
-                "Cannot set property \"items\": it is an ArrayItems created by mx-item directive"
+                'Cannot set property "items": it is an ArrayItems created by mx-item directive'
             )
         );
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { CuboMX } from "../src-refactor/cubomx";
+import { CuboMX } from "../src/cubomx";
 
 describe("Directive mx-data singletons", () => {
     beforeEach(() => {

@@ -203,4 +203,5 @@ const CuboMX = (() => {
 })();
 
 // Export developer-friendly types with clean names
-export { CuboMX, MxComponent, ArrayItems, ClassList };
+export { CuboMX, MxComponent };
+export type { ArrayItems, ClassList };

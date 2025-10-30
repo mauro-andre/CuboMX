@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { CuboMX } from "../src-refactor/cubomx";
+import { CuboMX } from "../src/cubomx";
 
 describe("Lifecycle Hooks - init and destroy", () => {
     beforeEach(() => {

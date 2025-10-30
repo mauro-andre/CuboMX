@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { CuboMX, MxComponent } from "../src-refactor/cubomx";
+import { CuboMX, MxComponent } from "../src/cubomx";
 
 describe("Directive mx-bind singletons hydration", () => {
     beforeEach(() => {

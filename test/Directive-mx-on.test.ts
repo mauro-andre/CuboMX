@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { CuboMX, MxComponent } from "../src-refactor/cubomx";
+import { CuboMX, MxComponent } from "../src/cubomx";
 
 describe("Directive mx-on or @", () => {
     beforeEach(() => {
@@ -196,8 +196,6 @@ describe("Directive mx-on or @", () => {
         expect(receivedEvent!.type).toBe("click");
         expect(receivedEl).toBe(button);
     });
-
-
 
     it("should work with multiple events on same element", () => {
         document.body.innerHTML = `

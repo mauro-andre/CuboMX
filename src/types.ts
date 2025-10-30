@@ -91,7 +91,7 @@ export {
     PublicAPI,
     MxElement,
     Reaction,
-    ArrayItems,
-    ClassList,
     RequestResponse,
+    ArrayItems,
+    ClassList
 };
