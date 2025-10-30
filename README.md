@@ -606,6 +606,193 @@ The `mx-ref` directive solves this by giving a unique, global name to a specific
 
 You must declare an `mx-ref` if you ever need to interact with a specific factory instance from the global scope.
 
+### SPA-Like Navigation with `mx-link`
+
+The `mx-link` directive enables SPA-style (Single Page Application) navigation by intercepting link clicks and performing AJAX-based content swaps instead of full page reloads. This provides a faster, smoother user experience while maintaining the benefits of server-rendered HTML.
+
+**Basic Usage:**
+
+```html
+<a href="/about.html" mx-link>About</a>
+```
+
+When clicked, this link will:
+1. Prevent the default browser navigation
+2. Fetch the content from `/about.html` via AJAX
+3. Swap the response into the `body` (default target)
+4. Update the browser history and URL
+
+#### Controlling the Target
+
+Use `mx-target` to specify where the fetched content should be inserted. The format is `selector:mode`, where mode controls how the swap happens.
+
+```html
+<!-- Replace the innerHTML of #main-content -->
+<a href="/dashboard.html" mx-link mx-target="#main-content:innerHTML">Dashboard</a>
+
+<!-- Replace the entire #page element -->
+<a href="/profile.html" mx-link mx-target="#page:outerHTML">Profile</a>
+
+<!-- Append to the end of #notifications -->
+<a href="/notification.html" mx-link mx-target="#notifications:beforeend">Load More</a>
+```
+
+**Available Swap Modes:**
+- `:innerHTML` - Replace the content inside the target element
+- `:outerHTML` - Replace the entire target element (default)
+- `:beforebegin` - Insert before the target element
+- `:afterbegin` - Insert as the first child of the target
+- `:beforeend` - Insert as the last child of the target
+- `:afterend` - Insert after the target element
+
+#### Selecting Specific Content
+
+Use `mx-select` to extract only a specific part of the fetched HTML response.
+
+```html
+<!-- Fetch /page.html but only use the content inside #article -->
+<a
+    href="/page.html"
+    mx-link
+    mx-select="#article"
+    mx-target="#main:innerHTML">
+    Read Article
+</a>
+```
+
+This is extremely useful when your server returns a full HTML page but you only want to swap a portion of it into your current page.
+
+#### Setting the Page Title
+
+Use `mx-title` to update the document title during navigation.
+
+```html
+<a
+    href="/contact.html"
+    mx-link
+    mx-title="Contact Us - My App">
+    Contact
+</a>
+```
+
+When clicked, this will update `document.title` to "Contact Us - My App" and push this title to the browser history.
+
+#### Loading Cached Content from Components
+
+Instead of fetching from the server, you can load pre-cached HTML from a component property by giving `mx-link` a value.
+
+```html
+<div mx-data="pageCache">
+    <!-- Load HTML from the component's 'aboutPage' property -->
+    <a
+        href="/about.html"
+        mx-link="aboutPage"
+        mx-target="#main:innerHTML">
+        About (Cached)
+    </a>
+</div>
+```
+
+```javascript
+CuboMX.component("pageCache", {
+    aboutPage: "<div><h1>About Us</h1><p>We are awesome!</p></div>",
+});
+```
+
+This is useful for instant navigation to frequently accessed pages without any network delay.
+
+#### Loading from Global Stores
+
+You can also reference content stored in a global store using the `$` prefix.
+
+```html
+<div mx-data="navigation">
+    <a
+        href="/terms.html"
+        mx-link="$contentStore.termsPage"
+        mx-target="#main:innerHTML">
+        Terms of Service
+    </a>
+</div>
+```
+
+```javascript
+CuboMX.store("contentStore", {
+    termsPage: "<div>Terms and Conditions...</div>",
+    privacyPage: "<div>Privacy Policy...</div>",
+});
+
+CuboMX.component("navigation", {});
+```
+
+#### Combining Options
+
+All options can be combined for precise control over navigation behavior:
+
+```html
+<a
+    href="/products.html"
+    mx-link
+    mx-select="#product-list"
+    mx-target="#main:innerHTML"
+    mx-title="Our Products">
+    View Products
+</a>
+```
+
+#### How It Works with History
+
+When using `mx-link`, CuboMX automatically:
+1. Captures the current state of the target elements before swapping
+2. Pushes the new URL to the browser history using `history.pushState()`
+3. Restores the previous content when the user clicks the back button
+
+This creates a seamless SPA-like experience where the browser's back and forward buttons work exactly as users expect, without requiring additional server requests.
+
+#### Error Handling
+
+If a fetch request fails, `mx-link` will:
+- Log a descriptive error to the console
+- Preserve the current page content unchanged
+- Not update the URL or history
+
+```html
+<a href="/broken-link.html" mx-link>This Link</a>
+<!-- If the request fails, the page stays unchanged and an error is logged -->
+```
+
+#### Complete Example: Multi-Section Navigation
+
+```html
+<div mx-data="app">
+    <nav>
+        <a href="/" mx-link mx-title="Home">Home</a>
+        <a
+            href="/about.html"
+            mx-link
+            mx-select="#content"
+            mx-target="#main:innerHTML"
+            mx-title="About Us">
+            About
+        </a>
+        <a
+            href="/contact.html"
+            mx-link
+            mx-select="#content"
+            mx-target="#main:innerHTML"
+            mx-title="Contact">
+            Contact
+        </a>
+    </nav>
+
+    <main id="main">
+        <!-- Content will be swapped here -->
+    </main>
+</div>
+```
+
+This navigation setup creates a smooth, SPA-like experience where only the main content area is updated on each click, while the navigation remains in place.
+
 ## Scopes
 
 CuboMX has a two-tier scope system that is simple but powerful. Understanding it is key to managing your application's state.

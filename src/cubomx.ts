@@ -12,6 +12,7 @@ import { resolveMXData } from "./mx-data";
 import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 import { resolveMXOn } from "./mx-on";
 import { resolveMXShow } from "./mx-show";
+import { resolveMXLink } from "./mx-link";
 import { swap } from "./swap";
 import { restoreState } from "./history";
 import { request } from "./request";
@@ -87,6 +88,15 @@ const CuboMX = (() => {
         );
         for (const el of mxShow) {
             resolveMXShow(el, publicAPIProxy);
+        }
+
+        const mxLink = allElements.filter((el) =>
+            Array.from(el.attributes).some((attr) =>
+                attr.name.startsWith("mx-link")
+            )
+        );
+        for (const el of mxLink) {
+            resolveMXLink(el, publicAPIProxy);
         }
 
         return proxies;
