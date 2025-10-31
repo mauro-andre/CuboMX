@@ -9,11 +9,12 @@ import {
 
 import { createProxy, reactionsSymbol } from "./proxy-component";
 
-const hydrateItemProxy = (item: any, templateElement: MxElement): MxElProxy => {
+const hydrateItemProxy = (item: any, templateElement: MxElement): MxElement => {
     const clonedElement = templateElement.cloneNode(true) as MxElement;
-    clonedElement.__doNotProcessNode__ = true;
+    clonedElement.__mxItemProcessed__ = true;
 
     const itemProxy = createProxy(item, clonedElement) as MxElProxy;
+    clonedElement.__itemProxy__ = itemProxy;
 
     const allElementsInScope = [
         clonedElement,
@@ -21,7 +22,6 @@ const hydrateItemProxy = (item: any, templateElement: MxElement): MxElProxy => {
     ];
 
     for (const element of allElementsInScope) {
-        element.__doNotProcessNode__ = true;
         for (const attr of Array.from(element.attributes)) {
             const parsed = parseAttrToBind(attr, ["mx-item:", "::"]);
             if (!parsed) continue;
@@ -31,20 +31,19 @@ const hydrateItemProxy = (item: any, templateElement: MxElement): MxElProxy => {
             const propName = component.componentAttr;
 
             const reaction = createReaction(element, attrToBind);
-            const reactionMap = itemProxy[reactionsSymbol as any] as Map<
-                string,
-                Reaction[]
-            >;
+            const reactionMap = clonedElement.__itemProxy__[
+                reactionsSymbol as any
+            ] as Map<string, Reaction[]>;
             if (!reactionMap.has(propName)) {
                 reactionMap.set(propName, []);
             }
             reactionMap.get(propName)?.push(reaction);
 
             const value = item[propName] ?? parseAttrValue(element, attrToBind);
-            assignValue(itemProxy, propName, value, modifier);
+            assignValue(clonedElement.__itemProxy__, propName, value, modifier);
         }
     }
-    return itemProxy;
+    return clonedElement;
 };
 
 const createArrayProxy = <T = any>(
@@ -57,6 +56,11 @@ const createArrayProxy = <T = any>(
         : arr.length > 0 && arr[0].$el
         ? (arr[0].$el.cloneNode(true) as MxElement)
         : null;
+
+    // Mark template so clones will inherit the flag
+    if (templateElement) {
+        templateElement.__mxItemProcessed__ = true;
+    }
 
     let parentElement: MxElement | null =
         arr.length > 0 && arr[0].$el ? arr[0].$el.parentElement : null;
@@ -84,6 +88,7 @@ const createArrayProxy = <T = any>(
             if (prop === "_setTemplate") {
                 return (template: MxElement): void => {
                     templateElement = template.cloneNode(true) as MxElement;
+                    templateElement.__mxItemProcessed__ = true;
                 };
             }
 
@@ -121,16 +126,16 @@ const createArrayProxy = <T = any>(
                         );
                     }
 
-                    const itemProxy = hydrateItemProxy(
+                    const clonedElement = hydrateItemProxy(
                         item,
                         templateElement as MxElement
                     );
 
-                    parentElement.appendChild(itemProxy.$el);
+                    parentElement.appendChild(clonedElement);
 
-                    target.push(itemProxy);
+                    target.push(clonedElement.__itemProxy__);
 
-                    return itemProxy;
+                    return clonedElement.__itemProxy__ as MxElProxy;
                 };
             }
 
@@ -148,16 +153,16 @@ const createArrayProxy = <T = any>(
                         );
                     }
 
-                    const itemProxy = hydrateItemProxy(
+                    const clonedElement = hydrateItemProxy(
                         item,
                         templateElement as MxElement
                     );
 
-                    parentElement.prepend(itemProxy.$el);
+                    parentElement.prepend(clonedElement);
 
-                    target.unshift(itemProxy);
+                    target.unshift(clonedElement.__itemProxy__);
 
-                    return itemProxy;
+                    return clonedElement.__itemProxy__ as MxElProxy;
                 };
             }
 
@@ -228,20 +233,20 @@ const createArrayProxy = <T = any>(
                     }
 
                     const oldItemProxy = target[index] as MxElProxy;
-                    const newItemProxy = hydrateItemProxy(
+                    const clonedElement = hydrateItemProxy(
                         item,
                         templateElement
-                    ) as MxElProxy;
+                    );
 
                     oldItemProxy.$el.parentElement?.insertBefore(
-                        newItemProxy.$el,
+                        clonedElement,
                         oldItemProxy.$el
                     );
 
                     oldItemProxy.$el.remove();
-                    target[index] = newItemProxy;
+                    target[index] = clonedElement.__itemProxy__;
 
-                    return newItemProxy;
+                    return clonedElement.__itemProxy__ as MxElProxy;
                 };
             }
 

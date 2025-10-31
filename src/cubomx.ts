@@ -157,9 +157,6 @@ const CuboMX = (() => {
             for (const mutation of mutations) {
                 for (const node of Array.from(mutation.addedNodes)) {
                     if (node.nodeType === 1) {
-                        if ((node as MxElement).__doNotProcessNode__) {
-                            continue;
-                        }
                         const componentProxies = resolveNode(node as MxElement);
                         processInit(componentProxies);
                     }

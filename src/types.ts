@@ -63,9 +63,9 @@ type PublicAPI = {
 };
 
 interface MxElement extends HTMLElement {
-    __doNotProcessNode__?: boolean;
     __mxProxy__?: MxElProxy;
     __itemProxy__?: MxElProxy;
+    __mxItemProcessed__?: boolean;
     __mx_transition_timeout__?: ReturnType<typeof setTimeout>;
     __mx_transition_handler__?: (event: TransitionEvent) => void;
 }

@@ -14,8 +14,6 @@ import {
 } from "./hydration-helpers";
 
 const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
-    el.__doNotProcessNode__ = true;
-
     for (const attr of Array.from(el.attributes)) {
         const parsed = parseAttrToBind(attr, ["mx-bind:", ":"]);
         if (!parsed) continue;
@@ -49,7 +47,9 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
 };
 
 const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
-    el.__doNotProcessNode__ = true;
+    // Skip if this element was already processed as mx-item
+    if (el.__mxItemProcessed__) return;
+
     const mainAttr = el.getAttributeNode("mx-item");
     if (!mainAttr) return;
     const { proxy, componentName, componentAttr } = getProxyInfo(
@@ -115,7 +115,6 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
     ];
 
     for (const element of allElementsInScope) {
-        element.__doNotProcessNode__ = true;
         for (const attr of Array.from(element.attributes)) {
             const parsed = parseAttrToBind(attr, ["mx-item:", "::"]);
             if (!parsed) continue;
