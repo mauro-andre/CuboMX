@@ -71,6 +71,42 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
         return;
     }
 
+    // If this is a <template> element, use it as template definition
+    if (el.tagName.toLowerCase() === "template") {
+        const templateContent = (el as HTMLTemplateElement).content;
+        const templateElement =
+            templateContent.firstElementChild as MxElement | null;
+
+        if (!templateElement) {
+            console.error(
+                `[CuboMX] mx-item template is empty: template must contain at least one child element`
+            );
+            return;
+        }
+
+        // Get parent element (the container where items will be inserted)
+        const parentElement = el.parentElement as MxElement;
+
+        // Initialize array with template info
+        const currentArray = proxy[componentAttr];
+        if (
+            !currentArray ||
+            (Array.isArray(currentArray) && !("_hydrateAdd" in currentArray))
+        ) {
+            const arrayProxy = createArrayProxy([], templateElement);
+            arrayProxy._setParent?.(parentElement);
+            proxy[componentAttr] = arrayProxy;
+        } else {
+            // Update existing array with template
+            currentArray._setTemplate?.(templateElement);
+            currentArray._setParent?.(parentElement);
+        }
+
+        // Remove the template element from DOM as it's just a definition
+        el.remove();
+        return;
+    }
+
     el.__itemProxy__ = createProxy({}, el) as MxElProxy;
 
     const allElementsInScope = [

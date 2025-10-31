@@ -310,7 +310,11 @@ console.log(CuboMX.cart.items);
 
 When you call a method like `items.add(newItemObject)`, you might wonder how CuboMX knows what HTML to generate for the new list item.
 
-This is handled by a simple yet powerful templating mechanism. CuboMX automatically uses the **first element marked with `mx-item`** in your list as a template.
+This is handled by a simple yet powerful templating mechanism. CuboMX supports two ways to define templates:
+
+##### 1. Implicit Template (First Item)
+
+CuboMX automatically uses the **first element marked with `mx-item`** in your list as a template.
 
 Here's the process:
 
@@ -320,6 +324,60 @@ Here's the process:
 4.  Finally, it appends the newly created and fully reactive element to the DOM.
 
 This means you can design a complex and richly styled list item directly in your server-rendered HTML, and CuboMX will seamlessly replicate that structure for any items you add dynamically on the client side.
+
+##### 2. Explicit Template (Using `<template>`)
+
+For containers that start **empty** (like a notifications list or alerts container), you can define an explicit template using the HTML `<template>` element with the `mx-item` directive.
+
+**HTML:**
+
+```html
+<div mx-data="alerts">
+    <div id="alert-container">
+        <!-- Define the template for items -->
+        <template mx-item="alerts">
+            <div class="alert" ::type="type" ::text="message"></div>
+        </template>
+        <!-- Container starts empty, ready to receive alerts -->
+    </div>
+</div>
+```
+
+**JavaScript:**
+
+```javascript
+CuboMX.component("alerts", {
+    alerts: [], // Starts empty
+});
+CuboMX.start();
+
+// Now you can add alerts dynamically
+CuboMX.alerts.alerts.add({
+    type: "success",
+    message: "Operation completed!",
+});
+
+CuboMX.alerts.alerts.add({
+    type: "error",
+    message: "Something went wrong!",
+});
+```
+
+**How It Works:**
+
+1.  The `<template>` element is processed during initialization but removed from the DOM.
+2.  Its first child element is saved internally as the template for all future items.
+3.  When you call `.add()`, CuboMX clones this template and hydrates it with your data.
+4.  The new element is inserted into the parent container (where the `<template>` was located).
+
+**Benefits of Explicit Templates:**
+
+-   Perfect for **dynamic lists** that start empty (notifications, logs, search results, etc.)
+-   Clean HTML structure with no placeholder items
+-   Template definition is clear and intentional
+-   Works seamlessly with existing items if you have both a `<template>` and server-rendered items
+
+**Note:** If you provide both a `<template>` and existing `mx-item` elements, the `<template>` takes precedence and will be used for all new items added via `.add()`, `.prepend()`, or `.replace()`.
 
 ### A Note on Special Proxy Objects
 

@@ -1,9 +1,4 @@
-import {
-    MxElement,
-    MxElProxy,
-    Reaction,
-    ArrayItems,
-} from "./types";
+import { MxElement, MxElProxy, Reaction, ArrayItems } from "./types";
 import {
     parseAttrToBind,
     getComponentNameAttr,
@@ -52,11 +47,16 @@ const hydrateItemProxy = (item: any, templateElement: MxElement): MxElProxy => {
     return itemProxy;
 };
 
-const createArrayProxy = <T = any>(arr: Array<any>): ArrayItems<T> => {
-    let templateElement: MxElement | null =
-        arr.length > 0 && arr[0].$el
-            ? (arr[0].$el.cloneNode(true) as MxElement)
-            : null;
+const createArrayProxy = <T = any>(
+    arr: Array<any>,
+    initialTemplate?: MxElement
+): ArrayItems<T> => {
+    // Priority: 1. Explicit template, 2. First item's element
+    let templateElement: MxElement | null = initialTemplate
+        ? (initialTemplate.cloneNode(true) as MxElement)
+        : arr.length > 0 && arr[0].$el
+        ? (arr[0].$el.cloneNode(true) as MxElement)
+        : null;
 
     let parentElement: MxElement | null =
         arr.length > 0 && arr[0].$el ? arr[0].$el.parentElement : null;
@@ -72,13 +72,27 @@ const createArrayProxy = <T = any>(arr: Array<any>): ArrayItems<T> => {
                 prop === "shift" ||
                 prop === "clear" ||
                 prop === "replace" ||
-                prop === "_hydrateAdd"
+                prop === "_hydrateAdd" ||
+                prop === "_setTemplate" ||
+                prop === "_setParent"
             ) {
                 return true;
             }
             return prop in target;
         },
         get(target, prop) {
+            if (prop === "_setTemplate") {
+                return (template: MxElement): void => {
+                    templateElement = template.cloneNode(true) as MxElement;
+                };
+            }
+
+            if (prop === "_setParent") {
+                return (parent: MxElement): void => {
+                    parentElement = parent;
+                };
+            }
+
             if (prop === "_hydrateAdd") {
                 return (itemProxy: MxElProxy): void => {
                     if (!templateElement && itemProxy.$el) {

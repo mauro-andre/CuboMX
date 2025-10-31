@@ -30,6 +30,9 @@ type ArrayItems<T = any> = Array<MxElProxy> & {
     shift(): void;
     clear(): void;
     replace(index: number, item: T): MxElProxy;
+    _hydrateAdd?: (itemProxy: MxElProxy) => void;
+    _setTemplate?: (template: MxElement) => void;
+    _setParent?: (parent: MxElement) => void;
 };
 
 type ClassList = Array<string> & {
