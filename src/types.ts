@@ -22,10 +22,11 @@ type RequestResponse = {
     json: any | null;
 };
 
-type ArrayItems<T = any> = Array<MxElProxy> & {
+type ArrayItems<T> = Array<MxElProxy> & {
     add(item: T): MxElProxy;
     prepend(item: T): MxElProxy;
     delete(index: number): void;
+    remove(item: T): void;
     pop(): void;
     shift(): void;
     clear(): void;
@@ -96,5 +97,5 @@ export {
     Reaction,
     RequestResponse,
     ArrayItems,
-    ClassList
+    ClassList,
 };

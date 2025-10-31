@@ -72,6 +72,7 @@ const createArrayProxy = <T = any>(
                 prop === "prepend" ||
                 prop === "unshift" ||
                 prop === "delete" ||
+                prop === "remove" ||
                 prop === "pop" ||
                 prop === "shift" ||
                 prop === "clear" ||
@@ -178,6 +179,19 @@ const createArrayProxy = <T = any>(
                     const itemProxy = target[index];
                     itemProxy.$el.remove();
                     target.splice(index, 1);
+                };
+            }
+
+            if (prop === "remove") {
+                return (item: MxElProxy): void => {
+                    const index = target.indexOf(item);
+                    if (index === -1) {
+                        console.error(
+                            `[CuboMX] Cannot remove item: item not found in array`
+                        );
+                        return;
+                    }
+                    (proxy as any).delete(index);
                 };
             }
 

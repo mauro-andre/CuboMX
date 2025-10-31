@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { CuboMX } from "../src/cubomx";
+import { CuboMX, ArrayItems } from "../src/cubomx";
 
 describe("Dynamic items with events", () => {
     beforeEach(() => {
@@ -37,7 +37,7 @@ describe("Dynamic items with events", () => {
         CuboMX.myComponent.items.add({ title: "Second Item" });
 
         // Wait for MutationObserver to process
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         // Get the buttons
         const buttons = document.querySelectorAll(".item-btn");
@@ -87,7 +87,7 @@ describe("Dynamic items with events", () => {
         CuboMX.myComponent.items.add({ title: "Task 2", completed: false });
 
         // Wait for MutationObserver to process
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         const buttons = document.querySelectorAll(".toggle-btn");
         const statuses = document.querySelectorAll(".completed-status");
@@ -110,5 +110,65 @@ describe("Dynamic items with events", () => {
         expect(statuses[0].textContent).toBe("true");
         expect(statuses[1].textContent).toBe("true");
         expect(CuboMX.myComponent.items[1].completed).toBe(true);
+    });
+
+    it("should remove items using .remove(item) method", async () => {
+        document.body.innerHTML = `
+            <div mx-data="myComponent">
+                <div id="container">
+                    <template mx-item="items">
+                        <div mx-item="items" class="item">
+                            <span ::text="title">Title</span>
+                            <button class="remove-btn" @click="removeItem($item)">Remove</button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        `;
+
+        interface Item {
+            title: string;
+        }
+
+        const myComponent: {
+            items: ArrayItems<Item>;
+            removeItem: (item: any) => void;
+        } = {
+            items: [] as any,
+            removeItem(item: any) {
+                this.items.remove(item);
+            },
+        };
+
+        CuboMX.component("myComponent", myComponent);
+        CuboMX.start();
+
+        // Add items
+        CuboMX.myComponent.items.add({ title: "Item 1" });
+        CuboMX.myComponent.items.add({ title: "Item 2" });
+        CuboMX.myComponent.items.add({ title: "Item 3" });
+
+        // Wait for MutationObserver
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(CuboMX.myComponent.items.length).toBe(3);
+        expect(document.querySelectorAll(".item").length).toBe(3);
+
+        // Click remove button on second item
+        const buttons = document.querySelectorAll(".remove-btn");
+        (buttons[1] as HTMLButtonElement).click();
+
+        expect(CuboMX.myComponent.items.length).toBe(2);
+        expect(document.querySelectorAll(".item").length).toBe(2);
+        expect(CuboMX.myComponent.items[0].title).toBe("Item 1");
+        expect(CuboMX.myComponent.items[1].title).toBe("Item 3");
+
+        // Click remove button on first item
+        const updatedButtons = document.querySelectorAll(".remove-btn");
+        (updatedButtons[0] as HTMLButtonElement).click();
+
+        expect(CuboMX.myComponent.items.length).toBe(1);
+        expect(document.querySelectorAll(".item").length).toBe(1);
+        expect(CuboMX.myComponent.items[0].title).toBe("Item 3");
     });
 });
