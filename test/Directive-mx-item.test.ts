@@ -269,3 +269,90 @@ describe("Directive mx-item with Template Definition", () => {
         expect(container?.children.length).toBe(2);
     });
 });
+
+describe("Directive ::el for element reference in mx-item", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+    });
+
+    it("should hydrate element references within mx-item", () => {
+        document.body.innerHTML = `
+            <div mx-data="cards">
+                <div class="card-container">
+                    <div mx-item="items" ::id="id" id="1" ::el="element">
+                        <h3 ::text="title">Card Title 1</h3>
+                        <p ::text="description">Description 1</p>
+                    </div>
+                    <div mx-item="items" ::id="id" id="2" ::el="element">
+                        <h3 ::text="title">Card Title 2</h3>
+                        <p ::text="description">Description 2</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const cards = {
+            items: [],
+        };
+
+        CuboMX.component("cards", cards);
+        CuboMX.start();
+
+        const items = CuboMX.cards.items;
+
+        // Check if elements were hydrated for each item
+        expect(items.length).toBe(2);
+        expect(items[0].element).toBeInstanceOf(HTMLElement);
+        expect(items[1].element).toBeInstanceOf(HTMLElement);
+
+        // Check if we have access to the DOM elements
+        expect(items[0].element.classList.contains("card-container")).toBe(false);
+        expect(items[0].element.querySelector("h3")?.textContent).toBe("Card Title 1");
+        expect(items[1].element.querySelector("h3")?.textContent).toBe("Card Title 2");
+
+        // Check other properties were also hydrated
+        expect(items[0].id).toBe(1);
+        expect(items[0].title).toBe("Card Title 1");
+        expect(items[1].id).toBe(2);
+        expect(items[1].title).toBe("Card Title 2");
+    });
+
+    it("should work with template and dynamically added items", () => {
+        document.body.innerHTML = `
+            <div mx-data="widgets">
+                <div id="widget-container">
+                    <template mx-item="widgets">
+                        <div class="widget" ::name="name" ::el="element">
+                            <span ::text="label"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        `;
+
+        const widgetsComp = {
+            widgets: [],
+        };
+
+        CuboMX.component("widgets", widgetsComp);
+        CuboMX.start();
+
+        const widgets = CuboMX.widgets.widgets;
+
+        // Add a widget dynamically
+        widgets.add({ name: "widget-1", label: "First Widget" });
+
+        expect(widgets.length).toBe(1);
+        expect(widgets[0].element).toBeInstanceOf(HTMLElement);
+        expect(widgets[0].element.classList.contains("widget")).toBe(true);
+        expect(widgets[0].element.getAttribute("name")).toBe("widget-1");
+        expect(widgets[0].element.querySelector("span")?.textContent).toBe("First Widget");
+
+        // Add another widget
+        widgets.add({ name: "widget-2", label: "Second Widget" });
+
+        expect(widgets.length).toBe(2);
+        expect(widgets[1].element).toBeInstanceOf(HTMLElement);
+        expect(widgets[1].element.getAttribute("name")).toBe("widget-2");
+    });
+});

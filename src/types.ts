@@ -73,7 +73,7 @@ interface MxElement extends HTMLElement {
 
 interface Reaction {
     element: MxElement;
-    type: "text" | "html" | "attribute" | "class" | "item" | "mx-show";
+    type: "text" | "html" | "attribute" | "class" | "item" | "mx-show" | "none";
     attrName?: string;
     template?: string;
 }
