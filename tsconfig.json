@@ -11,12 +11,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "noEmit": true,
+    "declaration": true,
     "types": ["vitest/globals", "node"],
     "baseUrl": ".",
     "paths": {
-      "cubomx": ["./src/cubomx.d.ts"]
-    }
+      "cubomx": ["./src/cubomx.ts"]
+    },
+    "noEmit": true,
   },
   "include": [
     "src/**/*",

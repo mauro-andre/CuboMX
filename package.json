@@ -1,52 +1,53 @@
 {
-  "name": "cubomx",
-  "version": "0.0.1",
-  "description": "A lightweight JavaScript library for building reactive web interfaces.",
-  "type": "module",
-  "main": "./dist/cubomx.umd.cjs",
-  "module": "./dist/cubomx.js",
-  "types": "./dist/cubomx.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/cubomx.js",
-      "require": "./dist/cubomx.umd.cjs"
+    "name": "cubomx",
+    "version": "0.0.1",
+    "description": "A lightweight JavaScript library for building reactive web interfaces.",
+    "type": "module",
+    "main": "./dist/cubomx.umd.cjs",
+    "module": "./dist/cubomx.js",
+    "types": "./dist/cubomx.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/cubomx.js",
+            "require": "./dist/cubomx.umd.cjs"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "vite build",
+        "prepublishOnly": "npm run build",
+        "test": "vitest run test/",
+        "dev": "vite build --watch"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/mauro-andre/CuboMX.git"
+    },
+    "keywords": [
+        "reactive",
+        "frontend",
+        "javascript",
+        "library",
+        "htmx",
+        "alpinejs"
+    ],
+    "author": "Mauro Andre",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/mauro-andre/CuboMX/issues"
+    },
+    "homepage": "https://github.com/mauro-andre/CuboMX#readme",
+    "devDependencies": {
+        "@types/node": "^24.8.1",
+        "jsdom": "^26.1.0",
+        "typescript": "^5.9.3",
+        "vite": "^7.1.5",
+        "vite-plugin-dts": "^4.5.4",
+        "vitest": "^3.2.4"
+    },
+    "dependencies": {
+        "morphdom": "^2.7.7"
     }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "vite build",
-    "prepublishOnly": "npm run build",
-    "test": "vitest",
-    "dev": "vite build --watch"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mauro-andre/CuboMX.git"
-  },
-  "keywords": [
-    "reactive",
-    "frontend",
-    "javascript",
-    "library",
-    "htmx",
-    "alpinejs"
-  ],
-  "author": "Mauro Andre",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/mauro-andre/CuboMX/issues"
-  },
-  "homepage": "https://github.com/mauro-andre/CuboMX#readme",
-  "devDependencies": {
-    "@types/node": "^24.8.1",
-    "jsdom": "^26.1.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.1.5",
-    "vitest": "^3.2.4"
-  },
-  "dependencies": {
-    "morphdom": "^2.7.7"
-  }
 }
