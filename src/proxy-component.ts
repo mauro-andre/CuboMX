@@ -7,6 +7,30 @@ const watchersSymbol = Symbol("watchers");
 
 type WatchCallback = (newValue: any, oldValue: any) => void;
 
+/**
+ * Cria um ClassListProxy se o valor for string ou array
+ * Retorna o ClassListProxy criado ou o valor original se não for aplicável
+ */
+const ensureClassListProxy = (
+    value: any,
+    proxy: MxElProxy | MxProxy,
+    propName: string
+): any => {
+    if (Array.isArray(value) || typeof value === "string") {
+        let classes: string[];
+        if (typeof value === "string") {
+            classes = value.split(" ").filter((c) => c.trim() !== "");
+        } else {
+            classes = value.filter(
+                (c) => c && typeof c === "string" && c.trim() !== ""
+            );
+        }
+
+        return createClassListProxy(classes, proxy, propName);
+    }
+    return value;
+};
+
 const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
     obj[reactionsSymbol] = new Map<string, Reaction[]>();
     obj[watchersSymbol] = new Map<string, WatchCallback[]>();
@@ -91,24 +115,9 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
                     (r) => r.type === "class"
                 );
 
-                if (
-                    hasClassReaction &&
-                    (Array.isArray(value) || typeof value === "string")
-                ) {
-                    // Cria ClassListProxy
-                    let classes: string[];
-                    if (typeof value === "string") {
-                        classes = value
-                            .split(" ")
-                            .filter((c) => c.trim() !== "");
-                    } else {
-                        classes = value.filter(
-                            (c) => c && typeof c === "string" && c.trim() !== ""
-                        );
-                    }
-
-                    target[prop] = createClassListProxy(
-                        classes,
+                if (hasClassReaction) {
+                    target[prop] = ensureClassListProxy(
+                        value,
                         proxy,
                         prop as string
                     );
@@ -148,4 +157,4 @@ const createProxy = (obj: any, el: MxElement | null): MxElProxy | MxProxy => {
     return proxy;
 };
 
-export { createProxy, reactionsSymbol, watchersSymbol };
+export { createProxy, reactionsSymbol, watchersSymbol, ensureClassListProxy };

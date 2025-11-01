@@ -1,5 +1,5 @@
 import { MxElement, PublicAPI, MxElProxy, MxProxy, Reaction } from "./types";
-import { reactionsSymbol } from "./proxy-component";
+import { reactionsSymbol, ensureClassListProxy } from "./proxy-component";
 
 const parseValue = (value: string | null): any => {
     if (!value) return true; // cases where the attribute has no value
@@ -94,13 +94,23 @@ const assignValue = (
     obj: any,
     attrToAssign: string,
     valueToAssign: any,
-    modifier: string | undefined | null
+    modifier: string | undefined | null,
+    reactionType?: string
 ) => {
     if (modifier) {
         modifier = modifier.toLowerCase();
         console.error(`[CuboMX] The bind modifier "${modifier}" is unknown`);
     } else {
-        obj[attrToAssign] = valueToAssign;
+        // Se a reação for do tipo "class", cria ClassListProxy antes de atribuir
+        if (reactionType === "class") {
+            obj[attrToAssign] = ensureClassListProxy(
+                valueToAssign,
+                obj,
+                attrToAssign
+            );
+        } else {
+            obj[attrToAssign] = valueToAssign;
+        }
     }
 };
 

@@ -247,4 +247,77 @@ describe("Cross-Component Communication", () => {
         expect((CuboMX as any).compA.value).toBe(777);
         expect((CuboMX as any).compB.value).toBe(777);
     });
+
+    it("should bind to external component property using $componentName in nested component", () => {
+        document.body.innerHTML = `
+            <div mx-data="externalComp">
+                <div mx-data="internalComp">
+                    <input id="test-input" type="text" :value="$externalComp.externalAttr" value="Value from DOM" />
+                </div>
+            </div>
+        `;
+
+        const externalComp = {
+            externalAttr: null,
+        };
+
+        const internalComp = {
+            internalAttr: null,
+        };
+
+        CuboMX.component("externalComp", externalComp);
+        CuboMX.component("internalComp", internalComp);
+        CuboMX.start();
+
+        // Check if the value from DOM was hydrated to external component
+        expect(CuboMX.externalComp).toBeDefined();
+        expect(CuboMX.internalComp).toBeDefined();
+
+        // The input value should hydrate to externalComp.externalAttr
+        // because :value="$externalComp.externalAttr" points to the external component
+        expect(CuboMX.externalComp.externalAttr).toBe("Value from DOM");
+    });
+
+    it("should bind html with internal mx-data", () => {
+        document.body.innerHTML = `
+            <div mx-data="externalComp">
+                <div :html="template">
+                    <div mx-data="internalComp">
+                        <input id="test-input" type="text" :value="$externalComp.externalAttr" value="Value from DOM" />
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const externalComp = {
+            externalAttr: null,
+            template: null,
+        };
+
+        const internalComp = {
+            internalAttr: null,
+        };
+
+        CuboMX.component("externalComp", externalComp);
+        CuboMX.component("internalComp", internalComp);
+        CuboMX.start();
+
+        // Debug: Check if internalComp element is still in DOM
+        const internalCompEl = document.querySelector('[mx-data="internalComp"]');
+        console.log("internalComp element in DOM:", internalCompEl);
+        console.log("CuboMX.internalComp:", CuboMX.internalComp);
+
+        // First, check if template was hydrated with the HTML
+        expect(CuboMX.externalComp.template).not.toBeNull();
+        expect(CuboMX.externalComp.template).toContain("mx-data=\"internalComp\"");
+        expect(CuboMX.externalComp.template).toContain("Value from DOM");
+
+        // Check if the value from DOM was hydrated to external component
+        expect(CuboMX.externalComp).toBeDefined();
+        expect(CuboMX.internalComp).toBeDefined();
+
+        // The input value should hydrate to externalComp.externalAttr
+        // because :value="$externalComp.externalAttr" points to the external component
+        expect(CuboMX.externalComp.externalAttr).toBe("Value from DOM");
+    });
 });

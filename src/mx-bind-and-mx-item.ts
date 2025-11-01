@@ -38,11 +38,11 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
         }
 
         const reaction = createReaction(el, attrToBind);
-        addReaction(proxy, componentAttr, reaction);
-
         const value = parseAttrValue(el, attrToBind);
-        assignValue(proxy, componentAttr, value, modifier);
+        assignValue(proxy, componentAttr, value, modifier, reaction.type);
         twoWayBinding(attrToBind, componentAttr, proxy as MxElProxy, el);
+
+        addReaction(proxy, componentAttr, reaction);
     }
 };
 
@@ -124,11 +124,17 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
             const propName = component.componentAttr;
 
             const reaction = createReaction(element, attrToBind);
-            addReaction(el.__itemProxy__, propName, reaction);
-
             const value = parseAttrValue(element, attrToBind);
-            assignValue(el.__itemProxy__, propName, value, modifier);
+            assignValue(
+                el.__itemProxy__,
+                propName,
+                value,
+                modifier,
+                reaction.type
+            );
             twoWayBinding(attrToBind, propName, el.__itemProxy__, element);
+
+            addReaction(el.__itemProxy__, propName, reaction);
         }
     }
 
