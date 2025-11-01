@@ -40,7 +40,13 @@ const hydrateItemProxy = (item: any, templateElement: MxElement): MxElement => {
             reactionMap.get(propName)?.push(reaction);
 
             const value = item[propName] ?? parseAttrValue(element, attrToBind);
-            assignValue(clonedElement.__itemProxy__, propName, value, modifier);
+            assignValue(
+                clonedElement.__itemProxy__,
+                propName,
+                value,
+                modifier,
+                reaction.type
+            );
         }
     }
     return clonedElement;

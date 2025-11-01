@@ -23,15 +23,15 @@ type RequestResponse = {
     json: any | null;
 };
 
-type ArrayItems<T> = Array<MxElProxy> & {
-    add(item: T): MxElProxy;
-    prepend(item: T): MxElProxy;
+type ArrayItems<T> = Array<T & MxElProxy> & {
+    add(item: T): T & MxElProxy;
+    prepend(item: T): T & MxElProxy;
     delete(index: number): void;
     remove(item: T): void;
     pop(): void;
     shift(): void;
     clear(): void;
-    replace(index: number, item: T): MxElProxy;
+    replace(index: number, item: T): T & MxElProxy;
     _hydrateAdd?: (itemProxy: MxElProxy) => void;
     _setTemplate?: (template: MxElement) => void;
     _setParent?: (parent: MxElement) => void;
