@@ -1306,8 +1306,8 @@ A low-level utility to swap fragments of an HTML string into the live DOM. This 
 **Swap Object Details:**
 A swap object in the `swaps` array can have the following properties:
 
--   `select` (string): A CSS selector for the content to extract from the `html` string.
--   `target` (string): A CSS selector for the element on the page to be updated. You can append a modifier to control _how_ the target is updated (e.g., `'#my-div:innerHTML'`).
+-   `select` (string, optional): A CSS selector for the content to extract from the `html` string. If omitted, CuboMX will attempt to use the `target` selector to find matching content in the received HTML. If no match is found, it falls back to using the entire body content (useful for HTML fragments).
+-   `target` (string, required): A CSS selector for the element on the page to be updated. You can append a modifier to control _how_ the target is updated (e.g., `'#my-div:innerHTML'`).
 
 **Example:**
 
@@ -1317,7 +1317,7 @@ function updateContent(newHtml) {
         newHtml,
         [
             // Standard swap: replaces #main-content with the #main-content from newHtml.
-            // If `select` is omitted, it defaults to the `target` selector.
+            // If `select` is omitted, CuboMX tries to find #main-content in newHtml.
             { target: "#main-content" },
 
             // Replaces only the inner HTML of #page-title with the content of #page-title from newHtml.
@@ -1334,6 +1334,19 @@ function updateContent(newHtml) {
             pushUrl: "/new-page",
             title: "New Page Title",
         }
+    );
+}
+
+// Example with HTML fragment (no full structure):
+function loadFragment() {
+    const fragment = '<div class="alert">Success!</div>';
+
+    CuboMX.swap(
+        fragment,
+        [
+            // Since fragment has no #container element, it uses the entire fragment content
+            { target: "#container:innerHTML" }
+        ]
     );
 }
 ```

@@ -420,6 +420,55 @@ describe("CuboMX.swap - Complex HTML structures", () => {
     });
 });
 
+describe("CuboMX.swap - Hybrid select logic", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+        document.body.innerHTML = "";
+    });
+
+    it("should use entire body content when select is omitted and target not found in HTML fragment", () => {
+        document.body.innerHTML = `<div id="container">Old content</div>`;
+
+        // HTML fragment without full structure (no <body>, no #container)
+        const htmlFragment = `<div class="alert">Success message!</div>`;
+
+        CuboMX.swap(htmlFragment, [{ target: "#container:innerHTML" }]);
+
+        const container = document.querySelector("#container");
+        expect(container?.innerHTML).toBe('<div class="alert">Success message!</div>');
+    });
+
+    it("should use target as select when omitted and target exists in received HTML", () => {
+        document.body.innerHTML = `
+            <div id="header">Old Header</div>
+            <div id="main">Old Content</div>
+        `;
+
+        // Full HTML with matching #main element
+        const htmlReceived = `
+            <!DOCTYPE html>
+            <html>
+            <head><title>New Page</title></head>
+            <body>
+                <div id="header">Keep this header</div>
+                <div id="main">New Content from HTML</div>
+                <div id="footer">Footer</div>
+            </body>
+            </html>
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#main" }]);
+
+        // Should find #main in received HTML and use it
+        const main = document.querySelector("#main");
+        expect(main?.textContent).toBe("New Content from HTML");
+
+        // Header should remain unchanged (we only swapped #main)
+        const header = document.querySelector("#header");
+        expect(header?.textContent).toBe("Old Header");
+    });
+});
+
 describe("CuboMX.swap - Integration with new components", () => {
     beforeEach(() => {
         CuboMX.reset();

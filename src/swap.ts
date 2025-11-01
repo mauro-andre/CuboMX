@@ -58,11 +58,23 @@ const swap = (html: string, swaps: Swap[], options?: Option): void => {
 
         const parsedDoc = parser.parseFromString(html, "text/html");
 
-        let select: Selector = { cssSelector: "body", mode: "innerHTML" };
-        let selectEl: MxElement | null = parsedDoc.body;
+        let select: Selector;
+        let selectEl: MxElement | null;
+
         if (singleSwap.select) {
+            // Se select foi fornecido explicitamente, usa ele
             select = selectorMode(singleSwap.select);
             selectEl = parsedDoc.querySelector<MxElement>(select.cssSelector);
+        } else {
+            // Se select não foi fornecido, tenta usar target como select
+            select = selectorMode(singleSwap.target);
+            selectEl = parsedDoc.querySelector<MxElement>(select.cssSelector);
+
+            // Se não encontrar, usa body innerHTML (para fragmentos HTML)
+            if (!selectEl) {
+                select = { cssSelector: "body", mode: "innerHTML" };
+                selectEl = parsedDoc.body;
+            }
         }
 
         if (!selectEl) {
