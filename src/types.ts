@@ -4,6 +4,7 @@ type MxProxy = Record<string, any> & {
         callback: (this: MxProxy, newValue: any, oldValue: any) => void
     ) => void;
     init?: (this: MxProxy) => void;
+    onDOMUpdate?: (this: MxProxy) => void;
 };
 
 type MxElProxy = MxProxy & {
@@ -85,6 +86,7 @@ class MxComponent {
         callback: (this: this, newValue: this[K], oldValue: this[K]) => void
     ) => void;
     init?(): void;
+    onDOMUpdate?(): void;
     destroy?(): void;
 }
 

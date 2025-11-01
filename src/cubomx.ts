@@ -111,6 +111,14 @@ const CuboMX = (() => {
         }
     };
 
+    const processOnDOMUpdate = (proxies: Array<MxElProxy | MxProxy>) => {
+        for (const proxy of proxies) {
+            if (typeof proxy.onDOMUpdate === "function") {
+                proxy.onDOMUpdate();
+            }
+        }
+    };
+
     const processDestroy = (proxies: MxElProxy[]) => {
         for (const proxy of proxies) {
             if (typeof proxy.destroy === "function") {
@@ -150,6 +158,26 @@ const CuboMX = (() => {
         return proxies;
     };
 
+    const getAllActiveProxies = (): Array<MxElProxy | MxProxy> => {
+        const allProxies: Array<MxElProxy | MxProxy> = [];
+
+        // Add all store proxies
+        for (const storeProxy of Object.values(activeStoreProxies)) {
+            allProxies.push(storeProxy);
+        }
+
+        // Add all component proxies from DOM
+        const allMxDataElements =
+            document.querySelectorAll<MxElement>("[mx-data]");
+        for (const el of Array.from(allMxDataElements)) {
+            if (el.__mxProxy__) {
+                allProxies.push(el.__mxProxy__);
+            }
+        }
+
+        return allProxies;
+    };
+
     const start = () => {
         const storeProxies = resolveStores();
         const componentProxies = resolveNode(document.body);
@@ -160,6 +188,8 @@ const CuboMX = (() => {
                     if (node.nodeType === 1) {
                         const componentProxies = resolveNode(node as MxElement);
                         processInit(componentProxies);
+                        // Call onDOMUpdate on ALL active proxies
+                        processOnDOMUpdate(getAllActiveProxies());
                     }
                 }
 

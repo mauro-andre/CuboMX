@@ -990,6 +990,59 @@ CuboMX.component("datePicker", {
 });
 ```
 
+### `onDOMUpdate()`
+
+The `onDOMUpdate()` method is called on **all active components and stores** whenever a new component is added to the DOM. This lifecycle hook allows components to react to global DOM changes, not just their own lifecycle.
+
+This is particularly useful for:
+- Updating UI elements when the page structure changes
+- Recalculating layouts or positions when new content appears
+- Notifying stores about structural changes in the application
+- Re-initializing third-party libraries that depend on the DOM structure
+
+**Important:** `onDOMUpdate()` is called on **all** existing components and stores when **any** component is added, allowing for global coordination.
+
+**Example: Updating a Navigation Counter**
+
+```javascript
+CuboMX.store("navigation", {
+    componentCount: 0,
+    onDOMUpdate() {
+        // Count all active components whenever DOM changes
+        this.componentCount = document.querySelectorAll("[mx-data]").length;
+        console.log(`Total components: ${this.componentCount}`);
+    },
+});
+```
+
+**Example: Recalculating Layout on Component Addition**
+
+```javascript
+CuboMX.component("sidebar", {
+    height: 0,
+    onDOMUpdate() {
+        // Recalculate height whenever DOM structure changes
+        const mainContent = document.querySelector("#main-content");
+        this.height = mainContent?.offsetHeight || 0;
+    },
+});
+```
+
+**Example: Reacting to New Components in a Dashboard**
+
+```javascript
+CuboMX.component("dashboard", {
+    widgets: [],
+    onDOMUpdate() {
+        // Update internal list whenever new widgets are added to the page
+        const widgetElements = document.querySelectorAll("[data-widget]");
+        console.log(`Dashboard detected ${widgetElements.length} widgets`);
+    },
+});
+```
+
+> **Note:** Unlike `init()`, which runs once per component, `onDOMUpdate()` runs on **all** active components and stores every time the DOM changes (when components are added). It does **not** run when components are removed—only `destroy()` runs in that case.
+
 ### `destroy()`
 
 The `destroy()` method is called on a component just before its root element (`mx-data`) is removed from the DOM. This is your opportunity to perform any necessary cleanup.
