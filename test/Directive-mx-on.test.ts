@@ -644,4 +644,155 @@ describe("Directive mx-on or @", () => {
         expect(CuboMX.counterStore.count).toBe(2);
         expect(countP.textContent).toBe("2");
     });
+
+    it("should trigger @appear when element appears in DOM", async () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div @appear="onAppear($el)">Static element</div>
+            </div>
+        `;
+
+        let appearedElement: HTMLElement | null = null;
+
+        const myComp = {
+            onAppear(el: HTMLElement) {
+                appearedElement = el;
+            },
+        };
+
+        CuboMX.component("myComp", myComp);
+        CuboMX.start();
+
+        // Wait for @appear to execute
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(appearedElement).not.toBeNull();
+        expect(appearedElement!.textContent).toBe("Static element");
+    });
+
+    it("should trigger @appear on dynamically added elements", async () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div id="container"></div>
+            </div>
+        `;
+
+        const appearedElements: HTMLElement[] = [];
+
+        const myComp = {
+            onAppear(el: HTMLElement) {
+                appearedElements.push(el);
+            },
+            addElement() {
+                const container = document.getElementById("container");
+                const newEl = document.createElement("div");
+                newEl.setAttribute("mx-on:appear", "onAppear($el)");
+                newEl.textContent = "Dynamic element";
+                container?.appendChild(newEl);
+            },
+        };
+
+        CuboMX.component("myComp", myComp);
+        CuboMX.start();
+
+        // Add element dynamically
+        CuboMX.myComp.addElement();
+
+        // Wait for @appear to execute
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(appearedElements.length).toBe(1);
+        expect(appearedElements[0].textContent).toBe("Dynamic element");
+    });
+
+    it("should pass $item to @appear in mx-item context", async () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <ul>
+                    <li mx-item="items" ::text="name" @appear="onItemAppear($item)">Item 1</li>
+                    <li mx-item="items" ::text="name" @appear="onItemAppear($item)">Item 2</li>
+                </ul>
+            </div>
+        `;
+
+        const appearedItems: any[] = [];
+
+        const myComp = {
+            items: [],
+            onItemAppear(item: any) {
+                appearedItems.push(item);
+            },
+        };
+
+        CuboMX.component("myComp", myComp);
+        CuboMX.start();
+
+        // Wait for @appear to execute
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(appearedItems.length).toBe(2);
+        expect(appearedItems[0].name).toBe("Item 1");
+        expect(appearedItems[1].name).toBe("Item 2");
+    });
+
+    it("should trigger @appear on dynamic mx-item elements", async () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <ul id="list">
+                    <template mx-item="items">
+                        <li mx-item="items" @appear="onItemAppear($item)">
+                            <span ::text="title">Title</span>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+        `;
+
+        const appearedItems: any[] = [];
+
+        const myComp = {
+            items: [],
+            onItemAppear(item: any) {
+                appearedItems.push(item);
+            },
+        };
+
+        CuboMX.component("myComp", myComp);
+        CuboMX.start();
+
+        // Add items dynamically
+        CuboMX.myComp.items.add({ title: "First" });
+        CuboMX.myComp.items.add({ title: "Second" });
+
+        // Wait for MutationObserver and @appear
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(appearedItems.length).toBe(2);
+        expect(appearedItems[0].title).toBe("First");
+        expect(appearedItems[1].title).toBe("Second");
+    });
+
+    it("should allow @appear to call component methods", async () => {
+        document.body.innerHTML = `
+            <div mx-data="myComp">
+                <div @appear="initialize()">Content</div>
+            </div>
+        `;
+
+        let initialized = false;
+
+        const myComp = {
+            initialize() {
+                initialized = true;
+            },
+        };
+
+        CuboMX.component("myComp", myComp);
+        CuboMX.start();
+
+        // Wait for @appear
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(initialized).toBe(true);
+    });
 });

@@ -7,7 +7,7 @@ import { CuboMX, MxComponent, ArrayItems, ClassList } from "../src/cubomx";
 class MyComponent extends MxComponent {
     // ✅ CORRECT: We just declare the property with !.
     // CuboMX will initialize it during hydration from the HTML.
-    items!: ArrayItems;
+    items!: ArrayItems<any>;
     classes!: ClassList;
 
     method() {

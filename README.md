@@ -560,7 +560,7 @@ For a given name, like `fade`, you need to define:
 
 ### Handling User Events with `mx-on` (or `@`)
 
-This directive attaches an event listener to an element, allowing you to call a method on your component in response to a user interaction. You can use any standard browser DOM event, like `click`, `submit`, `keydown`, `mouseenter`, etc.
+This directive attaches an event listener to an element, allowing you to call a method on your component in response to a user interaction.
 
 **Basic Syntax:**
 
@@ -569,6 +569,28 @@ This directive attaches an event listener to an element, allowing you to call a 
 <button mx-on:click="increment()">Click me</button>
 <button @click="increment()">Click me</button>
 ```
+
+#### Event Types
+
+**Standard DOM Events**
+
+You can use any standard browser DOM event:
+
+```html
+<button @click="handleClick()">Click me</button>
+<form @submit="handleSubmit()">Submit</form>
+<input @keydown="handleKeyPress($event)" />
+```
+
+**Other Events**
+
+CuboMX provides additional pseudo-events for common patterns:
+
+```html
+<div @appear="onElementAppear($el)">This triggers when element appears in DOM</div>
+```
+
+The `appear` event is triggered when an element is inserted into the DOM. It's particularly useful for initializing animations, focusing elements, or triggering actions on dynamically added content. Unlike standard DOM events, `@appear` does not receive an `$event` parameter, but you can use `$el` and `$item` (in `mx-item` contexts).
 
 #### Modifiers
 
