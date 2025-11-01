@@ -187,7 +187,7 @@ describe("CuboMX.request()", () => {
                 headers: expect.objectContaining({
                     Authorization: "Bearer token123",
                     "X-Custom-Header": "custom-value",
-                    "X-Requested-With": "XMLHttpRequest",
+                    "MX-Request": "true",
                 }),
             })
         );
@@ -369,7 +369,7 @@ describe("CuboMX.request()", () => {
         );
     });
 
-    it("should always include X-Requested-With header", async () => {
+    it("should always include MX-Request header", async () => {
         const mockResponse = {
             ok: true,
             status: 200,
@@ -390,7 +390,7 @@ describe("CuboMX.request()", () => {
             "https://example.com/api/users",
             expect.objectContaining({
                 headers: expect.objectContaining({
-                    "X-Requested-With": "XMLHttpRequest",
+                    "MX-Request": "true",
                 }),
             })
         );

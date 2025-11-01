@@ -1,4 +1,5 @@
 import { RequestResponse } from "./types";
+import { swap } from "./swap";
 
 interface RequestConfig {
     url: string;
@@ -15,10 +16,10 @@ const request = async ({
 }: RequestConfig): Promise<RequestResponse> => {
     const upperMethod = method.toUpperCase();
 
-    const fetchOptions: RequestInit = {
+    let fetchOptions: RequestInit = {
         method: upperMethod,
         headers: {
-            "X-Requested-With": "XMLHttpRequest",
+            "MX-Request": "true",
             ...headers,
         },
         credentials: "include",
@@ -46,8 +47,58 @@ const request = async ({
         }
     }
 
-    const response = await fetch(url, fetchOptions);
-    const text = await response.text();
+    let response = await fetch(url, fetchOptions);
+
+    const mxLocation =
+        response.headers && typeof response.headers.get === "function"
+            ? response.headers.get("MX-Location")
+            : null;
+
+    const mxRedirect =
+        response.headers && typeof response.headers.get === "function"
+            ? response.headers.get("MX-Redirect")
+            : null;
+
+    if (mxLocation) {
+        window.location.href = mxLocation;
+        return {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+            url: response.url,
+            redirected: true,
+            text: "",
+            json: null,
+        };
+    }
+
+    let text: string | null = null;
+    let wasRedirected = false;
+
+    if (mxRedirect) {
+        fetchOptions = {
+            method: "GET",
+            headers: {
+                "MX-Request": "true",
+                ...headers,
+            },
+            credentials: "include",
+        };
+        response = await fetch(mxRedirect, fetchOptions);
+        text = await response.text();
+        swap(
+            text,
+            [
+                { select: "body", target: "body" },
+                { select: "title:innerHTML", target: "title:innerHTML" },
+            ],
+            { pushUrl: mxRedirect }
+        );
+        wasRedirected = true;
+    }
+
+    text = text ?? (await response.text());
 
     let json = null;
     try {
@@ -62,7 +113,7 @@ const request = async ({
         statusText: response.statusText,
         headers: response.headers,
         url: response.url,
-        redirected: response.redirected,
+        redirected: wasRedirected || response.redirected,
         text,
         json,
     };

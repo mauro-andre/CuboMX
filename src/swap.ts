@@ -56,14 +56,13 @@ const swap = (html: string, swaps: Swap[], options?: Option): void => {
             continue;
         }
 
+        const parsedDoc = parser.parseFromString(html, "text/html");
+
         let select: Selector = { cssSelector: "body", mode: "innerHTML" };
-        let selectEl: MxElement | null = parser.parseFromString(
-            html,
-            "text/html"
-        ).body;
+        let selectEl: MxElement | null = parsedDoc.body;
         if (singleSwap.select) {
             select = selectorMode(singleSwap.select);
-            selectEl = selectEl.querySelector<MxElement>(select.cssSelector);
+            selectEl = parsedDoc.querySelector<MxElement>(select.cssSelector);
         }
 
         if (!selectEl) {

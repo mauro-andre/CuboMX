@@ -6,6 +6,7 @@ import {
     MxElement,
     ArrayItems,
     ClassList,
+    RequestResponse,
 } from "./types";
 import { createProxy } from "./proxy-component";
 import { resolveMXData } from "./mx-data";
@@ -215,4 +216,4 @@ const CuboMX = (() => {
 
 // Export developer-friendly types with clean names
 export { CuboMX, MxComponent };
-export type { ArrayItems, ClassList };
+export type { ArrayItems, ClassList, RequestResponse };

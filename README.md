@@ -1173,6 +1173,124 @@ async function saveUser(userData) {
 }
 ```
 
+#### Request Headers
+
+CuboMX automatically includes the `MX-Request: true` header in all requests made through `CuboMX.request()`. This allows your backend to identify requests coming from CuboMX and respond accordingly.
+
+```javascript
+// Backend example (Express.js)
+app.post('/api/save', (req, res) => {
+    if (req.headers['mx-request'] === 'true') {
+        // CuboMX request - return partial HTML or JSON
+        res.json({ status: 'success', message: 'Data saved' });
+    } else {
+        // Regular browser request - return full page
+        res.render('success-page');
+    }
+});
+```
+
+```php
+// Backend example (PHP)
+if ($_SERVER['HTTP_MX_REQUEST'] === 'true') {
+    // CuboMX request
+    echo json_encode(['status' => 'success']);
+} else {
+    // Regular request
+    include 'full-page.php';
+}
+```
+
+#### Response Headers
+
+CuboMX recognizes special response headers that control navigation and redirects:
+
+**`MX-Location`** - Traditional Page Redirect
+
+When your server includes this header, CuboMX performs a full page reload to the specified URL. This completely resets the application state.
+
+```php
+// PHP
+header('MX-Location: /login');
+echo json_encode(['message' => 'Session expired']);
+```
+
+```javascript
+// Node.js/Express
+res.set('MX-Location', '/login');
+res.json({ message: 'Session expired' });
+```
+
+Use cases:
+- Logout (clear all state and session)
+- Session expiration
+- Language/locale changes requiring full reload
+
+**`MX-Redirect`** - SPA-Style Navigation
+
+When your server includes this header, CuboMX performs smooth, SPA-style navigation without reloading the page. It fetches the new URL, swaps the content, and updates the browser history.
+
+```php
+// PHP
+header('MX-Redirect: /dashboard');
+echo json_encode(['status' => 'success', 'message' => 'Login successful']);
+```
+
+```javascript
+// Node.js/Express
+res.set('MX-Redirect', '/dashboard');
+res.json({ status: 'success', message: 'Login successful' });
+```
+
+How it works:
+1. CuboMX detects the `MX-Redirect` header
+2. Fetches the HTML from the redirect URL
+3. Swaps the `<body>` and `<title>` content
+4. Updates the browser URL (supports back/forward buttons)
+5. Returns the original response for processing
+
+Use cases:
+- Post-login navigation
+- Form submission redirects
+- Navigation after creating/updating resources
+
+**Complete Example:**
+
+```javascript
+// Frontend
+const loginForm = {
+    async submit(formData) {
+        const response = await CuboMX.request({
+            url: '/api/login',
+            method: 'POST',
+            body: formData
+        });
+
+        // Even after redirect, you can process the response
+        if (response.ok && response.json) {
+            console.log('Logged in:', response.json.message);
+        }
+    }
+};
+```
+
+```php
+// Backend (PHP)
+if ($loginSuccess) {
+    header('MX-Redirect: /dashboard');
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'Welcome back!'
+    ]);
+} else {
+    http_response_code(401);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Invalid credentials'
+    ]);
+}
+```
+
 ### Manual DOM Swapping
 
 #### `CuboMX.swap(html, swaps, options)`
