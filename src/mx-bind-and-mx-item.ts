@@ -48,7 +48,7 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
 
 const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
     // Skip if this element was already processed as mx-item
-    if (el.__mxItemProcessed__) return;
+    // if (el.__mxItemProcessed__) return;
 
     const mainAttr = el.getAttributeNode("mx-item");
     if (!mainAttr) return;

@@ -352,12 +352,12 @@ CuboMX.component("alerts", {
 CuboMX.start();
 
 // Now you can add alerts dynamically
-CuboMX.alerts.alerts.add({
+await CuboMX.alerts.alerts.add({
     type: "success",
     message: "Operation completed!",
 });
 
-CuboMX.alerts.alerts.add({
+await CuboMX.alerts.alerts.add({
     type: "error",
     message: "Something went wrong!",
 });
@@ -385,15 +385,15 @@ CuboMX.alerts.alerts.add({
 
 #### `ArrayItems`
 
-When an array is hydrated using `mx-item`, it becomes an `ArrayItems` proxy. This object has all the standard JavaScript array methods (`forEach`, `map`, `filter`, etc.), but it also includes special **asynchronous methods** for safe DOM manipulation:
+When an array is hydrated using `mx-item`, it becomes an `ArrayItems` proxy. This object has all the standard JavaScript array methods (`forEach`, `map`, `filter`, etc.), but it also includes special **asynchronous methods** for safe DOM manipulation. These methods are asynchronous because CuboMX is a hydration framework, and it's necessary to await the hydration of new elements:
 
--   `add(itemData)`
--   `prepend(itemData)`
--   `delete(index)`
--   `pop()`
--   `shift()`
--   `clear()`
--   `replace(index, itemData)`
+-   `async add(itemData)`
+-   `async prepend(itemData)`
+-   `async delete(index)`
+-   `async pop()`
+-   `async shift()`
+-   `async clear()`
+-   `async replace(index, itemData)`
 
 Using these methods is the recommended way to modify lists, as they ensure that DOM updates and state changes are handled correctly by CuboMX.
 

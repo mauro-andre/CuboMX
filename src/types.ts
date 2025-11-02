@@ -24,22 +24,14 @@ type RequestResponse = {
 };
 
 type ArrayItems<T> = Array<T & MxElProxy> & {
-    add(item: T): T & MxElProxy;
-    asyncAdd(item: T): Promise<T & MxElProxy>;
-    asyncPrepend(item: T): Promise<T & MxElProxy>;
-    asyncDelete(index: number): Promise<void>;
-    asyncRemove(item: T): Promise<void>;
-    asyncPop(): Promise<void>;
-    asyncShift(): Promise<void>;
-    asyncClear(): Promise<void>;
-    asyncReplace(index: number, item: T): Promise<T & MxElProxy>;
-    prepend(item: T): T & MxElProxy;
-    delete(index: number): void;
-    remove(item: T): void;
-    pop(): void;
-    shift(): void;
-    clear(): void;
-    replace(index: number, item: T): T & MxElProxy;
+    add(item: T): Promise<T & MxElProxy>;
+    prepend(item: T): Promise<T & MxElProxy>;
+    delete(index: number): Promise<void>;
+    remove(item: T): Promise<void>;
+    pop(): Promise<void>;
+    shift(): Promise<void>;
+    clear(): Promise<void>;
+    replace(index: number, item: T): Promise<T & MxElProxy>;
     _hydrateAdd?: (itemProxy: MxElProxy, index?: number) => void;
     _setTemplate?: (template: MxElement) => void;
     _setParent?: (parent: MxElement) => void;

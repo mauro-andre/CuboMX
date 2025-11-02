@@ -160,12 +160,12 @@ describe("Directive mx-item with Template Definition", () => {
         CuboMX.reset();
     });
 
-    it("should use template element to define items for empty container", () => {
+    it("should use template element to define items for empty container", async () => {
         document.body.innerHTML = `
             <div mx-data="alerts">
                 <div id="alert-container">
                     <template mx-item="alerts">
-                        <div class="alert" ::type="type" ::text="message"></div>
+                        <div mx-item="alerts" class="alert" ::type="type" ::text="message"></div>
                     </template>
                 </div>
             </div>
@@ -187,7 +187,7 @@ describe("Directive mx-item with Template Definition", () => {
         expect("add" in alerts).toBe(true);
 
         // Now add an alert dynamically
-        const newAlert = alerts.add({ type: "success", message: "Operation completed!" });
+        const newAlert = await alerts.add({ type: "success", message: "Operation completed!" });
 
         expect(alerts.length).toBe(1);
         expect(newAlert.type).toBe("success");
@@ -199,12 +199,12 @@ describe("Directive mx-item with Template Definition", () => {
         expect(alertEl?.getAttribute("type")).toBe("success");
     });
 
-    it("should allow adding multiple items after template definition", () => {
+    it("should allow adding multiple items after template definition", async () => {
         document.body.innerHTML = `
             <div mx-data="todos">
                 <ul id="todo-list">
                     <template mx-item="items">
-                        <li class="todo" ::done="done" ::text="title"></li>
+                        <li mx-item="items" class="todo" ::done="done" ::text="title"></li>
                     </template>
                 </ul>
             </div>
@@ -222,9 +222,9 @@ describe("Directive mx-item with Template Definition", () => {
 
         expect(items.length).toBe(0);
 
-        items.add({ title: "Buy milk", done: false });
-        items.add({ title: "Walk dog", done: true });
-        items.prepend({ title: "Wake up", done: true });
+        await items.add({ title: "Buy milk", done: false });
+        await items.add({ title: "Walk dog", done: true });
+        await items.prepend({ title: "Wake up", done: true });
 
         expect(items.length).toBe(3);
         expect(list?.children.length).toBe(3);
@@ -233,12 +233,12 @@ describe("Directive mx-item with Template Definition", () => {
         expect(items[2].title).toBe("Walk dog");
     });
 
-    it("should work with template even when there are existing items", () => {
+    it("should work with template even when there are existing items", async () => {
         document.body.innerHTML = `
             <div mx-data="messages">
                 <div id="messages-container">
                     <template mx-item="messages">
-                        <p ::text="text" ::priority="priority"></p>
+                        <p mx-item="messages" ::text="text" ::priority="priority"></p>
                     </template>
                     <p mx-item="messages" ::text="text" ::priority="priority" priority="high">Existing message</p>
                 </div>
@@ -261,7 +261,7 @@ describe("Directive mx-item with Template Definition", () => {
         expect(messages[0].priority).toBe("high");
 
         // Template should still work for new items
-        messages.add({ text: "New message", priority: "low" });
+        await messages.add({ text: "New message", priority: "low" });
 
         expect(messages.length).toBe(2);
         expect(messages[1].text).toBe("New message");
@@ -317,12 +317,12 @@ describe("Directive ::el for element reference in mx-item", () => {
         expect(items[1].title).toBe("Card Title 2");
     });
 
-    it("should work with template and dynamically added items", () => {
+    it("should work with template and dynamically added items", async () => {
         document.body.innerHTML = `
             <div mx-data="widgets">
                 <div id="widget-container">
                     <template mx-item="widgets">
-                        <div class="widget" ::name="name" ::el="element">
+                        <div mx-item="widgets" class="widget" ::name="name" ::el="element">
                             <span ::text="label"></span>
                         </div>
                     </template>
@@ -340,7 +340,7 @@ describe("Directive ::el for element reference in mx-item", () => {
         const widgets = CuboMX.widgets.widgets;
 
         // Add a widget dynamically
-        widgets.add({ name: "widget-1", label: "First Widget" });
+        await widgets.add({ name: "widget-1", label: "First Widget" });
 
         expect(widgets.length).toBe(1);
         expect(widgets[0].element).toBeInstanceOf(HTMLElement);
@@ -349,7 +349,7 @@ describe("Directive ::el for element reference in mx-item", () => {
         expect(widgets[0].element.querySelector("span")?.textContent).toBe("First Widget");
 
         // Add another widget
-        widgets.add({ name: "widget-2", label: "Second Widget" });
+        await widgets.add({ name: "widget-2", label: "Second Widget" });
 
         expect(widgets.length).toBe(2);
         expect(widgets[1].element).toBeInstanceOf(HTMLElement);
@@ -357,7 +357,7 @@ describe("Directive ::el for element reference in mx-item", () => {
     });
 });
 
-describe("Directive mx-item with asyncAdd()", () => {
+describe("Directive mx-item with add()", () => {
     beforeEach(() => {
         CuboMX.reset();
     });
@@ -390,7 +390,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(items[2].title).toBe("Item 3");
 
         // Add new item at the end
-        const newItem = await items.asyncAdd({ title: "Item 4", done: false });
+        const newItem = await items.add({ title: "Item 4", done: false });
 
         // Check array order
         expect(items.length).toBe(4);
@@ -440,7 +440,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(items[2].title).toBe("Item 3");
 
         // Prepend new item (should go to position 0)
-        const newItem = await items.asyncPrepend({ title: "Item 0", done: false });
+        const newItem = await items.prepend({ title: "Item 0", done: false });
 
         // Check array order
         expect(items.length).toBe(4);
@@ -492,7 +492,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(items[3].title).toBe("Item 4");
 
         // Delete item at index 1 (Item 2)
-        await items.asyncDelete(1);
+        await items.delete(1);
 
         // Check array after deletion
         expect(items.length).toBe(3);
@@ -507,7 +507,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(list?.children[2].textContent).toBe("Item 4");
 
         // Delete first item (index 0)
-        await items.asyncDelete(0);
+        await items.delete(0);
 
         expect(items.length).toBe(2);
         expect(items[0].title).toBe("Item 3");
@@ -548,7 +548,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(itemToRemove.title).toBe("Item 2");
 
         // Remove item by reference
-        await items.asyncRemove(itemToRemove);
+        await items.remove(itemToRemove);
 
         // Check array after removal
         expect(items.length).toBe(3);
@@ -589,7 +589,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(items[2].title).toBe("Item 3");
 
         // Pop last item (Item 3)
-        await items.asyncPop();
+        await items.pop();
 
         // Check array after pop
         expect(items.length).toBe(2);
@@ -602,7 +602,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(list?.children[1].textContent).toBe("Item 2");
 
         // Pop again (Item 2)
-        await items.asyncPop();
+        await items.pop();
 
         expect(items.length).toBe(1);
         expect(items[0].title).toBe("Item 1");
@@ -636,7 +636,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(items[0].title).toBe("Item 1");
 
         // Shift first item (Item 1)
-        await items.asyncShift();
+        await items.shift();
 
         // Check array after shift
         expect(items.length).toBe(2);
@@ -649,7 +649,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(list?.children[1].textContent).toBe("Item 3");
 
         // Shift again (Item 2)
-        await items.asyncShift();
+        await items.shift();
 
         expect(items.length).toBe(1);
         expect(items[0].title).toBe("Item 3");
@@ -684,7 +684,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(list?.children.length).toBe(4);
 
         // Clear all items asynchronously
-        await items.asyncClear();
+        await items.clear();
 
         // Check array is empty
         expect(items.length).toBe(0);
@@ -693,7 +693,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(list?.children.length).toBe(0);
 
         // Verify we can still add items after clearing (template should be preserved)
-        const newItem = items.add({ title: "New Item", done: false });
+        const newItem = await items.add({ title: "New Item", done: false });
         expect(items.length).toBe(1);
         expect(newItem.title).toBe("New Item");
         expect(list?.children.length).toBe(1);
@@ -730,7 +730,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(items[3].title).toBe("Item 4");
 
         // Replace item at index 1 (Item 2 -> New Item)
-        const replacedItem = await items.asyncReplace(1, { title: "New Item", done: true });
+        const replacedItem = await items.replace(1, { title: "New Item", done: true });
 
         // Check array after replacement
         expect(items.length).toBe(4);
@@ -754,7 +754,7 @@ describe("Directive mx-item with asyncAdd()", () => {
         expect(list?.children[1].textContent).toBe("Updated Item");
 
         // Replace first item (index 0)
-        const firstReplaced = await items.asyncReplace(0, { title: "First Replaced", done: false });
+        const firstReplaced = await items.replace(0, { title: "First Replaced", done: false });
 
         expect(items.length).toBe(4);
         expect(items[0]).toBe(firstReplaced);

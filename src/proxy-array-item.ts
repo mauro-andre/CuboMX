@@ -1,57 +1,5 @@
 import { MxElement, MxElProxy, Reaction, ArrayItems } from "./types";
-import {
-    parseAttrToBind,
-    getComponentNameAttr,
-    parseAttrValue,
-    assignValue,
-    createReaction,
-} from "./hydration-helpers";
-
-import { createProxy, reactionsSymbol } from "./proxy-component";
 import { preprocessBindings } from "./rendering-helpers";
-
-const hydrateItemProxy = (item: any, templateElement: MxElement): MxElement => {
-    const clonedElement = templateElement.cloneNode(true) as MxElement;
-    clonedElement.__mxItemProcessed__ = true;
-
-    const itemProxy = createProxy(item, clonedElement) as MxElProxy;
-    clonedElement.__itemProxy__ = itemProxy;
-
-    const allElementsInScope = [
-        clonedElement,
-        ...Array.from(clonedElement.querySelectorAll<MxElement>("*")),
-    ];
-
-    for (const element of allElementsInScope) {
-        for (const attr of Array.from(element.attributes)) {
-            const parsed = parseAttrToBind(attr, ["mx-item:", "::"]);
-            if (!parsed) continue;
-
-            const { attrToBind, modifier } = parsed;
-            const component = getComponentNameAttr(attr);
-            const propName = component.componentAttr;
-
-            const reaction = createReaction(element, attrToBind);
-            const reactionMap = clonedElement.__itemProxy__[
-                reactionsSymbol as any
-            ] as Map<string, Reaction[]>;
-            if (!reactionMap.has(propName)) {
-                reactionMap.set(propName, []);
-            }
-            reactionMap.get(propName)?.push(reaction);
-
-            const value = item[propName] ?? parseAttrValue(element, attrToBind);
-            assignValue(
-                clonedElement.__itemProxy__,
-                propName,
-                value,
-                modifier,
-                reaction.type
-            );
-        }
-    }
-    return clonedElement;
-};
 
 const createArrayProxy = <T = any>(
     arr: Array<any>,
@@ -64,25 +12,12 @@ const createArrayProxy = <T = any>(
         ? (arr[0].$el.cloneNode(true) as MxElement)
         : null;
 
-    // Mark template so clones will inherit the flag
-    if (templateElement) {
-        templateElement.__mxItemProcessed__ = true;
-    }
-
     let parentElement: MxElement | null =
         arr.length > 0 && arr[0].$el ? arr[0].$el.parentElement : null;
 
     const proxy = new Proxy(arr, {
         has(target, prop) {
             if (
-                prop === "asyncAdd" ||
-                prop === "asyncPrepend" ||
-                prop === "asyncDelete" ||
-                prop === "asyncRemove" ||
-                prop === "asyncPop" ||
-                prop === "asyncShift" ||
-                prop === "asyncClear" ||
-                prop === "asyncReplace" ||
                 prop === "add" ||
                 prop === "prepend" ||
                 prop === "unshift" ||
@@ -126,7 +61,11 @@ const createArrayProxy = <T = any>(
                     }
 
                     // Insert at specific index if provided, otherwise push to end
-                    if (index !== undefined && index >= 0 && index <= target.length) {
+                    if (
+                        index !== undefined &&
+                        index >= 0 &&
+                        index <= target.length
+                    ) {
                         target.splice(index, 0, itemProxy);
                     } else {
                         target.push(itemProxy);
@@ -134,7 +73,7 @@ const createArrayProxy = <T = any>(
                 };
             }
 
-            if (prop === "asyncAdd") {
+            if (prop === "add" || prop === "push") {
                 return async (item: T): Promise<T & MxElProxy> => {
                     if (!templateElement) {
                         throw new Error(
@@ -179,7 +118,7 @@ const createArrayProxy = <T = any>(
                 };
             }
 
-            if (prop === "asyncPrepend") {
+            if (prop === "prepend" || prop === "unshift") {
                 return async (item: T): Promise<T & MxElProxy> => {
                     if (!templateElement) {
                         throw new Error(
@@ -224,7 +163,7 @@ const createArrayProxy = <T = any>(
                 };
             }
 
-            if (prop === "asyncDelete") {
+            if (prop === "delete") {
                 return async (index: number): Promise<void> => {
                     if (index < 0 || index >= target.length) {
                         throw new Error(
@@ -250,7 +189,7 @@ const createArrayProxy = <T = any>(
                 };
             }
 
-            if (prop === "asyncRemove") {
+            if (prop === "remove") {
                 return async (item: T): Promise<void> => {
                     const index = target.indexOf(item as any);
                     if (index === -1) {
@@ -258,29 +197,29 @@ const createArrayProxy = <T = any>(
                             `[CuboMX] Cannot remove item: item not found in array`
                         );
                     }
-                    await (proxy as any).asyncDelete(index);
+                    await (proxy as any).delete(index);
                 };
             }
 
-            if (prop === "asyncPop") {
+            if (prop === "pop") {
                 return async (): Promise<void> => {
                     if (target.length === 0) {
                         return;
                     }
-                    await (proxy as any).asyncDelete(target.length - 1);
+                    await (proxy as any).delete(target.length - 1);
                 };
             }
 
-            if (prop === "asyncShift") {
+            if (prop === "shift") {
                 return async (): Promise<void> => {
                     if (target.length === 0) {
                         return;
                     }
-                    await (proxy as any).asyncDelete(0);
+                    await (proxy as any).delete(0);
                 };
             }
 
-            if (prop === "asyncClear") {
+            if (prop === "clear") {
                 return async (): Promise<void> => {
                     if (target.length === 0) {
                         return;
@@ -318,8 +257,11 @@ const createArrayProxy = <T = any>(
                 };
             }
 
-            if (prop === "asyncReplace") {
-                return async (index: number, item: T): Promise<T & MxElProxy> => {
+            if (prop === "replace") {
+                return async (
+                    index: number,
+                    item: T
+                ): Promise<T & MxElProxy> => {
                     if (index < 0 || index >= target.length) {
                         throw new Error(
                             `[CuboMX] Cannot replace item at index ${index}: out of bounds`
@@ -355,7 +297,8 @@ const createArrayProxy = <T = any>(
 
                     // 4. Create Promise with resolve callback for deletion
                     const deletionPromise = new Promise<void>((resolve) => {
-                        (oldItemProxy.$el as MxElement).__resolveDelete__ = resolve;
+                        (oldItemProxy.$el as MxElement).__resolveDelete__ =
+                            resolve;
                     });
 
                     // 5. Insert new element in DOM (before old element)
@@ -383,157 +326,6 @@ const createArrayProxy = <T = any>(
                     ]);
 
                     return newItemProxy as T & MxElProxy;
-                };
-            }
-
-            if (prop === "add" || prop === "push") {
-                return (item: T): MxElProxy => {
-                    if (!templateElement) {
-                        throw new Error(
-                            "[CuboMX] Cannot add item: no template available."
-                        );
-                    }
-
-                    if (!parentElement) {
-                        throw new Error(
-                            "[CuboMX] Cannot add: parent element not found."
-                        );
-                    }
-
-                    const clonedElement = hydrateItemProxy(
-                        item,
-                        templateElement as MxElement
-                    );
-
-                    parentElement.appendChild(clonedElement);
-
-                    target.push(clonedElement.__itemProxy__);
-
-                    return clonedElement.__itemProxy__ as MxElProxy;
-                };
-            }
-
-            if (prop === "prepend" || prop === "unshift") {
-                return (item: T): MxElProxy => {
-                    if (!templateElement) {
-                        throw new Error(
-                            "[CuboMX] Cannot add item: no template available."
-                        );
-                    }
-
-                    if (!parentElement) {
-                        throw new Error(
-                            "[CuboMX] Cannot add: parent element not found."
-                        );
-                    }
-
-                    const clonedElement = hydrateItemProxy(
-                        item,
-                        templateElement as MxElement
-                    );
-
-                    parentElement.prepend(clonedElement);
-
-                    target.unshift(clonedElement.__itemProxy__);
-
-                    return clonedElement.__itemProxy__ as MxElProxy;
-                };
-            }
-
-            if (prop === "delete") {
-                return (index: number): void => {
-                    if (index < 0 || index >= target.length) {
-                        console.error(
-                            `[CuboMX] Cannot delete item at index ${index}: out of bounds`
-                        );
-                        return;
-                    }
-
-                    const itemProxy = target[index];
-                    itemProxy.$el.remove();
-                    target.splice(index, 1);
-                };
-            }
-
-            if (prop === "remove") {
-                return (item: MxElProxy): void => {
-                    const index = target.indexOf(item);
-                    if (index === -1) {
-                        console.error(
-                            `[CuboMX] Cannot remove item: item not found in array`
-                        );
-                        return;
-                    }
-                    (proxy as any).delete(index);
-                };
-            }
-
-            if (prop === "pop") {
-                return (): void => {
-                    if (target.length === 0) {
-                        return;
-                    }
-                    (proxy as any).delete(target.length - 1);
-                };
-            }
-
-            if (prop === "shift") {
-                return (): void => {
-                    if (target.length === 0) {
-                        return;
-                    }
-                    (proxy as any).delete(0);
-                };
-            }
-
-            if (prop === "clear") {
-                return (): void => {
-                    if (target.length > 0) {
-                        if (!templateElement) {
-                            templateElement = target[0].$el.cloneNode(
-                                true
-                            ) as MxElement;
-                        }
-                        if (!parentElement) {
-                            parentElement = target[0].$el.parentElement;
-                        }
-                    }
-                    for (const itemProxy of target) {
-                        itemProxy.$el.remove();
-                    }
-                    target.length = 0;
-                };
-            }
-
-            if (prop === "replace") {
-                return (index: number, item: T): MxElProxy => {
-                    if (index < 0 || index >= target.length) {
-                        throw new Error(
-                            `[CuboMX] Cannot replace item at index ${index}: out of bounds`
-                        );
-                    }
-
-                    if (!templateElement) {
-                        throw new Error(
-                            "[CuboMX] Cannot replace item: no template available."
-                        );
-                    }
-
-                    const oldItemProxy = target[index] as MxElProxy;
-                    const clonedElement = hydrateItemProxy(
-                        item,
-                        templateElement
-                    );
-
-                    oldItemProxy.$el.parentElement?.insertBefore(
-                        clonedElement,
-                        oldItemProxy.$el
-                    );
-
-                    oldItemProxy.$el.remove();
-                    target[index] = clonedElement.__itemProxy__;
-
-                    return clonedElement.__itemProxy__ as MxElProxy;
                 };
             }
 

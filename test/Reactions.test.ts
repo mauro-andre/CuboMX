@@ -470,7 +470,7 @@ describe("ClassList Methods with mx-item", () => {
         document.body.innerHTML = "";
     });
 
-    it("should add classes to specific item using .add()", () => {
+    it("should add classes to specific item using .add()", async () => {
         document.body.innerHTML = `
             <div mx-data="listComp">
                 <ul id="list">
@@ -482,8 +482,8 @@ describe("ClassList Methods with mx-item", () => {
         CuboMX.component("listComp", { items: [] });
         CuboMX.start();
 
-        CuboMX.listComp.items.add({ name: "Item 1", classes: ["item"] });
-        CuboMX.listComp.items.add({ name: "Item 2", classes: ["item"] });
+        await CuboMX.listComp.items.add({ name: "Item 1", classes: ["item"] });
+        await CuboMX.listComp.items.add({ name: "Item 2", classes: ["item"] });
 
         // Act - adicionar classe apenas no primeiro item
         CuboMX.listComp.items[0].classes.add("active");
@@ -494,7 +494,7 @@ describe("ClassList Methods with mx-item", () => {
         expect(list?.children[1].className).toBe("item");
     });
 
-    it("should toggle classes independently for each item", () => {
+    it("should toggle classes independently for each item", async () => {
         document.body.innerHTML = `
             <div mx-data="listComp">
                 <ul id="list">
@@ -506,9 +506,9 @@ describe("ClassList Methods with mx-item", () => {
         CuboMX.component("listComp", { items: [] });
         CuboMX.start();
 
-        CuboMX.listComp.items.add({ name: "Item 1", classes: ["item"] });
-        CuboMX.listComp.items.add({ name: "Item 2", classes: ["item"] });
-        CuboMX.listComp.items.add({ name: "Item 3", classes: ["item"] });
+        await CuboMX.listComp.items.add({ name: "Item 1", classes: ["item"] });
+        await CuboMX.listComp.items.add({ name: "Item 2", classes: ["item"] });
+        await CuboMX.listComp.items.add({ name: "Item 3", classes: ["item"] });
 
         // Act
         CuboMX.listComp.items[0].classes.toggle("active");
@@ -521,7 +521,7 @@ describe("ClassList Methods with mx-item", () => {
         expect(list?.children[2].className).toBe("item active");
     });
 
-    it("should remove classes from specific item", () => {
+    it("should remove classes from specific item", async () => {
         document.body.innerHTML = `
             <div mx-data="listComp">
                 <ul id="list">
@@ -533,11 +533,11 @@ describe("ClassList Methods with mx-item", () => {
         CuboMX.component("listComp", { items: [] });
         CuboMX.start();
 
-        CuboMX.listComp.items.add({
+        await CuboMX.listComp.items.add({
             name: "Item 1",
             classes: ["item", "active"],
         });
-        CuboMX.listComp.items.add({
+        await CuboMX.listComp.items.add({
             name: "Item 2",
             classes: ["item", "active"],
         });
@@ -551,7 +551,7 @@ describe("ClassList Methods with mx-item", () => {
         expect(list?.children[1].className).toBe("item");
     });
 
-    it("should check .contains() on item classes", () => {
+    it("should check .contains() on item classes", async () => {
         document.body.innerHTML = `
             <div mx-data="listComp">
                 <ul id="list">
@@ -563,11 +563,11 @@ describe("ClassList Methods with mx-item", () => {
         CuboMX.component("listComp", { items: [] });
         CuboMX.start();
 
-        CuboMX.listComp.items.add({
+        await CuboMX.listComp.items.add({
             name: "Item 2",
             classes: ["item", "active"],
         });
-        CuboMX.listComp.items.add({ name: "Item 3", classes: ["item"] });
+        await CuboMX.listComp.items.add({ name: "Item 3", classes: ["item"] });
 
         // Assert
         expect(CuboMX.listComp.items[0].classes.contains("active")).toBe(false);
@@ -575,7 +575,7 @@ describe("ClassList Methods with mx-item", () => {
         expect(CuboMX.listComp.items[2].classes.contains("active")).toBe(false);
     });
 
-    it("should replace classes on item", () => {
+    it("should replace classes on item", async () => {
         document.body.innerHTML = `
             <div mx-data="listComp">
                 <ul id="list">
@@ -587,7 +587,7 @@ describe("ClassList Methods with mx-item", () => {
         CuboMX.component("listComp", { items: [] });
         CuboMX.start();
 
-        CuboMX.listComp.items.add({
+        await CuboMX.listComp.items.add({
             name: "Item 1",
             classes: ["item", "active"],
         });
@@ -604,7 +604,7 @@ describe("ClassList Methods with mx-item", () => {
         expect(list?.children[0].className).toBe("item disabled");
     });
 
-    it("should maintain independent ClassLists when adding multiple items", () => {
+    it("should maintain independent ClassLists when adding multiple items", async () => {
         document.body.innerHTML = `
             <div mx-data="listComp">
                 <ul id="list">
@@ -616,12 +616,12 @@ describe("ClassList Methods with mx-item", () => {
         CuboMX.component("listComp", { items: [] });
         CuboMX.start();
 
-        CuboMX.listComp.items.add({ name: "Item 2", classes: ["item", "red"] });
-        CuboMX.listComp.items.add({
+        await CuboMX.listComp.items.add({ name: "Item 2", classes: ["item", "red"] });
+        await CuboMX.listComp.items.add({
             name: "Item 3",
             classes: ["item", "blue"],
         });
-        CuboMX.listComp.items.add({
+        await CuboMX.listComp.items.add({
             name: "Item 4",
             classes: ["item", "green"],
         });
@@ -638,7 +638,7 @@ describe("ClassList Methods with mx-item", () => {
         expect(list?.children[3].className).toBe("item green");
     });
 
-    it("should toggle classes on dynamically added items", () => {
+    it("should toggle classes on dynamically added items", async () => {
         document.body.innerHTML = `
             <div mx-data="listComp">
                 <ul id="list">
@@ -651,12 +651,12 @@ describe("ClassList Methods with mx-item", () => {
         CuboMX.start();
 
         // Clear template
-        CuboMX.listComp.items.clear();
+        await CuboMX.listComp.items.clear();
 
         // Add items
-        CuboMX.listComp.items.add({ name: "Item 1", classes: ["item"] });
-        CuboMX.listComp.items.add({ name: "Item 2", classes: ["item"] });
-        CuboMX.listComp.items.add({ name: "Item 3", classes: ["item"] });
+        await CuboMX.listComp.items.add({ name: "Item 1", classes: ["item"] });
+        await CuboMX.listComp.items.add({ name: "Item 2", classes: ["item"] });
+        await CuboMX.listComp.items.add({ name: "Item 3", classes: ["item"] });
 
         const list = document.querySelector("#list");
 
@@ -736,7 +736,7 @@ describe("Array Reactions (add/push)", () => {
         });
     });
 
-    it("should add a new element to the DOM when .add() is called", () => {
+    it("should add a new element to the DOM when .add() is called", async () => {
         CuboMX.start();
 
         // Verifica o estado após a hidratação
@@ -749,7 +749,7 @@ describe("Array Reactions (add/push)", () => {
         expect(CuboMX.listComp.items[0].name).toBe("Initial Item");
 
         // Act
-        CuboMX.listComp.items.add({ name: "Second Item" });
+        await CuboMX.listComp.items.add({ name: "Second Item" });
 
         // Assert
         expect(list?.children.length).toBe(2);
@@ -758,7 +758,7 @@ describe("Array Reactions (add/push)", () => {
         expect(CuboMX.listComp.items[1].name).toBe("Second Item");
     });
 
-    it("should add a new element to the DOM when .push() is called", () => {
+    it("should add a new element to the DOM when .push() is called", async () => {
         CuboMX.start();
 
         // Verifica o estado após a hidratação
@@ -767,7 +767,7 @@ describe("Array Reactions (add/push)", () => {
         expect(CuboMX.listComp.items.length).toBe(1);
 
         // Act
-        CuboMX.listComp.items.push({ name: "Pushed Item" });
+        await CuboMX.listComp.items.push({ name: "Pushed Item" });
 
         // Assert
         expect(list?.children.length).toBe(2);
@@ -776,14 +776,14 @@ describe("Array Reactions (add/push)", () => {
         expect(CuboMX.listComp.items[1].name).toBe("Pushed Item");
     });
 
-    it("should add a new element at the beginning when .prepend() is called", () => {
+    it("should add a new element at the beginning when .prepend() is called", async () => {
         CuboMX.start();
 
         const list = document.querySelector("#item-list");
         expect(list?.children.length).toBe(1);
 
         // Act
-        CuboMX.listComp.items.prepend({ name: "First Item" });
+        await CuboMX.listComp.items.prepend({ name: "First Item" });
 
         // Assert - Deve ser o primeiro elemento
         expect(list?.children.length).toBe(2);
@@ -793,13 +793,13 @@ describe("Array Reactions (add/push)", () => {
         expect(CuboMX.listComp.items[1].name).toBe("Initial Item");
     });
 
-    it("should add a new element at the beginning when .unshift() is called", () => {
+    it("should add a new element at the beginning when .unshift() is called", async () => {
         CuboMX.start();
 
         const list = document.querySelector("#item-list");
 
         // Act
-        CuboMX.listComp.items.unshift({ name: "Unshifted Item" });
+        await CuboMX.listComp.items.unshift({ name: "Unshifted Item" });
 
         // Assert
         expect(list?.children.length).toBe(2);
@@ -809,18 +809,18 @@ describe("Array Reactions (add/push)", () => {
         expect(CuboMX.listComp.items[0].name).toBe("Unshifted Item");
     });
 
-    it("should remove an element from the DOM when .delete() is called", () => {
+    it("should remove an element from the DOM when .delete() is called", async () => {
         CuboMX.start();
 
         // Adicionar mais itens primeiro
-        CuboMX.listComp.items.add({ name: "Second Item" });
-        CuboMX.listComp.items.add({ name: "Third Item" });
+        await CuboMX.listComp.items.add({ name: "Second Item" });
+        await CuboMX.listComp.items.add({ name: "Third Item" });
 
         const list = document.querySelector("#item-list");
         expect(list?.children.length).toBe(3);
 
         // Act - Remover o item do meio (índice 1)
-        CuboMX.listComp.items.delete(1);
+        await CuboMX.listComp.items.delete(1);
 
         // Assert
         expect(list?.children.length).toBe(2);
@@ -833,33 +833,33 @@ describe("Array Reactions (add/push)", () => {
         expect(allText).not.toContain("Second Item");
     });
 
-    it("should handle delete with invalid index gracefully", () => {
+    it("should handle delete with invalid index gracefully", async () => {
         CuboMX.start();
 
         const list = document.querySelector("#item-list");
         const initialLength = list?.children.length;
 
-        // Act - Tentar remover índice inválido
-        CuboMX.listComp.items.delete(999);
-        CuboMX.listComp.items.delete(-1);
+        // Act - Tentar remover índice inválido (deve lançar erro)
+        await expect(CuboMX.listComp.items.delete(999)).rejects.toThrow();
+        await expect(CuboMX.listComp.items.delete(-1)).rejects.toThrow();
 
         // Assert - Nada deve mudar
         expect(list?.children.length).toBe(initialLength);
         expect(CuboMX.listComp.items.length).toBe(1);
     });
 
-    it("should remove last element from DOM when .pop() is called", () => {
+    it("should remove last element from DOM when .pop() is called", async () => {
         CuboMX.start();
 
         // Adicionar mais itens
-        CuboMX.listComp.items.add({ name: "Second Item" });
-        CuboMX.listComp.items.add({ name: "Third Item" });
+        await CuboMX.listComp.items.add({ name: "Second Item" });
+        await CuboMX.listComp.items.add({ name: "Third Item" });
 
         const list = document.querySelector("#item-list");
         expect(list?.children.length).toBe(3);
 
         // Act
-        CuboMX.listComp.items.pop();
+        await CuboMX.listComp.items.pop();
 
         // Assert
         expect(list?.children.length).toBe(2);
@@ -872,18 +872,18 @@ describe("Array Reactions (add/push)", () => {
         expect(allText).not.toContain("Third Item");
     });
 
-    it("should remove first element from DOM when .shift() is called", () => {
+    it("should remove first element from DOM when .shift() is called", async () => {
         CuboMX.start();
 
         // Adicionar mais itens
-        CuboMX.listComp.items.add({ name: "Second Item" });
-        CuboMX.listComp.items.add({ name: "Third Item" });
+        await CuboMX.listComp.items.add({ name: "Second Item" });
+        await CuboMX.listComp.items.add({ name: "Third Item" });
 
         const list = document.querySelector("#item-list");
         expect(list?.children.length).toBe(3);
 
         // Act
-        CuboMX.listComp.items.shift();
+        await CuboMX.listComp.items.shift();
 
         // Assert
         expect(list?.children.length).toBe(2);
@@ -896,54 +896,54 @@ describe("Array Reactions (add/push)", () => {
         expect(allText).not.toContain("Initial Item");
     });
 
-    it("should handle pop and shift on empty array gracefully", () => {
+    it("should handle pop and shift on empty array gracefully", async () => {
         CuboMX.start();
 
         const list = document.querySelector("#item-list");
 
         // Clear array
-        CuboMX.listComp.items.clear();
+        await CuboMX.listComp.items.clear();
         expect(list?.children.length).toBe(0);
 
         // Act - Tentar pop e shift em array vazio
-        CuboMX.listComp.items.pop();
-        CuboMX.listComp.items.shift();
+        await CuboMX.listComp.items.pop();
+        await CuboMX.listComp.items.shift();
 
         // Assert - Nada deve mudar
         expect(list?.children.length).toBe(0);
         expect(CuboMX.listComp.items.length).toBe(0);
     });
 
-    it("should remove all items from DOM when .clear() is called", () => {
+    it("should remove all items from DOM when .clear() is called", async () => {
         CuboMX.start();
 
         // Adicionar mais itens
-        CuboMX.listComp.items.add({ name: "Second Item" });
-        CuboMX.listComp.items.add({ name: "Third Item" });
+        await CuboMX.listComp.items.add({ name: "Second Item" });
+        await CuboMX.listComp.items.add({ name: "Third Item" });
 
         const list = document.querySelector("#item-list");
         expect(list?.children.length).toBe(3);
 
         // Act
-        CuboMX.listComp.items.clear();
+        await CuboMX.listComp.items.clear();
 
         // Assert
         expect(list?.children.length).toBe(0);
         expect(CuboMX.listComp.items.length).toBe(0);
     });
 
-    it("should allow adding items after clear() using saved template", () => {
+    it("should allow adding items after clear() using saved template", async () => {
         CuboMX.start();
 
         const list = document.querySelector("#item-list");
 
         // Clear todos os items
-        CuboMX.listComp.items.clear();
+        await CuboMX.listComp.items.clear();
         expect(list?.children.length).toBe(0);
         expect(CuboMX.listComp.items.length).toBe(0);
 
         // Act - Adicionar novo item (deve usar template salvo)
-        CuboMX.listComp.items.add({ name: "New Item After Clear" });
+        await CuboMX.listComp.items.add({ name: "New Item After Clear" });
 
         // Assert
         expect(list?.children.length).toBe(1);
@@ -954,18 +954,18 @@ describe("Array Reactions (add/push)", () => {
         expect(CuboMX.listComp.items[0].name).toBe("New Item After Clear");
     });
 
-    it("should replace an item at specific index", () => {
+    it("should replace an item at specific index", async () => {
         CuboMX.start();
 
         // Adicionar mais itens
-        CuboMX.listComp.items.add({ name: "Second Item" });
-        CuboMX.listComp.items.add({ name: "Third Item" });
+        await CuboMX.listComp.items.add({ name: "Second Item" });
+        await CuboMX.listComp.items.add({ name: "Third Item" });
 
         const list = document.querySelector("#item-list");
         expect(list?.children.length).toBe(3);
 
         // Act - Substituir o item do meio
-        CuboMX.listComp.items.replace(1, { name: "Replaced Item" });
+        await CuboMX.listComp.items.replace(1, { name: "Replaced Item" });
 
         // Assert
         expect(list?.children.length).toBe(3);
