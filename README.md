@@ -352,12 +352,12 @@ CuboMX.component("alerts", {
 CuboMX.start();
 
 // Now you can add alerts dynamically
-CuboMX.alerts.alerts.add({
+await CuboMX.alerts.alerts.add({
     type: "success",
     message: "Operation completed!",
 });
 
-CuboMX.alerts.alerts.add({
+await CuboMX.alerts.alerts.add({
     type: "error",
     message: "Something went wrong!",
 });
@@ -385,15 +385,15 @@ CuboMX.alerts.alerts.add({
 
 #### `ArrayItems`
 
-When an array is hydrated using `mx-item`, it becomes an `ArrayItems` proxy. This object has all the standard JavaScript array methods (`forEach`, `map`, `filter`, etc.), but it also includes special **asynchronous methods** for safe DOM manipulation:
+When an array is hydrated using `mx-item`, it becomes an `ArrayItems` proxy. This object has all the standard JavaScript array methods (`forEach`, `map`, `filter`, etc.), but it also includes special **asynchronous methods** for safe DOM manipulation. These methods are asynchronous because CuboMX is a hydration framework, and it's necessary to await the hydration of new elements:
 
--   `add(itemData)`
--   `prepend(itemData)`
--   `delete(index)`
--   `pop()`
--   `shift()`
--   `clear()`
--   `replace(index, itemData)`
+-   `async add(itemData)`
+-   `async prepend(itemData)`
+-   `async delete(index)`
+-   `async pop()`
+-   `async shift()`
+-   `async clear()`
+-   `async replace(index, itemData)`
 
 Using these methods is the recommended way to modify lists, as they ensure that DOM updates and state changes are handled correctly by CuboMX.
 
@@ -989,6 +989,59 @@ CuboMX.component("datePicker", {
     },
 });
 ```
+
+### `onDOMUpdate()`
+
+The `onDOMUpdate()` method is called on **all active components and stores** whenever a new component is added to the DOM. This lifecycle hook allows components to react to global DOM changes, not just their own lifecycle.
+
+This is particularly useful for:
+- Updating UI elements when the page structure changes
+- Recalculating layouts or positions when new content appears
+- Notifying stores about structural changes in the application
+- Re-initializing third-party libraries that depend on the DOM structure
+
+**Important:** `onDOMUpdate()` is called on **all** existing components and stores when **any** component is added, allowing for global coordination.
+
+**Example: Updating a Navigation Counter**
+
+```javascript
+CuboMX.store("navigation", {
+    componentCount: 0,
+    onDOMUpdate() {
+        // Count all active components whenever DOM changes
+        this.componentCount = document.querySelectorAll("[mx-data]").length;
+        console.log(`Total components: ${this.componentCount}`);
+    },
+});
+```
+
+**Example: Recalculating Layout on Component Addition**
+
+```javascript
+CuboMX.component("sidebar", {
+    height: 0,
+    onDOMUpdate() {
+        // Recalculate height whenever DOM structure changes
+        const mainContent = document.querySelector("#main-content");
+        this.height = mainContent?.offsetHeight || 0;
+    },
+});
+```
+
+**Example: Reacting to New Components in a Dashboard**
+
+```javascript
+CuboMX.component("dashboard", {
+    widgets: [],
+    onDOMUpdate() {
+        // Update internal list whenever new widgets are added to the page
+        const widgetElements = document.querySelectorAll("[data-widget]");
+        console.log(`Dashboard detected ${widgetElements.length} widgets`);
+    },
+});
+```
+
+> **Note:** Unlike `init()`, which runs once per component, `onDOMUpdate()` runs on **all** active components and stores every time the DOM changes (when components are added). It does **not** run when components are removed—only `destroy()` runs in that case.
 
 ### `destroy()`
 

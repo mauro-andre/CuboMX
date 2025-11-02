@@ -513,4 +513,189 @@ describe("Lifecycle Hooks - init and destroy", () => {
             expect(newInitSpy).toHaveBeenCalledTimes(1);
         });
     });
+
+    describe("onDOMUpdate() lifecycle hook", () => {
+        it("should call onDOMUpdate() when new component is added to DOM", async () => {
+            const onDOMUpdateSpy = vi.fn();
+
+            CuboMX.component("test", {
+                onDOMUpdate() {
+                    onDOMUpdateSpy();
+                },
+            });
+
+            document.body.innerHTML = `<div id="container"></div>`;
+            CuboMX.start();
+
+            // Add component dynamically
+            const container = document.querySelector("#container");
+            const newEl = document.createElement("div");
+            newEl.setAttribute("mx-data", "test");
+            container?.appendChild(newEl);
+
+            await new Promise((resolve) => setTimeout(resolve, 0)); // Wait for MutationObserver
+
+            expect(onDOMUpdateSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it("should call onDOMUpdate() on stores when DOM changes", async () => {
+            const storeOnDOMUpdateSpy = vi.fn();
+
+            CuboMX.store("myStore", {
+                count: 0,
+                onDOMUpdate() {
+                    storeOnDOMUpdateSpy();
+                },
+            });
+
+            CuboMX.component("test", {
+                value: 0,
+            });
+
+            document.body.innerHTML = `<div id="container"></div>`;
+            CuboMX.start();
+
+            // Add component dynamically (should trigger store's onDOMUpdate)
+            const container = document.querySelector("#container");
+            const newEl = document.createElement("div");
+            newEl.setAttribute("mx-data", "test");
+            container?.appendChild(newEl);
+
+            await new Promise((resolve) => setTimeout(resolve, 0)); // Wait for MutationObserver
+
+            expect(storeOnDOMUpdateSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it("should call onDOMUpdate() on all components when DOM changes", async () => {
+            const comp1UpdateSpy = vi.fn();
+            const comp2UpdateSpy = vi.fn();
+
+            CuboMX.component("comp1", {
+                onDOMUpdate() {
+                    comp1UpdateSpy();
+                },
+            });
+
+            CuboMX.component("comp2", {
+                onDOMUpdate() {
+                    comp2UpdateSpy();
+                },
+            });
+
+            document.body.innerHTML = `<div id="container"></div>`;
+            CuboMX.start();
+
+            // Add first component
+            const container = document.querySelector("#container");
+            const el1 = document.createElement("div");
+            el1.setAttribute("mx-data", "comp1");
+            container?.appendChild(el1);
+
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(comp1UpdateSpy).toHaveBeenCalledTimes(1);
+
+            // Add second component (should trigger onDOMUpdate on both)
+            const el2 = document.createElement("div");
+            el2.setAttribute("mx-data", "comp2");
+            container?.appendChild(el2);
+
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(comp2UpdateSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it("should NOT call onDOMUpdate() when component is removed", async () => {
+            const onDOMUpdateSpy = vi.fn();
+
+            CuboMX.component("test", {
+                onDOMUpdate() {
+                    onDOMUpdateSpy();
+                },
+            });
+
+            document.body.innerHTML = `<div id="test" mx-data="test"></div>`;
+            CuboMX.start();
+
+            // onDOMUpdate should not be called on start (only on DOM changes)
+            expect(onDOMUpdateSpy).not.toHaveBeenCalled();
+
+            // Remove component
+            const el = document.querySelector("#test");
+            el?.remove();
+
+            await new Promise((resolve) => setTimeout(resolve, 0)); // Wait for MutationObserver
+
+            // onDOMUpdate should NOT be called when removing
+            expect(onDOMUpdateSpy).not.toHaveBeenCalled();
+        });
+
+        it("should call onDOMUpdate() when component is added via swap", async () => {
+            const onDOMUpdateSpy = vi.fn();
+
+            CuboMX.component("new-comp", {
+                onDOMUpdate() {
+                    onDOMUpdateSpy();
+                },
+            });
+
+            document.body.innerHTML = `<div id="content">Original</div>`;
+            CuboMX.start();
+
+            expect(onDOMUpdateSpy).not.toHaveBeenCalled();
+
+            // Add new component via swap
+            CuboMX.swap(
+                `<div id="content" mx-data="new-comp">New Component</div>`,
+                [{ target: "#content:outerHTML" }]
+            );
+
+            await new Promise((resolve) => setTimeout(resolve, 0)); // Wait for MutationObserver
+
+            expect(onDOMUpdateSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it("should handle components without onDOMUpdate() gracefully", async () => {
+            CuboMX.component("no-update", {
+                value: 0,
+            });
+
+            document.body.innerHTML = `<div id="container"></div>`;
+            CuboMX.start();
+
+            const container = document.querySelector("#container");
+            const newEl = document.createElement("div");
+            newEl.setAttribute("mx-data", "no-update");
+
+            // Should not throw error when component doesn't have onDOMUpdate()
+            expect(() => {
+                container?.appendChild(newEl);
+            }).not.toThrow();
+
+            await new Promise((resolve) => setTimeout(resolve, 0)); // Wait for MutationObserver
+        });
+
+        it("should call onDOMUpdate() with correct context (this)", async () => {
+            let capturedContext: any = null;
+
+            CuboMX.component("test", {
+                myValue: "test-value",
+                onDOMUpdate(this: any) {
+                    capturedContext = this;
+                },
+            });
+
+            document.body.innerHTML = `<div id="container"></div>`;
+            CuboMX.start();
+
+            // Add component dynamically
+            const container = document.querySelector("#container");
+            const newEl = document.createElement("div");
+            newEl.setAttribute("mx-data", "test");
+            container?.appendChild(newEl);
+
+            await new Promise((resolve) => setTimeout(resolve, 0)); // Wait for MutationObserver
+
+            expect(capturedContext).not.toBeNull();
+            expect(capturedContext.myValue).toBe("test-value");
+        });
+    });
 });

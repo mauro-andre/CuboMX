@@ -85,6 +85,8 @@ const parseAttrValue = (el: MxElement, attrToBind: string) => {
         return parseValue(el.textContent?.trim() ?? "");
     } else if (attrToBind == "html") {
         return el.innerHTML;
+    } else if (attrToBind == "el") {
+        return el;
     } else {
         return parseValue(el.getAttribute(attrToBind));
     }
@@ -121,7 +123,8 @@ const createReaction = (el: MxElement, attrToBind: string): Reaction => {
             attrToBind === "text" ||
             attrToBind === "html" ||
             attrToBind === "class" ||
-            attrToBind === "mx-show"
+            attrToBind === "mx-show" ||
+            attrToBind === "el"
                 ? undefined
                 : attrToBind,
         type:
@@ -133,6 +136,8 @@ const createReaction = (el: MxElement, attrToBind: string): Reaction => {
                 ? "class"
                 : attrToBind === "mx-show"
                 ? "mx-show"
+                : attrToBind === "el"
+                ? "none"
                 : "attribute",
     };
 };

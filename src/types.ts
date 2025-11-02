@@ -4,6 +4,7 @@ type MxProxy = Record<string, any> & {
         callback: (this: MxProxy, newValue: any, oldValue: any) => void
     ) => void;
     init?: (this: MxProxy) => void;
+    onDOMUpdate?: (this: MxProxy) => void;
 };
 
 type MxElProxy = MxProxy & {
@@ -22,16 +23,16 @@ type RequestResponse = {
     json: any | null;
 };
 
-type ArrayItems<T> = Array<MxElProxy> & {
-    add(item: T): MxElProxy;
-    prepend(item: T): MxElProxy;
-    delete(index: number): void;
-    remove(item: T): void;
-    pop(): void;
-    shift(): void;
-    clear(): void;
-    replace(index: number, item: T): MxElProxy;
-    _hydrateAdd?: (itemProxy: MxElProxy) => void;
+type ArrayItems<T> = Array<T & MxElProxy> & {
+    add(item: T): Promise<T & MxElProxy>;
+    prepend(item: T): Promise<T & MxElProxy>;
+    delete(index: number): Promise<void>;
+    remove(item: T): Promise<void>;
+    pop(): Promise<void>;
+    shift(): Promise<void>;
+    clear(): Promise<void>;
+    replace(index: number, item: T): Promise<T & MxElProxy>;
+    _hydrateAdd?: (itemProxy: MxElProxy, index?: number) => void;
     _setTemplate?: (template: MxElement) => void;
     _setParent?: (parent: MxElement) => void;
 };
@@ -69,11 +70,13 @@ interface MxElement extends HTMLElement {
     __mxItemProcessed__?: boolean;
     __mx_transition_timeout__?: ReturnType<typeof setTimeout>;
     __mx_transition_handler__?: (event: TransitionEvent) => void;
+    __resolveHydration__?: (proxy: MxElProxy) => void;
+    __resolveDelete__?: () => void;
 }
 
 interface Reaction {
     element: MxElement;
-    type: "text" | "html" | "attribute" | "class" | "item" | "mx-show";
+    type: "text" | "html" | "attribute" | "class" | "item" | "mx-show" | "none";
     attrName?: string;
     template?: string;
 }
@@ -85,6 +88,7 @@ class MxComponent {
         callback: (this: this, newValue: this[K], oldValue: this[K]) => void
     ) => void;
     init?(): void;
+    onDOMUpdate?(): void;
     destroy?(): void;
 }
 

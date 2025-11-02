@@ -470,3 +470,92 @@ describe("parseValue data types with class", () => {
         expect(CuboMX.dataTypes.htmlValue).toContain("<strong>HTML</strong>");
     });
 });
+
+describe("Directive :el for element reference", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+    });
+
+    it("should hydrate element reference with :el", () => {
+        document.body.innerHTML = `
+            <div mx-data="pageManager">
+                <div id="main-content" :el="mainElement">
+                    <h1>Main Content</h1>
+                </div>
+                <header id="page-header" :el="headerElement">
+                    <h2>Header</h2>
+                </header>
+            </div>
+        `;
+
+        const pageManager = {
+            mainElement: null,
+            headerElement: null,
+        };
+
+        CuboMX.component("pageManager", pageManager);
+        CuboMX.start();
+
+        // Check if elements were hydrated
+        expect(CuboMX.pageManager.mainElement).toBeInstanceOf(HTMLElement);
+        expect(CuboMX.pageManager.headerElement).toBeInstanceOf(HTMLElement);
+
+        // Check if we got the correct elements
+        expect(CuboMX.pageManager.mainElement.id).toBe("main-content");
+        expect(CuboMX.pageManager.headerElement.id).toBe("page-header");
+
+        // Check if we can access element content
+        expect(CuboMX.pageManager.mainElement.querySelector("h1")?.textContent).toBe("Main Content");
+        expect(CuboMX.pageManager.headerElement.querySelector("h2")?.textContent).toBe("Header");
+    });
+
+    it("should work with global scope ($componentName)", () => {
+        document.body.innerHTML = `
+            <div mx-data="layout">
+                <main :el="$pageContent.mainEl">
+                    <p>Page content</p>
+                </main>
+            </div>
+            <div mx-data="pageContent"></div>
+        `;
+
+        const layout = {};
+        const pageContent = {
+            mainEl: null,
+        };
+
+        CuboMX.component("layout", layout);
+        CuboMX.component("pageContent", pageContent);
+        CuboMX.start();
+
+        // Check if element was hydrated to pageContent component
+        expect(CuboMX.pageContent.mainEl).toBeInstanceOf(HTMLElement);
+        expect(CuboMX.pageContent.mainEl.tagName).toBe("MAIN");
+        expect(CuboMX.pageContent.mainEl.querySelector("p")?.textContent).toBe("Page content");
+    });
+
+    it("should not create reactions for :el (static reference)", () => {
+        document.body.innerHTML = `
+            <div mx-data="testComp">
+                <div id="test-div" :el="divElement">Test</div>
+            </div>
+        `;
+
+        const testComp = {
+            divElement: null,
+        };
+
+        CuboMX.component("testComp", testComp);
+        CuboMX.start();
+
+        const originalElement = CuboMX.testComp.divElement;
+
+        // Try to change the property (should not affect DOM since there's no reaction)
+        CuboMX.testComp.divElement = document.createElement("span");
+
+        // The property changed, but DOM should remain the same
+        expect(CuboMX.testComp.divElement.tagName).toBe("SPAN");
+        expect(document.querySelector("#test-div")).toBeTruthy();
+        expect(originalElement.textContent).toBe("Test");
+    });
+});

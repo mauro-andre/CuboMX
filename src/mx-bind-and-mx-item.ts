@@ -48,7 +48,7 @@ const resolveMXBind = (el: MxElement, publicAPI: PublicAPI) => {
 
 const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
     // Skip if this element was already processed as mx-item
-    if (el.__mxItemProcessed__) return;
+    // if (el.__mxItemProcessed__) return;
 
     const mainAttr = el.getAttributeNode("mx-item");
     if (!mainAttr) return;
@@ -145,7 +145,27 @@ const resolveMXItem = (el: MxElement, publicAPI: PublicAPI) => {
     ) {
         proxy[componentAttr] = createArrayProxy([el.__itemProxy__]);
     } else {
-        currentArray._hydrateAdd(el.__itemProxy__);
+        // Calculate the index based on DOM position among siblings with same mx-item
+        const parentElement = el.parentElement;
+        let index = 0;
+
+        if (parentElement) {
+            // Get all sibling elements with the same mx-item attribute
+            const mxItemAttr = el.getAttribute("mx-item");
+            const siblings = Array.from(
+                parentElement.querySelectorAll<MxElement>(`[mx-item="${mxItemAttr}"]`)
+            );
+
+            // Find the position of this element among its siblings
+            index = siblings.indexOf(el);
+
+            // If not found (shouldn't happen), default to end
+            if (index === -1) {
+                index = currentArray.length;
+            }
+        }
+
+        currentArray._hydrateAdd(el.__itemProxy__, index);
     }
 };
 

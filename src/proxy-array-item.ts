@@ -1,50 +1,5 @@
 import { MxElement, MxElProxy, Reaction, ArrayItems } from "./types";
-import {
-    parseAttrToBind,
-    getComponentNameAttr,
-    parseAttrValue,
-    assignValue,
-    createReaction,
-} from "./hydration-helpers";
-
-import { createProxy, reactionsSymbol } from "./proxy-component";
-
-const hydrateItemProxy = (item: any, templateElement: MxElement): MxElement => {
-    const clonedElement = templateElement.cloneNode(true) as MxElement;
-    clonedElement.__mxItemProcessed__ = true;
-
-    const itemProxy = createProxy(item, clonedElement) as MxElProxy;
-    clonedElement.__itemProxy__ = itemProxy;
-
-    const allElementsInScope = [
-        clonedElement,
-        ...Array.from(clonedElement.querySelectorAll<MxElement>("*")),
-    ];
-
-    for (const element of allElementsInScope) {
-        for (const attr of Array.from(element.attributes)) {
-            const parsed = parseAttrToBind(attr, ["mx-item:", "::"]);
-            if (!parsed) continue;
-
-            const { attrToBind, modifier } = parsed;
-            const component = getComponentNameAttr(attr);
-            const propName = component.componentAttr;
-
-            const reaction = createReaction(element, attrToBind);
-            const reactionMap = clonedElement.__itemProxy__[
-                reactionsSymbol as any
-            ] as Map<string, Reaction[]>;
-            if (!reactionMap.has(propName)) {
-                reactionMap.set(propName, []);
-            }
-            reactionMap.get(propName)?.push(reaction);
-
-            const value = item[propName] ?? parseAttrValue(element, attrToBind);
-            assignValue(clonedElement.__itemProxy__, propName, value, modifier);
-        }
-    }
-    return clonedElement;
-};
+import { preprocessBindings } from "./rendering-helpers";
 
 const createArrayProxy = <T = any>(
     arr: Array<any>,
@@ -56,11 +11,6 @@ const createArrayProxy = <T = any>(
         : arr.length > 0 && arr[0].$el
         ? (arr[0].$el.cloneNode(true) as MxElement)
         : null;
-
-    // Mark template so clones will inherit the flag
-    if (templateElement) {
-        templateElement.__mxItemProcessed__ = true;
-    }
 
     let parentElement: MxElement | null =
         arr.length > 0 && arr[0].$el ? arr[0].$el.parentElement : null;
@@ -100,7 +50,7 @@ const createArrayProxy = <T = any>(
             }
 
             if (prop === "_hydrateAdd") {
-                return (itemProxy: MxElProxy): void => {
+                return (itemProxy: MxElProxy, index?: number): void => {
                     if (!templateElement && itemProxy.$el) {
                         templateElement = itemProxy.$el.cloneNode(
                             true
@@ -109,12 +59,22 @@ const createArrayProxy = <T = any>(
                     if (!parentElement && itemProxy.$el) {
                         parentElement = itemProxy.$el.parentElement;
                     }
-                    target.push(itemProxy);
+
+                    // Insert at specific index if provided, otherwise push to end
+                    if (
+                        index !== undefined &&
+                        index >= 0 &&
+                        index <= target.length
+                    ) {
+                        target.splice(index, 0, itemProxy);
+                    } else {
+                        target.push(itemProxy);
+                    }
                 };
             }
 
             if (prop === "add" || prop === "push") {
-                return (item: T): MxElProxy => {
+                return async (item: T): Promise<T & MxElProxy> => {
                     if (!templateElement) {
                         throw new Error(
                             "[CuboMX] Cannot add item: no template available."
@@ -127,21 +87,39 @@ const createArrayProxy = <T = any>(
                         );
                     }
 
-                    const clonedElement = hydrateItemProxy(
-                        item,
-                        templateElement as MxElement
+                    // 1. Clone the template
+                    const clonedElement = templateElement.cloneNode(
+                        true
+                    ) as MxElement;
+
+                    // 2. Preprocess bindings (replace bound values with actual data)
+                    preprocessBindings(
+                        clonedElement,
+                        item as Record<string, any>,
+                        ["mx-item:", "::"]
                     );
 
+                    // 3. Create Promise with resolve callback stored in element
+                    const hydrationPromise = new Promise<MxElProxy>(
+                        (resolve) => {
+                            clonedElement.__resolveHydration__ = resolve;
+                        }
+                    );
+
+                    // 4. Add to DOM (MutationObserver will detect and hydrate)
                     parentElement.appendChild(clonedElement);
 
-                    target.push(clonedElement.__itemProxy__);
+                    // 5. Await hydration to complete
+                    // MutationObserver will process the element, create proxy,
+                    // add to array, and resolve the promise
+                    const itemProxy = await hydrationPromise;
 
-                    return clonedElement.__itemProxy__ as MxElProxy;
+                    return itemProxy as T & MxElProxy;
                 };
             }
 
             if (prop === "prepend" || prop === "unshift") {
-                return (item: T): MxElProxy => {
+                return async (item: T): Promise<T & MxElProxy> => {
                     if (!templateElement) {
                         throw new Error(
                             "[CuboMX] Cannot add item: no template available."
@@ -154,86 +132,136 @@ const createArrayProxy = <T = any>(
                         );
                     }
 
-                    const clonedElement = hydrateItemProxy(
-                        item,
-                        templateElement as MxElement
+                    // 1. Clone the template
+                    const clonedElement = templateElement.cloneNode(
+                        true
+                    ) as MxElement;
+
+                    // 2. Preprocess bindings (replace bound values with actual data)
+                    preprocessBindings(
+                        clonedElement,
+                        item as Record<string, any>,
+                        ["mx-item:", "::"]
                     );
 
+                    // 3. Create Promise with resolve callback stored in element
+                    const hydrationPromise = new Promise<MxElProxy>(
+                        (resolve) => {
+                            clonedElement.__resolveHydration__ = resolve;
+                        }
+                    );
+
+                    // 4. Add to DOM at the beginning (MutationObserver will detect and hydrate)
                     parentElement.prepend(clonedElement);
 
-                    target.unshift(clonedElement.__itemProxy__);
+                    // 5. Await hydration to complete
+                    // MutationObserver will process the element, create proxy,
+                    // add to array, and resolve the promise
+                    const itemProxy = await hydrationPromise;
 
-                    return clonedElement.__itemProxy__ as MxElProxy;
+                    return itemProxy as T & MxElProxy;
                 };
             }
 
             if (prop === "delete") {
-                return (index: number): void => {
+                return async (index: number): Promise<void> => {
                     if (index < 0 || index >= target.length) {
-                        console.error(
+                        throw new Error(
                             `[CuboMX] Cannot delete item at index ${index}: out of bounds`
                         );
-                        return;
                     }
 
                     const itemProxy = target[index];
-                    itemProxy.$el.remove();
+
+                    // 1. Create Promise to await deletion completion
+                    const deletionPromise = new Promise<void>((resolve) => {
+                        itemProxy.$el.__resolveDelete__ = resolve;
+                    });
+
+                    // 2. Remove from array first (prevents index issues)
                     target.splice(index, 1);
+
+                    // 3. Remove from DOM (MutationObserver will detect and process)
+                    itemProxy.$el.remove();
+
+                    // 4. Await deletion processing (destroy lifecycle, cleanup, etc)
+                    await deletionPromise;
                 };
             }
 
             if (prop === "remove") {
-                return (item: MxElProxy): void => {
-                    const index = target.indexOf(item);
+                return async (item: T): Promise<void> => {
+                    const index = target.indexOf(item as any);
                     if (index === -1) {
-                        console.error(
+                        throw new Error(
                             `[CuboMX] Cannot remove item: item not found in array`
                         );
-                        return;
                     }
-                    (proxy as any).delete(index);
+                    await (proxy as any).delete(index);
                 };
             }
 
             if (prop === "pop") {
-                return (): void => {
+                return async (): Promise<void> => {
                     if (target.length === 0) {
                         return;
                     }
-                    (proxy as any).delete(target.length - 1);
+                    await (proxy as any).delete(target.length - 1);
                 };
             }
 
             if (prop === "shift") {
-                return (): void => {
+                return async (): Promise<void> => {
                     if (target.length === 0) {
                         return;
                     }
-                    (proxy as any).delete(0);
+                    await (proxy as any).delete(0);
                 };
             }
 
             if (prop === "clear") {
-                return (): void => {
-                    if (target.length > 0) {
-                        if (!templateElement) {
-                            templateElement = target[0].$el.cloneNode(
-                                true
-                            ) as MxElement;
-                        }
-                        if (!parentElement) {
-                            parentElement = target[0].$el.parentElement;
-                        }
+                return async (): Promise<void> => {
+                    if (target.length === 0) {
+                        return;
                     }
+
+                    // 1. Preserve template and parent for future use
+                    if (!templateElement && target[0].$el) {
+                        templateElement = target[0].$el.cloneNode(
+                            true
+                        ) as MxElement;
+                    }
+                    if (!parentElement && target[0].$el) {
+                        parentElement = target[0].$el.parentElement;
+                    }
+
+                    // 2. Create deletion Promises for all items
+                    const deletionPromises: Promise<void>[] = [];
+                    for (const itemProxy of target) {
+                        const promise = new Promise<void>((resolve) => {
+                            itemProxy.$el.__resolveDelete__ = resolve;
+                        });
+                        deletionPromises.push(promise);
+                    }
+
+                    // 3. Remove all items from DOM
                     for (const itemProxy of target) {
                         itemProxy.$el.remove();
                     }
+
+                    // 4. Clear the array
                     target.length = 0;
+
+                    // 5. Await all deletion processing (destroy lifecycle, cleanup, etc)
+                    await Promise.all(deletionPromises);
                 };
             }
 
             if (prop === "replace") {
-                return (index: number, item: T): MxElProxy => {
+                return async (
+                    index: number,
+                    item: T
+                ): Promise<T & MxElProxy> => {
                     if (index < 0 || index >= target.length) {
                         throw new Error(
                             `[CuboMX] Cannot replace item at index ${index}: out of bounds`
@@ -247,20 +275,57 @@ const createArrayProxy = <T = any>(
                     }
 
                     const oldItemProxy = target[index] as MxElProxy;
-                    const clonedElement = hydrateItemProxy(
-                        item,
-                        templateElement
+
+                    // 1. Clone the template
+                    const clonedElement = templateElement.cloneNode(
+                        true
+                    ) as MxElement;
+
+                    // 2. Preprocess bindings (replace bound values with actual data)
+                    preprocessBindings(
+                        clonedElement,
+                        item as Record<string, any>,
+                        ["mx-item:", "::"]
                     );
 
+                    // 3. Create Promise with resolve callback for hydration
+                    const hydrationPromise = new Promise<MxElProxy>(
+                        (resolve) => {
+                            clonedElement.__resolveHydration__ = resolve;
+                        }
+                    );
+
+                    // 4. Create Promise with resolve callback for deletion
+                    const deletionPromise = new Promise<void>((resolve) => {
+                        (oldItemProxy.$el as MxElement).__resolveDelete__ =
+                            resolve;
+                    });
+
+                    // 5. Insert new element in DOM (before old element)
                     oldItemProxy.$el.parentElement?.insertBefore(
                         clonedElement,
                         oldItemProxy.$el
                     );
 
-                    oldItemProxy.$el.remove();
-                    target[index] = clonedElement.__itemProxy__;
+                    // 6. Remove old element from array
+                    target.splice(index, 1);
 
-                    return clonedElement.__itemProxy__ as MxElProxy;
+                    // 7. Remove old element from DOM (MutationObserver will detect)
+                    oldItemProxy.$el.remove();
+
+                    // 8. Await both hydration and deletion
+                    // MutationObserver will:
+                    //   - Detect new element
+                    //   - Call resolveMXItem
+                    //   - Calculate index based on DOM position
+                    //   - Call _hydrateAdd(proxy, calculatedIndex)
+                    //   - _hydrateAdd will insert proxy at correct position in array
+                    const [newItemProxy] = await Promise.all([
+                        hydrationPromise,
+                        deletionPromise,
+                    ]);
+
+                    return newItemProxy as T & MxElProxy;
                 };
             }
 
