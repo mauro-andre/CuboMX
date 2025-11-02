@@ -25,6 +25,14 @@ type RequestResponse = {
 
 type ArrayItems<T> = Array<T & MxElProxy> & {
     add(item: T): T & MxElProxy;
+    asyncAdd(item: T): Promise<T & MxElProxy>;
+    asyncPrepend(item: T): Promise<T & MxElProxy>;
+    asyncDelete(index: number): Promise<void>;
+    asyncRemove(item: T): Promise<void>;
+    asyncPop(): Promise<void>;
+    asyncShift(): Promise<void>;
+    asyncClear(): Promise<void>;
+    asyncReplace(index: number, item: T): Promise<T & MxElProxy>;
     prepend(item: T): T & MxElProxy;
     delete(index: number): void;
     remove(item: T): void;
@@ -32,7 +40,7 @@ type ArrayItems<T> = Array<T & MxElProxy> & {
     shift(): void;
     clear(): void;
     replace(index: number, item: T): T & MxElProxy;
-    _hydrateAdd?: (itemProxy: MxElProxy) => void;
+    _hydrateAdd?: (itemProxy: MxElProxy, index?: number) => void;
     _setTemplate?: (template: MxElement) => void;
     _setParent?: (parent: MxElement) => void;
 };
@@ -70,6 +78,8 @@ interface MxElement extends HTMLElement {
     __mxItemProcessed__?: boolean;
     __mx_transition_timeout__?: ReturnType<typeof setTimeout>;
     __mx_transition_handler__?: (event: TransitionEvent) => void;
+    __resolveHydration__?: (proxy: MxElProxy) => void;
+    __resolveDelete__?: () => void;
 }
 
 interface Reaction {

@@ -356,3 +356,409 @@ describe("Directive ::el for element reference in mx-item", () => {
         expect(widgets[1].element.getAttribute("name")).toBe("widget-2");
     });
 });
+
+describe("Directive mx-item with asyncAdd()", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+    });
+
+    it("should add item asynchronously at the end and maintain correct order", async () => {
+        document.body.innerHTML = `
+            <div mx-data="todos">
+                <ul id="todo-list">
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 1</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 2</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="true">Item 3</li>
+                </ul>
+            </div>
+        `;
+
+        const todosComponent = {
+            items: [],
+        };
+
+        CuboMX.component("todos", todosComponent);
+        CuboMX.start();
+
+        const items = CuboMX.todos.items;
+        const list = document.getElementById("todo-list");
+
+        // Should have hydrated 3 items
+        expect(items.length).toBe(3);
+        expect(items[0].title).toBe("Item 1");
+        expect(items[1].title).toBe("Item 2");
+        expect(items[2].title).toBe("Item 3");
+
+        // Add new item at the end
+        const newItem = await items.asyncAdd({ title: "Item 4", done: false });
+
+        // Check array order
+        expect(items.length).toBe(4);
+        expect(items[3]).toBe(newItem);
+        expect(items[0].title).toBe("Item 1");
+        expect(items[1].title).toBe("Item 2");
+        expect(items[2].title).toBe("Item 3");
+        expect(items[3].title).toBe("Item 4");
+
+        // Check DOM order
+        expect(list?.children.length).toBe(4);
+        expect(list?.children[0].textContent).toBe("Item 1");
+        expect(list?.children[1].textContent).toBe("Item 2");
+        expect(list?.children[2].textContent).toBe("Item 3");
+        expect(list?.children[3].textContent).toBe("Item 4");
+
+        // Check reactivity
+        newItem.title = "Updated Item 4";
+        expect(list?.children[3].textContent).toBe("Updated Item 4");
+    });
+
+    it("should prepend item asynchronously and maintain correct order", async () => {
+        document.body.innerHTML = `
+            <div mx-data="todos">
+                <ul id="todo-list">
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 1</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 2</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="true">Item 3</li>
+                </ul>
+            </div>
+        `;
+
+        const todosComponent = {
+            items: [],
+        };
+
+        CuboMX.component("todos", todosComponent);
+        CuboMX.start();
+
+        const items = CuboMX.todos.items;
+        const list = document.getElementById("todo-list");
+
+        // Should have hydrated 3 items
+        expect(items.length).toBe(3);
+        expect(items[0].title).toBe("Item 1");
+        expect(items[1].title).toBe("Item 2");
+        expect(items[2].title).toBe("Item 3");
+
+        // Prepend new item (should go to position 0)
+        const newItem = await items.asyncPrepend({ title: "Item 0", done: false });
+
+        // Check array order
+        expect(items.length).toBe(4);
+        expect(items[0]).toBe(newItem);
+        expect(items[0].title).toBe("Item 0");
+        expect(items[1].title).toBe("Item 1");
+        expect(items[2].title).toBe("Item 2");
+        expect(items[3].title).toBe("Item 3");
+
+        // Check DOM order
+        expect(list?.children.length).toBe(4);
+        expect(list?.children[0].textContent).toBe("Item 0");
+        expect(list?.children[1].textContent).toBe("Item 1");
+        expect(list?.children[2].textContent).toBe("Item 2");
+        expect(list?.children[3].textContent).toBe("Item 3");
+
+        // Check reactivity
+        newItem.title = "Updated Item 0";
+        expect(list?.children[0].textContent).toBe("Updated Item 0");
+    });
+
+    it("should delete item asynchronously and maintain correct order", async () => {
+        document.body.innerHTML = `
+            <div mx-data="todos">
+                <ul id="todo-list">
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 1</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 2</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="true">Item 3</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 4</li>
+                </ul>
+            </div>
+        `;
+
+        const todosComponent = {
+            items: [],
+        };
+
+        CuboMX.component("todos", todosComponent);
+        CuboMX.start();
+
+        const items = CuboMX.todos.items;
+        const list = document.getElementById("todo-list");
+
+        // Should have hydrated 4 items
+        expect(items.length).toBe(4);
+        expect(items[0].title).toBe("Item 1");
+        expect(items[1].title).toBe("Item 2");
+        expect(items[2].title).toBe("Item 3");
+        expect(items[3].title).toBe("Item 4");
+
+        // Delete item at index 1 (Item 2)
+        await items.asyncDelete(1);
+
+        // Check array after deletion
+        expect(items.length).toBe(3);
+        expect(items[0].title).toBe("Item 1");
+        expect(items[1].title).toBe("Item 3"); // Item 2 was removed
+        expect(items[2].title).toBe("Item 4");
+
+        // Check DOM after deletion
+        expect(list?.children.length).toBe(3);
+        expect(list?.children[0].textContent).toBe("Item 1");
+        expect(list?.children[1].textContent).toBe("Item 3");
+        expect(list?.children[2].textContent).toBe("Item 4");
+
+        // Delete first item (index 0)
+        await items.asyncDelete(0);
+
+        expect(items.length).toBe(2);
+        expect(items[0].title).toBe("Item 3");
+        expect(items[1].title).toBe("Item 4");
+
+        expect(list?.children.length).toBe(2);
+        expect(list?.children[0].textContent).toBe("Item 3");
+        expect(list?.children[1].textContent).toBe("Item 4");
+    });
+
+    it("should remove item asynchronously by reference", async () => {
+        document.body.innerHTML = `
+            <div mx-data="todos">
+                <ul id="todo-list">
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 1</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 2</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="true">Item 3</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 4</li>
+                </ul>
+            </div>
+        `;
+
+        const todosComponent = {
+            items: [],
+        };
+
+        CuboMX.component("todos", todosComponent);
+        CuboMX.start();
+
+        const items = CuboMX.todos.items;
+        const list = document.getElementById("todo-list");
+
+        // Should have hydrated 4 items
+        expect(items.length).toBe(4);
+
+        // Get reference to Item 2
+        const itemToRemove = items[1];
+        expect(itemToRemove.title).toBe("Item 2");
+
+        // Remove item by reference
+        await items.asyncRemove(itemToRemove);
+
+        // Check array after removal
+        expect(items.length).toBe(3);
+        expect(items[0].title).toBe("Item 1");
+        expect(items[1].title).toBe("Item 3"); // Item 2 was removed
+        expect(items[2].title).toBe("Item 4");
+
+        // Check DOM after removal
+        expect(list?.children.length).toBe(3);
+        expect(list?.children[0].textContent).toBe("Item 1");
+        expect(list?.children[1].textContent).toBe("Item 3");
+        expect(list?.children[2].textContent).toBe("Item 4");
+    });
+
+    it("should pop item asynchronously (remove last item)", async () => {
+        document.body.innerHTML = `
+            <div mx-data="todos">
+                <ul id="todo-list">
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 1</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 2</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="true">Item 3</li>
+                </ul>
+            </div>
+        `;
+
+        const todosComponent = {
+            items: [],
+        };
+
+        CuboMX.component("todos", todosComponent);
+        CuboMX.start();
+
+        const items = CuboMX.todos.items;
+        const list = document.getElementById("todo-list");
+
+        // Should have hydrated 3 items
+        expect(items.length).toBe(3);
+        expect(items[2].title).toBe("Item 3");
+
+        // Pop last item (Item 3)
+        await items.asyncPop();
+
+        // Check array after pop
+        expect(items.length).toBe(2);
+        expect(items[0].title).toBe("Item 1");
+        expect(items[1].title).toBe("Item 2");
+
+        // Check DOM after pop
+        expect(list?.children.length).toBe(2);
+        expect(list?.children[0].textContent).toBe("Item 1");
+        expect(list?.children[1].textContent).toBe("Item 2");
+
+        // Pop again (Item 2)
+        await items.asyncPop();
+
+        expect(items.length).toBe(1);
+        expect(items[0].title).toBe("Item 1");
+        expect(list?.children.length).toBe(1);
+        expect(list?.children[0].textContent).toBe("Item 1");
+    });
+
+    it("should shift item asynchronously (remove first item)", async () => {
+        document.body.innerHTML = `
+            <div mx-data="todos">
+                <ul id="todo-list">
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 1</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 2</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="true">Item 3</li>
+                </ul>
+            </div>
+        `;
+
+        const todosComponent = {
+            items: [],
+        };
+
+        CuboMX.component("todos", todosComponent);
+        CuboMX.start();
+
+        const items = CuboMX.todos.items;
+        const list = document.getElementById("todo-list");
+
+        // Should have hydrated 3 items
+        expect(items.length).toBe(3);
+        expect(items[0].title).toBe("Item 1");
+
+        // Shift first item (Item 1)
+        await items.asyncShift();
+
+        // Check array after shift
+        expect(items.length).toBe(2);
+        expect(items[0].title).toBe("Item 2"); // Item 1 was removed
+        expect(items[1].title).toBe("Item 3");
+
+        // Check DOM after shift
+        expect(list?.children.length).toBe(2);
+        expect(list?.children[0].textContent).toBe("Item 2");
+        expect(list?.children[1].textContent).toBe("Item 3");
+
+        // Shift again (Item 2)
+        await items.asyncShift();
+
+        expect(items.length).toBe(1);
+        expect(items[0].title).toBe("Item 3");
+        expect(list?.children.length).toBe(1);
+        expect(list?.children[0].textContent).toBe("Item 3");
+    });
+
+    it("should clear all items asynchronously", async () => {
+        document.body.innerHTML = `
+            <div mx-data="todos">
+                <ul id="todo-list">
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 1</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 2</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="true">Item 3</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 4</li>
+                </ul>
+            </div>
+        `;
+
+        const todosComponent = {
+            items: [],
+        };
+
+        CuboMX.component("todos", todosComponent);
+        CuboMX.start();
+
+        const items = CuboMX.todos.items;
+        const list = document.getElementById("todo-list");
+
+        // Should have hydrated 4 items
+        expect(items.length).toBe(4);
+        expect(list?.children.length).toBe(4);
+
+        // Clear all items asynchronously
+        await items.asyncClear();
+
+        // Check array is empty
+        expect(items.length).toBe(0);
+
+        // Check DOM is empty
+        expect(list?.children.length).toBe(0);
+
+        // Verify we can still add items after clearing (template should be preserved)
+        const newItem = items.add({ title: "New Item", done: false });
+        expect(items.length).toBe(1);
+        expect(newItem.title).toBe("New Item");
+        expect(list?.children.length).toBe(1);
+        expect(list?.children[0].textContent).toBe("New Item");
+    });
+
+    it("should replace item asynchronously and maintain correct order", async () => {
+        document.body.innerHTML = `
+            <div mx-data="todos">
+                <ul id="todo-list">
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 1</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 2</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="true">Item 3</li>
+                    <li mx-item="items" class="todo" ::done="done" ::text="title" done="false">Item 4</li>
+                </ul>
+            </div>
+        `;
+
+        const todosComponent = {
+            items: [],
+        };
+
+        CuboMX.component("todos", todosComponent);
+        CuboMX.start();
+
+        const items = CuboMX.todos.items;
+        const list = document.getElementById("todo-list");
+
+        // Should have hydrated 4 items
+        expect(items.length).toBe(4);
+        expect(items[0].title).toBe("Item 1");
+        expect(items[1].title).toBe("Item 2");
+        expect(items[2].title).toBe("Item 3");
+        expect(items[3].title).toBe("Item 4");
+
+        // Replace item at index 1 (Item 2 -> New Item)
+        const replacedItem = await items.asyncReplace(1, { title: "New Item", done: true });
+
+        // Check array after replacement
+        expect(items.length).toBe(4);
+        expect(items[0].title).toBe("Item 1");
+        expect(items[1]).toBe(replacedItem);
+        expect(items[1].title).toBe("New Item");
+        expect(items[1].done).toBe(true);
+        expect(items[2].title).toBe("Item 3");
+        expect(items[3].title).toBe("Item 4");
+
+        // Check DOM after replacement
+        expect(list?.children.length).toBe(4);
+        expect(list?.children[0].textContent).toBe("Item 1");
+        expect(list?.children[1].textContent).toBe("New Item");
+        expect(list?.children[1].getAttribute("done")).toBe("true");
+        expect(list?.children[2].textContent).toBe("Item 3");
+        expect(list?.children[3].textContent).toBe("Item 4");
+
+        // Check reactivity of replaced item
+        replacedItem.title = "Updated Item";
+        expect(list?.children[1].textContent).toBe("Updated Item");
+
+        // Replace first item (index 0)
+        const firstReplaced = await items.asyncReplace(0, { title: "First Replaced", done: false });
+
+        expect(items.length).toBe(4);
+        expect(items[0]).toBe(firstReplaced);
+        expect(items[0].title).toBe("First Replaced");
+        expect(list?.children[0].textContent).toBe("First Replaced");
+    });
+});

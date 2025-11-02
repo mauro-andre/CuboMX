@@ -186,18 +186,54 @@ const CuboMX = (() => {
             for (const mutation of mutations) {
                 for (const node of Array.from(mutation.addedNodes)) {
                     if (node.nodeType === 1) {
-                        const componentProxies = resolveNode(node as MxElement);
+                        const element = node as MxElement;
+                        const componentProxies = resolveNode(element);
                         processInit(componentProxies);
                         // Call onDOMUpdate on ALL active proxies
                         processOnDOMUpdate(getAllActiveProxies());
+
+                        // Resolve async hydration promises
+                        if (typeof element.__resolveHydration__ === "function") {
+                            const proxy = element.__itemProxy__ || element.__mxProxy__;
+                            if (proxy) {
+                                element.__resolveHydration__(proxy);
+                                delete element.__resolveHydration__;
+                            }
+                        }
+
+                        // Also check child elements (in case there are nested mx-data or mx-item)
+                        const childrenWithResolve = element.querySelectorAll<MxElement>("*");
+                        for (const child of Array.from(childrenWithResolve)) {
+                            if (typeof child.__resolveHydration__ === "function") {
+                                const childProxy = child.__itemProxy__ || child.__mxProxy__;
+                                if (childProxy) {
+                                    child.__resolveHydration__(childProxy);
+                                    delete child.__resolveHydration__;
+                                }
+                            }
+                        }
                     }
                 }
 
                 for (const node of Array.from(mutation.removedNodes)) {
                     if (node.nodeType === 1) {
-                        resolveRemovedNode(node as MxElement);
-                        // Node.ELEMENT_NODE
-                        // console.log("REMOVE NODE")
+                        const element = node as MxElement;
+                        resolveRemovedNode(element);
+
+                        // Resolve async deletion promises
+                        if (typeof element.__resolveDelete__ === "function") {
+                            element.__resolveDelete__();
+                            delete element.__resolveDelete__;
+                        }
+
+                        // Also check child elements
+                        const childrenWithResolve = element.querySelectorAll<MxElement>("*");
+                        for (const child of Array.from(childrenWithResolve)) {
+                            if (typeof child.__resolveDelete__ === "function") {
+                                child.__resolveDelete__();
+                                delete child.__resolveDelete__;
+                            }
+                        }
                     }
                 }
             }
