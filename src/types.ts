@@ -53,7 +53,7 @@ type PublicAPI = {
     swap: (
         html: string,
         swaps: Array<{ select?: string; target: string }>,
-        options?: { pushUrl?: string; title?: string }
+        options?: { pushUrl?: string; title?: string; data?: Record<string, any> }
     ) => void;
     request: (config: {
         url: string;
