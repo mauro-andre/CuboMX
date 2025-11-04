@@ -87,7 +87,7 @@ const request = async ({
         };
         response = await fetch(mxRedirect, fetchOptions);
         text = await response.text();
-        swap(
+        await swap(
             text,
             [
                 { select: "body", target: "body" },

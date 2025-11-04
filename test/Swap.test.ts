@@ -5,27 +5,29 @@ describe("CuboMX.swap - Basic operations", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = "";
+        CuboMX.start();
+        CuboMX.start(); // Initialize MutationObserver for async swap
     });
 
     afterEach(() => {});
 
-    it("should swap content using target without select (uses body)", () => {
+    it("should swap content using target without select (uses body)", async () => {
         document.body.innerHTML = `<div id="container">Old content</div>`;
 
         const htmlReceived = `<div id="container">New content</div>`;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:outerHTML" }]);
+        await CuboMX.swap(htmlReceived, [{ target: "#container:outerHTML" }]);
 
         const container = document.querySelector("#container");
         expect(container?.textContent).toBe("New content");
     });
 
-    it("should swap using select and target with same selector", () => {
+    it("should swap using select and target with same selector", async () => {
         document.body.innerHTML = `<div id="widget">Old widget</div>`;
 
         const htmlReceived = `<div id="widget">New widget</div>`;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             { select: "#widget:outerHTML", target: "#widget:outerHTML" },
         ]);
 
@@ -33,7 +35,7 @@ describe("CuboMX.swap - Basic operations", () => {
         expect(widget?.textContent).toBe("New widget");
     });
 
-    it("should swap different source to different target", () => {
+    it("should swap different source to different target", async () => {
         document.body.innerHTML = `
             <div id="source-area"></div>
             <div id="target-area">Old content</div>
@@ -41,7 +43,7 @@ describe("CuboMX.swap - Basic operations", () => {
 
         const htmlReceived = `<div id="new-content">Fresh content</div>`;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             {
                 select: "#new-content:outerHTML",
                 target: "#target-area:outerHTML",
@@ -59,14 +61,15 @@ describe("CuboMX.swap - innerHTML vs outerHTML", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = "";
+        CuboMX.start();
     });
 
-    it("should swap innerHTML (replace content only)", () => {
+    it("should swap innerHTML (replace content only)", async () => {
         document.body.innerHTML = `<div id="container" class="box">Old content</div>`;
 
         const htmlReceived = `<div id="source"><span>New content</span></div>`;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             { select: "#source:innerHTML", target: "#container:innerHTML" },
         ]);
 
@@ -75,12 +78,12 @@ describe("CuboMX.swap - innerHTML vs outerHTML", () => {
         expect(container?.innerHTML).toBe("<span>New content</span>");
     });
 
-    it("should swap outerHTML (replace entire element)", () => {
+    it("should swap outerHTML (replace entire element)", async () => {
         document.body.innerHTML = `<div id="container" class="box">Old content</div>`;
 
         const htmlReceived = `<section id="new-container" class="card">New content</section>`;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             {
                 select: "#new-container:outerHTML",
                 target: "#container:outerHTML",
@@ -96,12 +99,12 @@ describe("CuboMX.swap - innerHTML vs outerHTML", () => {
         );
     });
 
-    it("should use outerHTML source with innerHTML target", () => {
+    it("should use outerHTML source with innerHTML target", async () => {
         document.body.innerHTML = `<div id="container">Old</div>`;
 
         const htmlReceived = `<div id="source"><strong>Bold text</strong></div>`;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             { select: "#source:outerHTML", target: "#container:innerHTML" },
         ]);
 
@@ -115,9 +118,10 @@ describe("CuboMX.swap - Insertion modes", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = "";
+        CuboMX.start();
     });
 
-    it("should prepend content (afterbegin)", () => {
+    it("should prepend content (afterbegin)", async () => {
         document.body.innerHTML = `
             <ul id="list">
                 <li>Item 2</li>
@@ -127,7 +131,7 @@ describe("CuboMX.swap - Insertion modes", () => {
 
         const htmlReceived = `<li>Item 1</li>`;
 
-        CuboMX.swap(htmlReceived, [{ target: "#list:afterbegin" }]);
+        await CuboMX.swap(htmlReceived, [{ target: "#list:afterbegin" }]);
 
         const list = document.querySelector("#list");
         const items = list?.querySelectorAll("li");
@@ -136,7 +140,7 @@ describe("CuboMX.swap - Insertion modes", () => {
         expect(items?.[1].textContent).toBe("Item 2");
     });
 
-    it("should append content (beforeend)", () => {
+    it("should append content (beforeend)", async () => {
         document.body.innerHTML = `
             <ul id="list">
                 <li>Item 1</li>
@@ -146,7 +150,7 @@ describe("CuboMX.swap - Insertion modes", () => {
 
         const htmlReceived = `<li>Item 3</li>`;
 
-        CuboMX.swap(htmlReceived, [{ target: "#list:beforeend" }]);
+        await CuboMX.swap(htmlReceived, [{ target: "#list:beforeend" }]);
 
         const list = document.querySelector("#list");
         const items = list?.querySelectorAll("li");
@@ -154,7 +158,7 @@ describe("CuboMX.swap - Insertion modes", () => {
         expect(items?.[2].textContent).toBe("Item 3");
     });
 
-    it("should insert before element (beforebegin)", () => {
+    it("should insert before element (beforebegin)", async () => {
         document.body.innerHTML = `
             <div id="container">
                 <h2 id="title">Title</h2>
@@ -164,7 +168,7 @@ describe("CuboMX.swap - Insertion modes", () => {
 
         const htmlReceived = `<h1>Main Title</h1>`;
 
-        CuboMX.swap(htmlReceived, [{ target: "#title:beforebegin" }]);
+        await CuboMX.swap(htmlReceived, [{ target: "#title:beforebegin" }]);
 
         const container = document.querySelector("#container");
         const firstChild = container?.firstElementChild;
@@ -172,7 +176,7 @@ describe("CuboMX.swap - Insertion modes", () => {
         expect(firstChild?.textContent).toBe("Main Title");
     });
 
-    it("should insert after element (afterend)", () => {
+    it("should insert after element (afterend)", async () => {
         document.body.innerHTML = `
             <div id="container">
                 <h1>Title</h1>
@@ -182,7 +186,7 @@ describe("CuboMX.swap - Insertion modes", () => {
 
         const htmlReceived = `<p>Second paragraph</p>`;
 
-        CuboMX.swap(htmlReceived, [{ target: "#first-paragraph:afterend" }]);
+        await CuboMX.swap(htmlReceived, [{ target: "#first-paragraph:afterend" }]);
 
         const container = document.querySelector("#container");
         const paragraphs = container?.querySelectorAll("p");
@@ -195,9 +199,10 @@ describe("CuboMX.swap - Multiple operations", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = "";
+        CuboMX.start();
     });
 
-    it("should perform multiple swaps in sequence", () => {
+    it("should perform multiple swaps in sequence", async () => {
         document.body.innerHTML = `
             <div id="header">Old Header</div>
             <div id="content">Old Content</div>
@@ -210,7 +215,7 @@ describe("CuboMX.swap - Multiple operations", () => {
             <div id="new-footer">New Footer</div>
         `;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             { select: "#new-header", target: "#header:outerHTML" },
             { select: "#new-content", target: "#content:outerHTML" },
             { select: "#new-footer", target: "#footer:outerHTML" },
@@ -227,7 +232,7 @@ describe("CuboMX.swap - Multiple operations", () => {
         );
     });
 
-    it("should handle mixed insertion modes", () => {
+    it("should handle mixed insertion modes", async () => {
         document.body.innerHTML = `
             <div id="widget">
                 <h2>Title</h2>
@@ -240,7 +245,7 @@ describe("CuboMX.swap - Multiple operations", () => {
             <li class="notification">New alert</li>
         `;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             { select: "#widget-content", target: "#widget:beforeend" },
             { select: ".notification", target: "#notifications:beforeend" },
         ]);
@@ -258,9 +263,10 @@ describe("CuboMX.swap - Multiple targets (same selector)", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = "";
+        CuboMX.start();
     });
 
-    it("should swap content to multiple elements with same selector", () => {
+    it("should swap content to multiple elements with same selector", async () => {
         document.body.innerHTML = `
             <div class="card">Card 1</div>
             <div class="card">Card 2</div>
@@ -269,7 +275,7 @@ describe("CuboMX.swap - Multiple targets (same selector)", () => {
 
         const htmlReceived = `<div class="card">Updated Card</div>`;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             { select: ".card", target: ".card:outerHTML" },
         ]);
 
@@ -280,7 +286,7 @@ describe("CuboMX.swap - Multiple targets (same selector)", () => {
         });
     });
 
-    it("should append to multiple targets", () => {
+    it("should append to multiple targets", async () => {
         document.body.innerHTML = `
             <ul class="list">
                 <li>Item A</li>
@@ -292,7 +298,7 @@ describe("CuboMX.swap - Multiple targets (same selector)", () => {
 
         const htmlReceived = `<li>New Item</li>`;
 
-        CuboMX.swap(htmlReceived, [{ target: ".list:beforeend" }]);
+        await CuboMX.swap(htmlReceived, [{ target: ".list:beforeend" }]);
 
         const lists = document.querySelectorAll(".list");
         expect(lists[0].querySelectorAll("li").length).toBe(2);
@@ -306,9 +312,10 @@ describe("CuboMX.swap - Edge cases and errors", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = "";
+        CuboMX.start();
     });
 
-    it("should handle target not found gracefully", () => {
+    it("should handle target not found gracefully", async () => {
         document.body.innerHTML = `<div id="exists">Content</div>`;
         const htmlReceived = `<div id="new">New content</div>`;
 
@@ -316,11 +323,10 @@ describe("CuboMX.swap - Edge cases and errors", () => {
             .spyOn(console, "error")
             .mockImplementation(() => {});
 
-        expect(() => {
-            CuboMX.swap(htmlReceived, [
-                { select: "#new", target: "#does-not-exist" },
-            ]);
-        }).not.toThrow();
+        // Should not throw
+        await CuboMX.swap(htmlReceived, [
+            { select: "#new", target: "#does-not-exist" },
+        ]);
 
         expect(consoleSpy).toHaveBeenCalledWith(
             '[CuboMX] no elements found in current DOM with css selector "#does-not-exist"'
@@ -329,7 +335,7 @@ describe("CuboMX.swap - Edge cases and errors", () => {
         consoleSpy.mockRestore();
     });
 
-    it("should handle source not found gracefully", () => {
+    it("should handle source not found gracefully", async () => {
         document.body.innerHTML = `<div id="target">Original</div>`;
         const htmlReceived = `<div id="source">Content</div>`;
         const consoleSpy = vi
@@ -337,11 +343,9 @@ describe("CuboMX.swap - Edge cases and errors", () => {
             .mockImplementation(() => {});
 
         // Should not throw, but log an error
-        expect(() => {
-            CuboMX.swap(htmlReceived, [
-                { select: "#non-existent", target: "#target" },
-            ]);
-        }).not.toThrow();
+        await CuboMX.swap(htmlReceived, [
+            { select: "#non-existent", target: "#target" },
+        ]);
 
         expect(consoleSpy).toHaveBeenCalledWith(
             '[CuboMX] Source element "#non-existent" not found in received HTML'
@@ -351,13 +355,12 @@ describe("CuboMX.swap - Edge cases and errors", () => {
         consoleSpy.mockRestore();
     });
 
-    it("should handle empty HTML", () => {
+    it("should handle empty HTML", async () => {
         document.body.innerHTML = `<div id="target">Content</div>`;
         const htmlReceived = ``;
 
-        expect(() => {
-            CuboMX.swap(htmlReceived, [{ target: "#target:innerHTML" }]);
-        }).not.toThrow();
+        // Should not throw
+        await CuboMX.swap(htmlReceived, [{ target: "#target:innerHTML" }]);
 
         expect(document.querySelector("#target")?.innerHTML).toBe("");
     });
@@ -367,9 +370,10 @@ describe("CuboMX.swap - Complex HTML structures", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = "";
+        CuboMX.start();
     });
 
-    it("should swap nested elements correctly", () => {
+    it("should swap nested elements correctly", async () => {
         document.body.innerHTML = `
             <div id="container">
                 <div class="level-1">
@@ -384,7 +388,7 @@ describe("CuboMX.swap - Complex HTML structures", () => {
             </div>
         `;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             { select: ".level-1", target: ".level-1:outerHTML" },
         ]);
 
@@ -392,7 +396,7 @@ describe("CuboMX.swap - Complex HTML structures", () => {
         expect(level2?.textContent).toBe("New content");
     });
 
-    it("should preserve sibling elements", () => {
+    it("should preserve sibling elements", async () => {
         document.body.innerHTML = `
             <div id="container">
                 <div id="keep-me">Keep this</div>
@@ -403,7 +407,7 @@ describe("CuboMX.swap - Complex HTML structures", () => {
 
         const htmlReceived = `<div id="new-content">New content</div>`;
 
-        CuboMX.swap(htmlReceived, [
+        await CuboMX.swap(htmlReceived, [
             { select: "#new-content", target: "#replace-me:outerHTML" },
         ]);
 
@@ -424,15 +428,16 @@ describe("CuboMX.swap - Hybrid select logic", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = "";
+        CuboMX.start();
     });
 
-    it("should use entire body content when select is omitted and target not found in HTML fragment", () => {
+    it("should use entire body content when select is omitted and target not found in HTML fragment", async () => {
         document.body.innerHTML = `<div id="container">Old content</div>`;
 
         // HTML fragment without full structure (no <body>, no #container)
         const htmlFragment = `<div class="alert">Success message!</div>`;
 
-        CuboMX.swap(htmlFragment, [{ target: "#container:innerHTML" }]);
+        await CuboMX.swap(htmlFragment, [{ target: "#container:innerHTML" }]);
 
         const container = document.querySelector("#container");
         expect(container?.innerHTML).toBe(
@@ -440,7 +445,7 @@ describe("CuboMX.swap - Hybrid select logic", () => {
         );
     });
 
-    it("should use target as select when omitted and target exists in received HTML", () => {
+    it("should use target as select when omitted and target exists in received HTML", async () => {
         document.body.innerHTML = `
             <div id="header">Old Header</div>
             <div id="main">Old Content</div>
@@ -459,7 +464,7 @@ describe("CuboMX.swap - Hybrid select logic", () => {
             </html>
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#main" }]);
+        await CuboMX.swap(htmlReceived, [{ target: "#main" }]);
 
         // Should find #main in received HTML and use it
         const main = document.querySelector("#main");
@@ -496,7 +501,7 @@ describe("CuboMX.swap - Integration with new components", () => {
         `;
 
         // 2. Act: Swap the new HTML into the container
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }]);
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }]);
 
         // Yield to the event loop to allow the MutationObserver to run
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -530,14 +535,15 @@ describe("CuboMX.swap - Data preprocessing", () => {
     beforeEach(() => {
         CuboMX.reset();
         document.body.innerHTML = "";
+        CuboMX.start();
     });
 
-    it("should preprocess :text binding with data", () => {
+    it("should preprocess :text binding with data", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `<div id="card"><h1 :text="title">Default Title</h1></div>`;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: { title: "Hello CuboMX!" },
         });
 
@@ -546,12 +552,12 @@ describe("CuboMX.swap - Data preprocessing", () => {
         expect(h1?.hasAttribute(":text")).toBe(true); // Directive should remain
     });
 
-    it("should preprocess :html binding with data", () => {
+    it("should preprocess :html binding with data", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `<div :html="content"><p>Default</p></div>`;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: { content: "<strong>Bold content</strong>" },
         });
 
@@ -559,14 +565,14 @@ describe("CuboMX.swap - Data preprocessing", () => {
         expect(container?.innerHTML).toBe("<strong>Bold content</strong>");
     });
 
-    it("should preprocess attribute bindings with data", () => {
+    it("should preprocess attribute bindings with data", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
             <a :href="url" href="#" :title="tooltip" title="default">Link</a>
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: {
                 url: "https://example.com",
                 tooltip: "Visit Example",
@@ -578,14 +584,14 @@ describe("CuboMX.swap - Data preprocessing", () => {
         expect(link?.getAttribute("title")).toBe("Visit Example");
     });
 
-    it("should preprocess :value binding with data", () => {
+    it("should preprocess :value binding with data", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
             <input type="text" :value="username" value="default" />
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: { username: "john_doe" },
         });
 
@@ -593,14 +599,14 @@ describe("CuboMX.swap - Data preprocessing", () => {
         expect(input?.value).toBe("john_doe");
     });
 
-    it("should preprocess :checked binding with data", () => {
+    it("should preprocess :checked binding with data", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
             <input type="checkbox" :checked="isActive" />
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: { isActive: true },
         });
 
@@ -608,14 +614,14 @@ describe("CuboMX.swap - Data preprocessing", () => {
         expect(checkbox?.checked).toBe(true);
     });
 
-    it("should preprocess :class binding with data (array)", () => {
+    it("should preprocess :class binding with data (array)", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
             <div :class="classes" class="default">Content</div>
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: { classes: ["btn", "btn-primary", "active"] },
         });
 
@@ -623,14 +629,14 @@ describe("CuboMX.swap - Data preprocessing", () => {
         expect(div?.className).toBe("btn btn-primary active");
     });
 
-    it("should preprocess :class binding with data (string)", () => {
+    it("should preprocess :class binding with data (string)", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
             <div :class="classes" class="default">Content</div>
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: { classes: "card card-large" },
         });
 
@@ -638,7 +644,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
         expect(div?.className).toBe("card card-large");
     });
 
-    it("should preprocess multiple bindings on same element", () => {
+    it("should preprocess multiple bindings on same element", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
@@ -653,7 +659,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
             </div>
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: {
                 id: 123,
                 status: "active",
@@ -673,7 +679,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
         expect(p?.textContent).toBe("Product description here");
     });
 
-    it("should preprocess bindings in nested elements", () => {
+    it("should preprocess bindings in nested elements", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
@@ -693,7 +699,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
             </article>
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: {
                 title: "My Article",
                 author: "John Doe",
@@ -716,7 +722,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
         );
     });
 
-    it("should preprocess data for multiple target elements", () => {
+    it("should preprocess data for multiple target elements", async () => {
         document.body.innerHTML = `
             <div class="card">Card 1</div>
             <div class="card">Card 2</div>
@@ -730,7 +736,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
             </div>
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: ".card:outerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: ".card:outerHTML" }], {
             data: {
                 title: "Updated Card",
                 subtitle: "Card description",
@@ -748,7 +754,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
         });
     });
 
-    it("should handle missing data properties gracefully", () => {
+    it("should handle missing data properties gracefully", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
@@ -758,7 +764,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
             </div>
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: { title: "Only Title" },
         });
 
@@ -769,7 +775,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
         expect(p?.textContent).toBe("Default Text"); // Should keep default
     });
 
-    it("should work without data option (backward compatibility)", () => {
+    it("should work without data option (backward compatibility)", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
@@ -779,13 +785,13 @@ describe("CuboMX.swap - Data preprocessing", () => {
         `;
 
         // No data option provided
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }]);
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }]);
 
         const h1 = document.querySelector("h1");
         expect(h1?.textContent).toBe("Original Title"); // Should keep original
     });
 
-    it("should preprocess with mx-bind: syntax", () => {
+    it("should preprocess with mx-bind: syntax", async () => {
         document.body.innerHTML = `<div id="container"></div>`;
 
         const htmlReceived = `
@@ -794,7 +800,7 @@ describe("CuboMX.swap - Data preprocessing", () => {
             </div>
         `;
 
-        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
             data: {
                 id: 999,
                 title: "Using mx-bind",
