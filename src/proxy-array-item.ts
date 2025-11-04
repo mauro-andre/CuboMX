@@ -102,7 +102,16 @@ const createArrayProxy = <T = any>(
                     // 3. Create Promise with resolve callback stored in element
                     const hydrationPromise = new Promise<MxElProxy>(
                         (resolve) => {
-                            clonedElement.__resolveHydration__ = resolve;
+                            // Wrapper to ensure proxy is never undefined for ArrayItems
+                            clonedElement.__resolveHydration__ = (proxy) => {
+                                if (proxy) {
+                                    resolve(proxy);
+                                } else {
+                                    throw new Error(
+                                        "[CuboMX] ArrayItems requires a proxy but received undefined"
+                                    );
+                                }
+                            };
                         }
                     );
 
@@ -147,7 +156,16 @@ const createArrayProxy = <T = any>(
                     // 3. Create Promise with resolve callback stored in element
                     const hydrationPromise = new Promise<MxElProxy>(
                         (resolve) => {
-                            clonedElement.__resolveHydration__ = resolve;
+                            // Wrapper to ensure proxy is never undefined for ArrayItems
+                            clonedElement.__resolveHydration__ = (proxy) => {
+                                if (proxy) {
+                                    resolve(proxy);
+                                } else {
+                                    throw new Error(
+                                        "[CuboMX] ArrayItems requires a proxy but received undefined"
+                                    );
+                                }
+                            };
                         }
                     );
 
@@ -291,7 +309,16 @@ const createArrayProxy = <T = any>(
                     // 3. Create Promise with resolve callback for hydration
                     const hydrationPromise = new Promise<MxElProxy>(
                         (resolve) => {
-                            clonedElement.__resolveHydration__ = resolve;
+                            // Wrapper to ensure proxy is never undefined for ArrayItems
+                            clonedElement.__resolveHydration__ = (proxy) => {
+                                if (proxy) {
+                                    resolve(proxy);
+                                } else {
+                                    throw new Error(
+                                        "[CuboMX] ArrayItems requires a proxy but received undefined"
+                                    );
+                                }
+                            };
                         }
                     );
 

@@ -53,8 +53,12 @@ type PublicAPI = {
     swap: (
         html: string,
         swaps: Array<{ select?: string; target: string }>,
-        options?: { pushUrl?: string; title?: string; data?: Record<string, any> }
-    ) => void;
+        options?: {
+            pushUrl?: string;
+            title?: string;
+            data?: Record<string, any>;
+        }
+    ) => Promise<void>;
     request: (config: {
         url: string;
         method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -70,7 +74,7 @@ interface MxElement extends HTMLElement {
     __mxItemProcessed__?: boolean;
     __mx_transition_timeout__?: ReturnType<typeof setTimeout>;
     __mx_transition_handler__?: (event: TransitionEvent) => void;
-    __resolveHydration__?: (proxy: MxElProxy) => void;
+    __resolveHydration__?: (proxy?: MxElProxy) => void;
     __resolveDelete__?: () => void;
 }
 

@@ -25,7 +25,11 @@ const selectorMode = (selector: string): Selector => {
     return { cssSelector, mode };
 };
 
-const swap = (html: string, swaps: Swap[], options?: Option): void => {
+const swap = async (
+    html: string,
+    swaps: Swap[],
+    options?: Option
+): Promise<void> => {
     const parser = new DOMParser();
 
     const pushUrl = options?.pushUrl;
@@ -44,6 +48,9 @@ const swap = (html: string, swaps: Swap[], options?: Option): void => {
             window.location.href
         );
     }
+
+    // Collect all hydration promises from all swaps
+    const allHydrationPromises: Promise<void>[] = [];
 
     for (const singleSwap of swaps) {
         const target = selectorMode(singleSwap.target);
@@ -70,9 +77,16 @@ const swap = (html: string, swaps: Swap[], options?: Option): void => {
         } else {
             // Se select não foi fornecido, tenta usar target como select
             select = selectorMode(singleSwap.target);
-            selectEl = parsedDoc.querySelector<MxElement>(select.cssSelector);
+            selectEl = null;
 
-            // Se não encontrar, usa body innerHTML (para fragmentos HTML)
+            // Só tenta buscar o elemento se o modo for innerHTML ou outerHTML
+            if (select.mode === "innerHTML" || select.mode === "outerHTML") {
+                selectEl = parsedDoc.querySelector<MxElement>(
+                    select.cssSelector
+                );
+            }
+
+            // Se não encontrou ou modo não era apropriado, usa body innerHTML
             if (!selectEl) {
                 select = { cssSelector: "body", mode: "innerHTML" };
                 selectEl = parsedDoc.body;
@@ -101,6 +115,21 @@ const swap = (html: string, swaps: Swap[], options?: Option): void => {
                 fragment.append(selectEl.cloneNode(true));
             }
 
+            // Collect ONLY root element nodes (direct children of fragment)
+            // Do NOT traverse into descendants - MutationObserver only detects root nodes
+            const rootElements = Array.from(fragment.childNodes).filter(
+                (node) => node.nodeType === 1 // Only element nodes (not text/comment)
+            ) as MxElement[];
+
+            // Create promises for each root element that will be inserted
+            const hydrationPromises = rootElements.map((rootElement) => {
+                return new Promise<void>((resolve) => {
+                    rootElement.__resolveHydration__ = () => resolve();
+                });
+            });
+
+            allHydrationPromises.push(...hydrationPromises);
+
             switch (target.mode) {
                 case "innerHTML":
                     el.replaceChildren(fragment);
@@ -123,6 +152,9 @@ const swap = (html: string, swaps: Swap[], options?: Option): void => {
             }
         }
     }
+
+    // Await all hydration promises to ensure DOM is fully processed
+    await Promise.all(allHydrationPromises);
 
     const title = options?.title;
     if (currentState) {
