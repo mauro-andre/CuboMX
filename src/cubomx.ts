@@ -193,8 +193,11 @@ const CuboMX = (() => {
                         processOnDOMUpdate(getAllActiveProxies());
 
                         // Resolve async hydration promises
-                        if (typeof element.__resolveHydration__ === "function") {
-                            const proxy = element.__itemProxy__ || element.__mxProxy__;
+                        if (
+                            typeof element.__resolveHydration__ === "function"
+                        ) {
+                            const proxy =
+                                element.__itemProxy__ || element.__mxProxy__;
                             if (proxy) {
                                 element.__resolveHydration__(proxy);
                                 delete element.__resolveHydration__;
@@ -202,10 +205,14 @@ const CuboMX = (() => {
                         }
 
                         // Also check child elements (in case there are nested mx-data or mx-item)
-                        const childrenWithResolve = element.querySelectorAll<MxElement>("*");
+                        const childrenWithResolve =
+                            element.querySelectorAll<MxElement>("*");
                         for (const child of Array.from(childrenWithResolve)) {
-                            if (typeof child.__resolveHydration__ === "function") {
-                                const childProxy = child.__itemProxy__ || child.__mxProxy__;
+                            if (
+                                typeof child.__resolveHydration__ === "function"
+                            ) {
+                                const childProxy =
+                                    child.__itemProxy__ || child.__mxProxy__;
                                 if (childProxy) {
                                     child.__resolveHydration__(childProxy);
                                     delete child.__resolveHydration__;
@@ -227,7 +234,8 @@ const CuboMX = (() => {
                         }
 
                         // Also check child elements
-                        const childrenWithResolve = element.querySelectorAll<MxElement>("*");
+                        const childrenWithResolve =
+                            element.querySelectorAll<MxElement>("*");
                         for (const child of Array.from(childrenWithResolve)) {
                             if (typeof child.__resolveDelete__ === "function") {
                                 child.__resolveDelete__();

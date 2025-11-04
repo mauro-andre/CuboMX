@@ -1,5 +1,6 @@
 import { MxElement } from "./types";
 import { captureState } from "./history";
+import { preprocessBindings } from "./rendering-helpers";
 
 interface Selector {
     cssSelector: string;
@@ -14,6 +15,7 @@ interface Swap {
 interface Option {
     pushUrl?: string;
     title?: string;
+    data?: Record<string, any>;
 }
 
 const selectorMode = (selector: string): Selector => {
@@ -82,6 +84,11 @@ const swap = (html: string, swaps: Swap[], options?: Option): void => {
                 `[CuboMX] Source element "${select.cssSelector}" not found in received HTML`
             );
             continue;
+        }
+
+        // Preprocess bindings if data is provided
+        if (options?.data) {
+            preprocessBindings(selectEl, options.data, [":", "mx-bind:"]);
         }
 
         for (const el of Array.from(targetEls)) {

@@ -435,7 +435,9 @@ describe("CuboMX.swap - Hybrid select logic", () => {
         CuboMX.swap(htmlFragment, [{ target: "#container:innerHTML" }]);
 
         const container = document.querySelector("#container");
-        expect(container?.innerHTML).toBe('<div class="alert">Success message!</div>');
+        expect(container?.innerHTML).toBe(
+            '<div class="alert">Success message!</div>'
+        );
     });
 
     it("should use target as select when omitted and target exists in received HTML", () => {
@@ -521,5 +523,288 @@ describe("CuboMX.swap - Integration with new components", () => {
 
         CuboMX.swappedComp.css.add("active");
         expect(el?.classList.contains("active")).toBe(true);
+    });
+});
+
+describe("CuboMX.swap - Data preprocessing", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+        document.body.innerHTML = "";
+    });
+
+    it("should preprocess :text binding with data", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `<div id="card"><h1 :text="title">Default Title</h1></div>`;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: { title: "Hello CuboMX!" },
+        });
+
+        const h1 = document.querySelector("h1");
+        expect(h1?.textContent).toBe("Hello CuboMX!");
+        expect(h1?.hasAttribute(":text")).toBe(true); // Directive should remain
+    });
+
+    it("should preprocess :html binding with data", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `<div :html="content"><p>Default</p></div>`;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: { content: "<strong>Bold content</strong>" },
+        });
+
+        const container = document.querySelector("#container > div");
+        expect(container?.innerHTML).toBe("<strong>Bold content</strong>");
+    });
+
+    it("should preprocess attribute bindings with data", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <a :href="url" href="#" :title="tooltip" title="default">Link</a>
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: {
+                url: "https://example.com",
+                tooltip: "Visit Example",
+            },
+        });
+
+        const link = document.querySelector("a");
+        expect(link?.getAttribute("href")).toBe("https://example.com");
+        expect(link?.getAttribute("title")).toBe("Visit Example");
+    });
+
+    it("should preprocess :value binding with data", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <input type="text" :value="username" value="default" />
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: { username: "john_doe" },
+        });
+
+        const input = document.querySelector("input") as HTMLInputElement;
+        expect(input?.value).toBe("john_doe");
+    });
+
+    it("should preprocess :checked binding with data", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <input type="checkbox" :checked="isActive" />
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: { isActive: true },
+        });
+
+        const checkbox = document.querySelector("input") as HTMLInputElement;
+        expect(checkbox?.checked).toBe(true);
+    });
+
+    it("should preprocess :class binding with data (array)", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <div :class="classes" class="default">Content</div>
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: { classes: ["btn", "btn-primary", "active"] },
+        });
+
+        const div = document.querySelector("#container > div");
+        expect(div?.className).toBe("btn btn-primary active");
+    });
+
+    it("should preprocess :class binding with data (string)", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <div :class="classes" class="default">Content</div>
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: { classes: "card card-large" },
+        });
+
+        const div = document.querySelector("#container > div");
+        expect(div?.className).toBe("card card-large");
+    });
+
+    it("should preprocess multiple bindings on same element", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <div
+                :data-id="id"
+                :class="status"
+                class="default"
+                data-id="0"
+            >
+                <h2 :text="title">Default</h2>
+                <p :text="description">Default description</p>
+            </div>
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: {
+                id: 123,
+                status: "active",
+                title: "Product Name",
+                description: "Product description here",
+            },
+        });
+
+        const div = document.querySelector("#container > div");
+        expect(div?.getAttribute("data-id")).toBe("123");
+        expect(div?.className).toBe("active");
+
+        const h2 = div?.querySelector("h2");
+        expect(h2?.textContent).toBe("Product Name");
+
+        const p = div?.querySelector("p");
+        expect(p?.textContent).toBe("Product description here");
+    });
+
+    it("should preprocess bindings in nested elements", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <article>
+                <header>
+                    <h1 :text="title">Default Title</h1>
+                    <span :text="author">Unknown</span>
+                </header>
+                <section>
+                    <p :html="content">Default content</p>
+                </section>
+                <footer>
+                    <time :datetime="date" datetime="2000-01-01">
+                        <span :text="formattedDate">Jan 1, 2000</span>
+                    </time>
+                </footer>
+            </article>
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: {
+                title: "My Article",
+                author: "John Doe",
+                content: "<strong>Article body</strong>",
+                date: "2024-01-15",
+                formattedDate: "Jan 15, 2024",
+            },
+        });
+
+        expect(document.querySelector("h1")?.textContent).toBe("My Article");
+        expect(document.querySelector("span")?.textContent).toBe("John Doe");
+        expect(document.querySelector("p")?.innerHTML).toBe(
+            "<strong>Article body</strong>"
+        );
+        expect(document.querySelector("time")?.getAttribute("datetime")).toBe(
+            "2024-01-15"
+        );
+        expect(document.querySelector("time span")?.textContent).toBe(
+            "Jan 15, 2024"
+        );
+    });
+
+    it("should preprocess data for multiple target elements", () => {
+        document.body.innerHTML = `
+            <div class="card">Card 1</div>
+            <div class="card">Card 2</div>
+            <div class="card">Card 3</div>
+        `;
+
+        const htmlReceived = `
+            <div class="card">
+                <h3 :text="title">Default</h3>
+                <p :text="subtitle">Default subtitle</p>
+            </div>
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: ".card:outerHTML" }], {
+            data: {
+                title: "Updated Card",
+                subtitle: "Card description",
+            },
+        });
+
+        const cards = document.querySelectorAll(".card");
+        expect(cards.length).toBe(3);
+
+        cards.forEach((card) => {
+            expect(card.querySelector("h3")?.textContent).toBe("Updated Card");
+            expect(card.querySelector("p")?.textContent).toBe(
+                "Card description"
+            );
+        });
+    });
+
+    it("should handle missing data properties gracefully", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <div>
+                <h1 :text="title">Default Title</h1>
+                <p :text="missing">Default Text</p>
+            </div>
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: { title: "Only Title" },
+        });
+
+        const h1 = document.querySelector("h1");
+        expect(h1?.textContent).toBe("Only Title");
+
+        const p = document.querySelector("p");
+        expect(p?.textContent).toBe("Default Text"); // Should keep default
+    });
+
+    it("should work without data option (backward compatibility)", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <div>
+                <h1 :text="title">Original Title</h1>
+            </div>
+        `;
+
+        // No data option provided
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }]);
+
+        const h1 = document.querySelector("h1");
+        expect(h1?.textContent).toBe("Original Title"); // Should keep original
+    });
+
+    it("should preprocess with mx-bind: syntax", () => {
+        document.body.innerHTML = `<div id="container"></div>`;
+
+        const htmlReceived = `
+            <div mx-bind:data-id="id" data-id="0">
+                <h1 mx-bind:text="title">Default</h1>
+            </div>
+        `;
+
+        CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            data: {
+                id: 999,
+                title: "Using mx-bind",
+            },
+        });
+
+        const div = document.querySelector("#container > div");
+        expect(div?.getAttribute("data-id")).toBe("999");
+
+        const h1 = div?.querySelector("h1");
+        expect(h1?.textContent).toBe("Using mx-bind");
     });
 });

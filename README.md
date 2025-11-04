@@ -1355,6 +1355,7 @@ A low-level utility to swap fragments of an HTML string into the live DOM. This 
 -   `options` (Object, optional): An object for additional controls.
     -   `pushUrl` (string): A URL to push to the browser's history stack. When this option is used, CuboMX enables support for the browser's back and forward buttons. It works by automatically capturing the current state of the swapped elements _before_ the swap, and when the user navigates back, it restores the captured HTML, providing a fast, SPA-like navigation experience without extra server requests.
     -   `title` (string): The document title to set after the swap.
+    -   `data` (object): An object containing property values to preprocess into the HTML template before it's inserted into the DOM. This allows you to dynamically populate binding directives (`:text`, `:value`, `:class`, etc.) with actual values. The preprocessing happens before cloning, so all target elements receive the same processed content. If a property referenced in a binding doesn't exist in `data`, the original default value in the HTML is preserved.
 
 **Swap Object Details:**
 A swap object in the `swaps` array can have the following properties:
@@ -1402,7 +1403,69 @@ function loadFragment() {
         ]
     );
 }
+
+// Example with data preprocessing:
+function loadUserProfile(userData) {
+    // Template with binding directives
+    const template = `
+        <div class="user-profile">
+            <img :src="avatar" src="/default-avatar.png" alt="User avatar" />
+            <h2 :text="name">Default Name</h2>
+            <p :text="email">email@example.com</p>
+            <span :class="statusClass" class="status">
+                <span :text="status">offline</span>
+            </span>
+        </div>
+    `;
+
+    // The data object will preprocess the bindings before DOM insertion
+    CuboMX.swap(
+        template,
+        [{ target: "#profile-container:innerHTML" }],
+        {
+            data: {
+                avatar: userData.avatarUrl,
+                name: userData.fullName,
+                email: userData.email,
+                status: userData.isOnline ? "online" : "offline",
+                statusClass: userData.isOnline ? "status-online" : "status-offline"
+            },
+            title: `${userData.fullName} - Profile`
+        }
+    );
+
+    // After swap:
+    // - The template is preprocessed with actual values
+    // - <h2> will have "John Doe" as textContent
+    // - <img> will have the actual avatar URL
+    // - The MutationObserver then hydrates it for reactivity
+}
 ```
+
+**Data Preprocessing:**
+
+When you provide a `data` option, CuboMX preprocesses the HTML template before insertion:
+
+1. The HTML string is parsed into a DOM tree
+2. The source element is selected
+3. All binding directives (`:text`, `:value`, `:class`, etc.) are replaced with the actual values from `data`
+4. The processed element is then cloned for each target
+5. After DOM insertion, the MutationObserver hydrates the components normally
+
+**Supported Bindings for Preprocessing:**
+- `:text` - Sets the element's textContent
+- `:html` - Sets the element's innerHTML
+- `:value` - Sets input/textarea value
+- `:checked` - Sets checkbox/radio checked state
+- `:class` - Sets element classes (accepts arrays or strings)
+- `:attribute-name` - Sets any attribute value (e.g., `:src`, `:href`, `:title`)
+- `mx-bind:*` - Long-form syntax is also supported
+
+This is particularly useful for:
+- Rendering cached templates with user-specific data
+- Creating personalized UI components without server requests
+- Populating forms with default values
+- Dynamic content in SPA-style navigation
 
 **Swap Modifiers:**
 You can append a modifier to the `target` selector to control the swap behavior.
