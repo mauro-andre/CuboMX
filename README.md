@@ -873,6 +873,45 @@ If a fetch request fails, `mx-link` will:
 
 This navigation setup creates a smooth, SPA-like experience where only the main content area is updated on each click, while the navigation remains in place.
 
+### Auto-Loading Content with `mx-load`
+
+The `mx-load` directive allows you to automatically fetch content from a URL and swap it into the DOM as soon as the element is initialized. This is useful for loading dynamic content, widgets, or initial data without requiring user interaction.
+
+**Basic Usage:**
+
+```html
+<div mx-load="/path/to/content.html"></div>
+```
+
+When this element is processed by CuboMX, it will:
+1.  Fetch the content from `/path/to/content.html` via an AJAX request.
+2.  Swap the fetched content into the element where `mx-load` is defined (default target is `outerHTML` of the `mx-load` element itself).
+
+#### Controlling the Target and Content
+
+Similar to `mx-link`, `mx-load` supports `mx-target` and `mx-select` attributes for fine-grained control over where and what content is swapped.
+
+-   **`mx-target="selector:mode"`**: Specifies where the fetched content should be inserted.
+-   **`mx-select="selector"`**: Extracts only a specific part of the fetched HTML response.
+
+**Example:**
+
+```html
+<div id="main-content">
+    <!-- Placeholder content -->
+    Loading dashboard...
+</div>
+
+<!-- Load dashboard content into #main-content -->
+<div
+    mx-load="/dashboard.html"
+    mx-target="#main-content:innerHTML"
+    mx-select="#dashboard-section">
+</div>
+```
+
+This example will fetch `/dashboard.html`, extract the element matching `#dashboard-section` from it, and then replace the `innerHTML` of `#main-content` with the extracted content.
+
 ## Scopes
 
 CuboMX has a two-tier scope system that is simple but powerful. Understanding it is key to managing your application's state.

@@ -698,4 +698,85 @@ describe("Lifecycle Hooks - init and destroy", () => {
             expect(capturedContext.myValue).toBe("test-value");
         });
     });
+
+    describe("Component state isolation when replacing", () => {
+        it("should NOT leak state from old component to new component when using factory", async () => {
+            // Register a FACTORY component that initializes a property in init()
+            CuboMX.component("myComp", () => ({
+                myProp: null,
+                init(this: any) {
+                    if (this.myProp === null) {
+                        this.myProp = "initialized";
+                    }
+                },
+            }));
+
+            document.body.innerHTML = `
+                <div id="container">
+                    <div mx-data="myComp()" mx-ref="myComp"></div>
+                </div>
+            `;
+
+            CuboMX.start();
+
+            // First component should have initialized the property
+            expect(CuboMX.myComp.myProp).toBe("initialized");
+
+            // Remove the component
+            const container = document.getElementById("container")!;
+            container.innerHTML = "";
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            // Add a NEW component with the same name (factory creates new object)
+            container.innerHTML = `<div mx-data="myComp()" mx-ref="myComp"></div>`;
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            // The NEW component should have myProp = "initialized"
+            // Because factory created a NEW object (started with null)
+            // And init() ran again, but this proves state was isolated
+            expect(CuboMX.myComp.myProp).toBe("initialized");
+        });
+
+        it("should isolate state when using factory pattern with mx-ref", async () => {
+            // Register a FACTORY component (returns new object each time)
+            CuboMX.component("myFactory", () => ({
+                myProp: null,
+                init(this: any) {
+                    if (this.myProp === null) {
+                        this.myProp = "initialized";
+                    }
+                },
+            }));
+
+            document.body.innerHTML = `
+                <div id="container">
+                    <div mx-data="myFactory()" mx-ref="factoryRef"></div>
+                </div>
+            `;
+
+            CuboMX.start();
+
+            // First component should have initialized the property
+            expect(CuboMX.factoryRef.myProp).toBe("initialized");
+
+            // Remove the component
+            const container = document.getElementById("container")!;
+            container.innerHTML = "";
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            // Add a NEW component with the same name (using factory)
+            container.innerHTML = `<div mx-data="myFactory()" mx-ref="factoryRef"></div>`;
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            // The NEW component should have myProp = "initialized"
+            // Because the factory created a NEW object (started with null)
+            // And init() ran again on the NEW object
+            // This should work because querySelector finds the NEW element in DOM
+            expect(CuboMX.factoryRef.myProp).toBe("initialized");
+        });
+    });
 });

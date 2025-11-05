@@ -39,8 +39,12 @@ const resolveMXLink = (el: MxElement, publicAPI: PublicAPI) => {
                 }
                 return;
             }
-
             html = proxy[componentAttr];
+            if (!html) {
+                console.warn(
+                    `[CuboMX] mx-link directive: warning: No templante found in ${componentName}.${componentAttr}`
+                );
+            }
         }
         const url = attrHref.value;
         const target = attrTarget?.value ?? "body:innerHTML";
@@ -64,7 +68,7 @@ const resolveMXLink = (el: MxElement, publicAPI: PublicAPI) => {
         const options = title
             ? { pushUrl: url, title: title }
             : { pushUrl: url };
-        swap(html, swaps, options);
+        await swap(html, swaps, options);
     });
 };
 

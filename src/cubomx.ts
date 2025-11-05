@@ -14,6 +14,7 @@ import { resolveMXBind, resolveMXItem } from "./mx-bind-and-mx-item";
 import { resolveMXOn } from "./mx-on";
 import { resolveMXShow } from "./mx-show";
 import { resolveMXLink } from "./mx-link";
+import { resolveMXLoad } from "./mx-load";
 import { swap } from "./swap";
 import { restoreState } from "./history";
 import { request } from "./request";
@@ -100,6 +101,15 @@ const CuboMX = (() => {
             resolveMXLink(el, publicAPIProxy);
         }
 
+        const mxLoad = allElements.filter((el) =>
+            Array.from(el.attributes).some((attr) =>
+                attr.name.startsWith("mx-load")
+            )
+        );
+        for (const el of mxLoad) {
+            resolveMXLoad(el, publicAPIProxy);
+        }
+
         return proxies;
     };
 
@@ -180,7 +190,7 @@ const CuboMX = (() => {
 
     const start = () => {
         const storeProxies = resolveStores();
-        const componentProxies = resolveNode(document.body);
+        const componentProxies = resolveNode(document.documentElement);
         processInit([...storeProxies, ...componentProxies]);
         observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
