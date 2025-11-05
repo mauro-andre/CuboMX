@@ -6,7 +6,6 @@ describe("CuboMX.swap - Basic operations", () => {
         CuboMX.reset();
         document.body.innerHTML = "";
         CuboMX.start();
-        CuboMX.start(); // Initialize MutationObserver for async swap
     });
 
     afterEach(() => {});
@@ -186,7 +185,9 @@ describe("CuboMX.swap - Insertion modes", () => {
 
         const htmlReceived = `<p>Second paragraph</p>`;
 
-        await CuboMX.swap(htmlReceived, [{ target: "#first-paragraph:afterend" }]);
+        await CuboMX.swap(htmlReceived, [
+            { target: "#first-paragraph:afterend" },
+        ]);
 
         const container = document.querySelector("#container");
         const paragraphs = container?.querySelectorAll("p");
@@ -812,5 +813,44 @@ describe("CuboMX.swap - Data preprocessing", () => {
 
         const h1 = div?.querySelector("h1");
         expect(h1?.textContent).toBe("Using mx-bind");
+    });
+
+    it("should update document.title before calling onDOMUpdate", async () => {
+        const originalTitle = document.title;
+        let titleInOnDOMUpdate = "";
+        let onDOMUpdateCalled = false;
+
+        // THEN register component (after reset)
+        CuboMX.component("title-observer", {
+            onDOMUpdate() {
+                onDOMUpdateCalled = true;
+                titleInOnDOMUpdate = document.title;
+            },
+        });
+
+        document.body.innerHTML = `<div id="container" mx-data="title-observer"></div>`;
+
+        // Start to bind the component
+        CuboMX.start();
+
+        const htmlReceived = `<div id="new-content">New Content</div>`;
+
+        // Swap with title option
+        await CuboMX.swap(htmlReceived, [{ target: "#container:innerHTML" }], {
+            pushUrl: "/new-page",
+            title: "New Page Title",
+        });
+
+        // document.title should be updated
+        expect(document.title).toBe("New Page Title");
+
+        // onDOMUpdate should have been called
+        expect(onDOMUpdateCalled).toBe(true);
+
+        // onDOMUpdate should have seen the new title
+        expect(titleInOnDOMUpdate).toBe("New Page Title");
+
+        // Restore original title
+        document.title = originalTitle;
     });
 });

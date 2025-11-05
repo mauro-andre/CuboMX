@@ -49,6 +49,13 @@ const swap = async (
         );
     }
 
+    // Update document.title BEFORE any DOM mutations
+    // This ensures onDOMUpdate sees the correct title
+    const title = options?.title;
+    if (title) {
+        document.title = title;
+    }
+
     // Collect all hydration promises from all swaps
     const allHydrationPromises: Promise<void>[] = [];
 
@@ -156,13 +163,10 @@ const swap = async (
     // Await all hydration promises to ensure DOM is fully processed
     await Promise.all(allHydrationPromises);
 
-    const title = options?.title;
+    // Push history state AFTER DOM is fully hydrated
     if (currentState) {
         const newState = { swaps: [], title: title ?? document.title };
         window.history.pushState(newState, title ?? document.title, pushUrl);
-        if (title) {
-            document.title = title;
-        }
     }
 };
 

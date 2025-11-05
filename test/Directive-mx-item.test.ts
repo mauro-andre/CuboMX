@@ -187,7 +187,10 @@ describe("Directive mx-item with Template Definition", () => {
         expect("add" in alerts).toBe(true);
 
         // Now add an alert dynamically
-        const newAlert = await alerts.add({ type: "success", message: "Operation completed!" });
+        const newAlert = await alerts.add({
+            type: "success",
+            message: "Operation completed!",
+        });
 
         expect(alerts.length).toBe(1);
         expect(newAlert.type).toBe("success");
@@ -306,9 +309,15 @@ describe("Directive ::el for element reference in mx-item", () => {
         expect(items[1].element).toBeInstanceOf(HTMLElement);
 
         // Check if we have access to the DOM elements
-        expect(items[0].element.classList.contains("card-container")).toBe(false);
-        expect(items[0].element.querySelector("h3")?.textContent).toBe("Card Title 1");
-        expect(items[1].element.querySelector("h3")?.textContent).toBe("Card Title 2");
+        expect(items[0].element.classList.contains("card-container")).toBe(
+            false
+        );
+        expect(items[0].element.querySelector("h3")?.textContent).toBe(
+            "Card Title 1"
+        );
+        expect(items[1].element.querySelector("h3")?.textContent).toBe(
+            "Card Title 2"
+        );
 
         // Check other properties were also hydrated
         expect(items[0].id).toBe(1);
@@ -346,7 +355,9 @@ describe("Directive ::el for element reference in mx-item", () => {
         expect(widgets[0].element).toBeInstanceOf(HTMLElement);
         expect(widgets[0].element.classList.contains("widget")).toBe(true);
         expect(widgets[0].element.getAttribute("name")).toBe("widget-1");
-        expect(widgets[0].element.querySelector("span")?.textContent).toBe("First Widget");
+        expect(widgets[0].element.querySelector("span")?.textContent).toBe(
+            "First Widget"
+        );
 
         // Add another widget
         await widgets.add({ name: "widget-2", label: "Second Widget" });
@@ -730,7 +741,10 @@ describe("Directive mx-item with add()", () => {
         expect(items[3].title).toBe("Item 4");
 
         // Replace item at index 1 (Item 2 -> New Item)
-        const replacedItem = await items.replace(1, { title: "New Item", done: true });
+        const replacedItem = await items.replace(1, {
+            title: "New Item",
+            done: true,
+        });
 
         // Check array after replacement
         expect(items.length).toBe(4);
@@ -754,11 +768,153 @@ describe("Directive mx-item with add()", () => {
         expect(list?.children[1].textContent).toBe("Updated Item");
 
         // Replace first item (index 0)
-        const firstReplaced = await items.replace(0, { title: "First Replaced", done: false });
+        const firstReplaced = await items.replace(0, {
+            title: "First Replaced",
+            done: false,
+        });
 
         expect(items.length).toBe(4);
         expect(items[0]).toBe(firstReplaced);
         expect(items[0].title).toBe("First Replaced");
         expect(list?.children[0].textContent).toBe("First Replaced");
+    });
+});
+
+describe("Directive mx-item - Component Replacement", () => {
+    beforeEach(() => {
+        CuboMX.reset();
+    });
+
+    it("should reset ArrayItems when component is removed and re-added with factory", async () => {
+        let destroyCalled = false;
+        let initCallCount = 0;
+
+        // Register a FACTORY component
+        CuboMX.component("myComp", () => ({
+            items: [],
+            init() {
+                initCallCount++;
+            },
+            destroy() {
+                destroyCalled = true;
+            },
+        }));
+
+        // Create initial component with 3 items
+        document.body.innerHTML = `
+            <div id="container">
+                <div mx-data="myComp()" mx-ref="myComp">
+                    <ul>
+                        <li mx-item="items" ::id="id" id="1" ::text="name">Item 1</li>
+                        <li mx-item="items" ::id="id" id="2" ::text="name">Item 2</li>
+                        <li mx-item="items" ::id="id" id="3" ::text="name">Item 3</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+
+        CuboMX.start();
+
+        // Check initial state - should have 3 items
+        let items = CuboMX.myComp.items;
+        expect(items.length).toBe(3);
+        expect(items[0].name).toBe("Item 1");
+        expect(items[1].name).toBe("Item 2");
+        expect(items[2].name).toBe("Item 3");
+
+        // Check that init was called once for the first component
+        expect(initCallCount).toBe(1);
+
+        // Remove the component from DOM
+        const container = document.getElementById("container")!;
+        container.innerHTML = "";
+
+        // Wait for MutationObserver to process removal
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        // Add a NEW component with the same name but different items (using factory)
+        container.innerHTML = `
+            <div mx-data="myComp()" mx-ref="myComp">
+                <ul>
+                    <li mx-item="items" ::id="id" id="4" ::text="name">Item 4</li>
+                    <li mx-item="items" ::id="id" id="5" ::text="name">Item 5</li>
+                    <li mx-item="items" ::id="id" id="6" ::text="name">Item 6</li>
+                </ul>
+            </div>
+        `;
+
+        // Wait for MutationObserver to process the new component
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        // Verify destroy was called for the old component
+        expect(destroyCalled).toBe(true);
+
+        // Verify init was called again for the new component
+        expect(initCallCount).toBe(2);
+
+        // Get the items again from the NEW component
+        items = CuboMX.myComp.items;
+
+        // Should have 3 items (the NEW ones, not 6 total)
+        expect(items.length).toBe(3);
+        expect(items[0].name).toBe("Item 4");
+        expect(items[1].name).toBe("Item 5");
+        expect(items[2].name).toBe("Item 6");
+
+        // Old items should NOT be present
+        expect(
+            items.find((item: any) => item.name === "Item 1")
+        ).toBeUndefined();
+        expect(
+            items.find((item: any) => item.name === "Item 2")
+        ).toBeUndefined();
+        expect(
+            items.find((item: any) => item.name === "Item 3")
+        ).toBeUndefined();
+    });
+
+    it("should maintain independence between multiple components with different names", () => {
+        document.body.innerHTML = `
+            <div id="container">
+                <div mx-data="comp1">
+                    <ul>
+                        <li mx-item="items" ::id="id" id="1" ::text="name">Comp1 Item 1</li>
+                        <li mx-item="items" ::id="id" id="2" ::text="name">Comp1 Item 2</li>
+                    </ul>
+                </div>
+                <div mx-data="comp2">
+                    <ul>
+                        <li mx-item="items" ::id="id" id="3" ::text="name">Comp2 Item 1</li>
+                        <li mx-item="items" ::id="id" id="4" ::text="name">Comp2 Item 2</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+
+        const comp1 = { items: [] };
+        const comp2 = { items: [] };
+
+        CuboMX.component("comp1", comp1);
+        CuboMX.component("comp2", comp2);
+        CuboMX.start();
+
+        // Each component should have its own items
+        expect(CuboMX.comp1.items.length).toBe(2);
+        expect(CuboMX.comp2.items.length).toBe(2);
+
+        expect(CuboMX.comp1.items[0].name).toBe("Comp1 Item 1");
+        expect(CuboMX.comp1.items[1].name).toBe("Comp1 Item 2");
+
+        expect(CuboMX.comp2.items[0].name).toBe("Comp2 Item 1");
+        expect(CuboMX.comp2.items[1].name).toBe("Comp2 Item 2");
+
+        // Remove comp1, comp2 should remain unaffected
+        const container = document.getElementById("container")!;
+        const comp1El = container.querySelector('[mx-data="comp1"]');
+        comp1El?.remove();
+
+        // comp2 should still have its items
+        expect(CuboMX.comp2.items.length).toBe(2);
+        expect(CuboMX.comp2.items[0].name).toBe("Comp2 Item 1");
     });
 });
