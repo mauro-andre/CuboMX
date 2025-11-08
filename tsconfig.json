@@ -18,6 +18,8 @@
       "cubomx": ["./src/cubomx.ts"]
     },
     "noEmit": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
   },
   "include": [
     "src/**/*",
