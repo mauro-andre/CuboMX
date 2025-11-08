@@ -276,3 +276,6 @@ const CuboMX = (() => {
 // Export developer-friendly types with clean names
 export { CuboMX, MxComponent };
 export type { ArrayItems, ClassList, RequestResponse };
+
+// Export JSX helpers for users who want to work with VNodes
+export { isVNode, renderVNodeToString } from "./jsx-helpers";

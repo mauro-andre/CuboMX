@@ -1,6 +1,8 @@
 import { MxElement } from "./types";
 import { captureState } from "./history";
 import { preprocessBindings } from "./rendering-helpers";
+import { normalizeToHTMLString } from "./jsx-helpers";
+import type { VNode } from "preact";
 
 interface Selector {
     cssSelector: string;
@@ -26,10 +28,13 @@ const selectorMode = (selector: string): Selector => {
 };
 
 const swap = async (
-    html: string,
+    html: string | VNode,
     swaps: Swap[],
     options?: Option
 ): Promise<void> => {
+    // Normalize input to HTML string (handles JSX/VNode)
+    const htmlString = await normalizeToHTMLString(html);
+
     const parser = new DOMParser();
 
     const pushUrl = options?.pushUrl;
@@ -72,7 +77,7 @@ const swap = async (
             continue;
         }
 
-        const parsedDoc = parser.parseFromString(html, "text/html");
+        const parsedDoc = parser.parseFromString(htmlString, "text/html");
 
         let select: Selector;
         let selectEl: MxElement | null;

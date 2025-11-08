@@ -23,6 +23,25 @@ To get started, add CuboMX to your project using npm:
 npm install cubomx
 ```
 
+**Optional: JSX/TSX Support**
+
+If you want to use JSX/TSX for server-side rendering with CuboMX:
+
+```bash
+npm install preact preact-render-to-string
+```
+
+Then configure your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  }
+}
+```
+
 ### Basic Setup
 
 Let's see a basic example in an `index.js` file:
@@ -598,21 +617,39 @@ You can chain modifiers to the event name to change its behavior:
 
 -   **`.prevent`**: Calls `event.preventDefault()` on the triggered event. Essential for handling form submissions without a page reload.
     ```html
+    <!-- HTML/Template syntax -->
     <form @submit.prevent="saveData()">
         <!-- Form won't reload the page -->
+    </form>
+
+    <!-- JSX/TSX syntax (case-insensitive) -->
+    <form mx-on:submitPrevent="saveData()">
+        <!-- Also works: submitprevent, SUBMITPREVENT -->
     </form>
     ```
 -   **`.stop`**: Calls `event.stopPropagation()`, preventing the event from bubbling up to parent elements.
     ```html
+    <!-- HTML/Template syntax -->
     <div @click="outerClick()">
         <button @click.stop="innerClick()">Click me</button>
         <!-- `outerClick` will not be called when the button is clicked -->
     </div>
+
+    <!-- JSX/TSX syntax -->
+    <div mx-on:click="outerClick()">
+        <button mx-on:clickStop="innerClick()">Click me</button>
+    </div>
     ```
 -   **`.outside`**: A special modifier that listens for a click _outside_ of the element it is placed on. This is extremely useful for closing modals, dropdowns, and popovers.
     ```html
+    <!-- HTML/Template syntax -->
     <div mx-data="dropdown">
         <div mx-show="isOpen" @click.outside="close()">Dropdown content</div>
+    </div>
+
+    <!-- JSX/TSX syntax -->
+    <div mx-data="dropdown">
+        <div mx-show="isOpen" mx-on:clickOutside="close()">Dropdown content</div>
     </div>
     ```
     ```javascript
@@ -623,6 +660,16 @@ You can chain modifiers to the event name to change its behavior:
         },
     });
     ```
+
+**JSX/TSX Compatibility:**
+
+Since JSX doesn't allow the `@` symbol or dots in attribute names, CuboMX provides an alternative syntax by appending the modifier name directly to the event (case-insensitive):
+
+- `@click.prevent` → `mx-on:clickPrevent` (or `clickprevent`, `CLICKPREVENT`)
+- `@submit.stop` → `mx-on:submitStop`
+- `@click.outside` → `mx-on:clickOutside`
+
+Both syntaxes work identically in all environments.
 
 #### Passing Data with Magic Variables
 
@@ -1387,9 +1434,9 @@ if ($loginSuccess) {
 
 #### `CuboMX.swap(html, swaps, options)`
 
-A low-level utility to swap fragments of an HTML string into the live DOM. This is useful when you receive HTML from a request and want to precisely control how it updates the page.
+A low-level utility to swap fragments of an HTML string or JSX into the live DOM. This is useful when you receive HTML from a request and want to precisely control how it updates the page.
 
--   `html` (string): The HTML string to source the content from.
+-   `html` (string | VNode): The HTML string or JSX/TSX element to source the content from. When using JSX, Preact VNodes are automatically rendered to HTML server-side.
 -   `swaps` (Array): An array of swap strategy objects. Each object defines how a piece of the new `html` should be placed into the DOM.
 -   `options` (Object, optional): An object for additional controls.
     -   `pushUrl` (string): A URL to push to the browser's history stack. When this option is used, CuboMX enables support for the browser's back and forward buttons. It works by automatically capturing the current state of the swapped elements _before_ the swap, and when the user navigates back, it restores the captured HTML, providing a fast, SPA-like navigation experience without extra server requests.
@@ -1479,7 +1526,42 @@ function loadUserProfile(userData) {
     // - <img> will have the actual avatar URL
     // - The MutationObserver then hydrates it for reactivity
 }
+
+// Example with JSX/TSX (requires Preact):
+import { h } from "preact";
+
+function UserCard({ name, email }: { name: string; email: string }) {
+    return (
+        <div mx-data="userCard" className="user-card">
+            <h2 mx-bind:text="name">{name}</h2>
+            <p mx-bind:text="email">{email}</p>
+        </div>
+    );
+}
+
+// Swap JSX directly - it's automatically rendered to HTML
+await CuboMX.swap(
+    <UserCard name="John Doe" email="john@example.com" />,
+    [{ target: "#container:innerHTML" }]
+);
+
+// After hydration, the component becomes reactive
+CuboMX.userCard.name = "Jane Smith"; // DOM updates automatically
 ```
+
+**JSX/TSX Support:**
+
+CuboMX supports JSX/TSX via Preact for server-side rendering. To use this feature:
+
+1. Install dependencies: `npm install preact preact-render-to-string`
+2. Configure TypeScript: Add `"jsx": "react-jsx"` and `"jsxImportSource": "preact"` to your `tsconfig.json`
+3. Use JSX in `CuboMX.swap()` - it will be automatically rendered to HTML
+
+Benefits of using JSX:
+- Type-safe component props with TypeScript
+- Familiar React-like syntax
+- Composable components
+- Works seamlessly with CuboMX directives (`mx-data`, `mx-bind:*`, `@click`, etc.)
 
 **Data Preprocessing:**
 

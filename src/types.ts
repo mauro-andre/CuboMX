@@ -51,7 +51,7 @@ type PublicAPI = {
     component: (name: string, def: object | Function) => void;
     store: (name: string, def: object) => void;
     swap: (
-        html: string,
+        html: string | any, // VNode from preact (using 'any' to avoid hard dependency)
         swaps: Array<{ select?: string; target: string }>,
         options?: {
             pushUrl?: string;

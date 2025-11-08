@@ -9,15 +9,63 @@ interface ParseEvent {
     itemProxy: MxElProxy | null;
 }
 
+/**
+ * Parses event name and modifiers intelligently from multiple formats
+ * Works with:
+ * - Dot notation: "click.prevent", "submit.stop"
+ * - camelCase: "clickPrevent", "submitStop" (from JSX)
+ * - lowercase: "clickprevent", "submitstop" (HTML normalized)
+ *
+ * Examples:
+ * - "click" → { trigger: "click", modifier: undefined }
+ * - "click.prevent" → { trigger: "click", modifier: "prevent" }
+ * - "clickPrevent" → { trigger: "click", modifier: "prevent" }
+ * - "clickprevent" → { trigger: "click", modifier: "prevent" }
+ * - "submitStop" → { trigger: "submit", modifier: "stop" }
+ * - "clickOutside" → { trigger: "click", modifier: "outside" }
+ */
+const parseEventWithModifier = (
+    eventName: string
+): { trigger: string; modifier: string | undefined } => {
+    // Known modifiers (lowercase for case-insensitive matching)
+    const knownModifiers = ["prevent", "stop", "outside"];
+
+    // Convert to lowercase for case-insensitive comparison
+    const eventLower = eventName.toLowerCase();
+
+    // Try to find a modifier at the end
+    for (const mod of knownModifiers) {
+        if (eventLower.endsWith(mod)) {
+            // Remove the modifier from the end
+            let trigger = eventName.slice(0, -mod.length);
+
+            // If there's a trailing dot (from "click.prevent"), remove it
+            if (trigger.endsWith(".")) {
+                trigger = trigger.slice(0, -1);
+            }
+
+            // Make sure we still have a valid trigger
+            if (trigger.length > 0) {
+                return { trigger, modifier: mod };
+            }
+        }
+    }
+
+    // No modifier found, return as-is
+    return { trigger: eventName, modifier: undefined };
+};
+
 const parseEvents = (el: MxElement, publicAPI: PublicAPI): ParseEvent[] => {
     const parses = [];
     const prefixes = ["mx-on:", "@"];
     for (const attr of Array.from(el.attributes)) {
         for (const prefix of prefixes) {
             if (attr.name.startsWith(prefix)) {
-                const data = attr.name.slice(prefix.length).split(".");
-                const trigger = data[0];
-                const modifier = data[1];
+                const eventPart = attr.name.slice(prefix.length);
+
+                // Use the unified parser that handles all formats
+                const { trigger, modifier } = parseEventWithModifier(eventPart);
+
                 let callbackName = null;
                 let proxy = null;
                 if (attr.value.startsWith("$")) {
